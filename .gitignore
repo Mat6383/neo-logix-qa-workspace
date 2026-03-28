@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment variables (secrets)
+.env
+.env.local
+
+# Build output
+frontend/dist/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQLite (local data)
+*.db
+
+# Output
+output/
+logs/
+
+# Claude local config
+.claude/

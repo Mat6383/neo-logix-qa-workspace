@@ -1,0 +1,42 @@
+# ==========================================
+# SÉCURITÉ - Ne jamais versionner ces fichiers
+# ==========================================
+
+# Variables d'environnement (CRITIQUE - contient les tokens API)
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# Dépendances
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+.parcel-cache/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
