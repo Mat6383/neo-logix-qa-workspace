@@ -142,22 +142,24 @@ const ConfigurationScreen = ({ projectId, isDark, onSaveSelection, initialPrepro
                             Runs Production (Max 2)
                         </h3>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                            <Filter size={16} color="var(--text-color)" style={{ opacity: 0.7 }} />
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Filtrer par Jalon</span>
-                        </div>
-                        <select
-                            multiple
-                            value={selectedProdMilestones.map(String)}
-                            onChange={handleProdMilestonesChange}
-                            style={{ ...filterSelectStyle, height: '100px' }}
-                        >
-                            {milestones.map(m => (
-                                <option key={m.id} value={m.id} style={{ padding: '4px' }}>{m.name}</option>
-                            ))}
-                        </select>
-                        <div style={{ marginTop: '-0.5rem', marginBottom: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
-                            {selectedProdMilestones.length} jalon(s) sélectionné(s) sur 2 max
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <Filter size={16} color="var(--text-color)" style={{ opacity: 0.7 }} />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Filtrer par Jalon</span>
+                            </div>
+                            <select
+                                multiple
+                                value={selectedProdMilestones.map(String)}
+                                onChange={handleProdMilestonesChange}
+                                style={{ ...filterSelectStyle, height: '100px' }}
+                            >
+                                {milestones.map(m => (
+                                    <option key={m.id} value={m.id} style={{ padding: '4px' }}>{m.name}</option>
+                                ))}
+                            </select>
+                            <div style={{ marginTop: '-0.5rem', marginBottom: '1rem', fontSize: '0.8rem', opacity: 0.7 }}>
+                                {selectedProdMilestones.length} jalon(s) sélectionné(s) sur 2 max
+                            </div>
                         </div>
                     </div>
                 </div>

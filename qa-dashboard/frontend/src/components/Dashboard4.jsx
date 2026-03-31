@@ -9,7 +9,7 @@ import TestClosureModal from './TestClosureModal';
 import QuickClosureModal from './QuickClosureModal';
 import ReportGeneratorModal from './ReportGeneratorModal';
 
-const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setExportHandler }) => {
+const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setExportHandler, showProductionSection = true, onToggleProductionSection }) => {
     const dashboardRef = useRef(null);
     const [showAllRuns, setShowAllRuns] = React.useState(false);
     const [showClosureModal, setShowClosureModal] = React.useState(false);
@@ -441,12 +441,46 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
 
                 {/* --- SECTION PRODUCTION --- */}
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                         <h2 style={{ fontSize: '1.35rem', color: 'var(--text-color)', margin: 0 }}>
                             {useBusiness ? 'PRODUCTION' : 'PRODUCTION'}
                         </h2>
+                        {onToggleProductionSection && (
+                            <div
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
+                                onClick={() => onToggleProductionSection(!showProductionSection)}
+                            >
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: showProductionSection ? '#10B981' : 'var(--text-muted)', transition: 'color 0.3s' }}>
+                                    {showProductionSection ? 'Visible' : 'Masqué'}
+                                </span>
+                                <div style={{
+                                    width: '44px',
+                                    height: '22px',
+                                    backgroundColor: showProductionSection ? '#10B981' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'),
+                                    borderRadius: '11px',
+                                    position: 'relative',
+                                    transition: 'background-color 0.3s ease',
+                                    border: showProductionSection ? '1px solid #059669' : '1px solid var(--border-color)',
+                                    boxShadow: showProductionSection ? '0 0 8px rgba(16, 185, 129, 0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                                }}>
+                                    <div style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        backgroundColor: 'white',
+                                        borderRadius: '50%',
+                                        position: 'absolute',
+                                        top: '2px',
+                                        left: showProductionSection ? '24px' : '2px',
+                                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                                    }} />
+                                </div>
+                            </div>
+                        )}
                         <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }}></div>
                     </div>
+
+                    {showProductionSection && <>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.75rem', marginBottom: '0.5rem' }}>
 
@@ -513,6 +547,7 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                         </div>
                     </div>
 
+                    </>}
                 </div> {/* Fin Section Prod */}
             </div>
             

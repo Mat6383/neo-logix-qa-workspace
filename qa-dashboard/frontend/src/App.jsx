@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from './services/api.service';
 import MetricsCards from './components/MetricsCards';
 import StatusChart from './components/StatusChart';
@@ -60,6 +60,16 @@ function App() {
     const saved = localStorage.getItem('testmo_selectedProdMilestones');
     return saved ? JSON.parse(saved) : [];
   });
+  const [showProductionSection, setShowProductionSection] = useState(() => {
+    const saved = localStorage.getItem('testmo_showProductionSection');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Refs pour éviter les race conditions
+  const abortControllerRef = useRef(null);
+  const lastRefreshRef = useRef(Date.now()); // Initialisé à now pour bloquer les refreshs pendant le chargement initial
+  const isLoadingRef = useRef(false);
+  const REFRESH_COOLDOWN = 5000; // 5s minimum entre deux rechargements
 
   // Effet: Sauvegarde des préférences dans le localStorage
   useEffect(() => {
@@ -70,7 +80,8 @@ function App() {
     localStorage.setItem('testmo_tvMode', tvMode);
     localStorage.setItem('testmo_darkMode', darkMode);
     localStorage.setItem('testmo_useBusinessTerms', useBusinessTerms);
-  }, [projectId, selectedPreprodMilestones, selectedProdMilestones, dashboardView, tvMode, darkMode, useBusinessTerms]);
+    localStorage.setItem('testmo_showProductionSection', showProductionSection);
+  }, [projectId, selectedPreprodMilestones, selectedProdMilestones, dashboardView, tvMode, darkMode, useBusinessTerms, showProductionSection]);
 
   /**
    * Vérifie la santé du backend
@@ -102,8 +113,23 @@ function App() {
   /**
    * Charge les métriques du dashboard
    * ISTQB: Test Monitoring
+   * Protection contre les race conditions via AbortController + cooldown
    */
-  const loadDashboardMetrics = useCallback(async () => {
+  const loadDashboardMetrics = useCallback(async (force = false) => {
+    // Éviter les appels concurrents sauf si forcé (ex: changement de projet)
+    if (isLoadingRef.current && !force) {
+      console.log('[loadDashboardMetrics] Chargement déjà en cours, ignoré');
+      return;
+    }
+
+    // Annuler la requête précédente si elle est encore en cours
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    isLoadingRef.current = true;
+
     try {
       setLoading(true);
       setError(null);
@@ -117,10 +143,19 @@ function App() {
         apiService.getDashboardMetrics(
           projectId,
           selectedPreprodMilestones.length > 0 ? selectedPreprodMilestones : null,
-          selectedProdMilestones.length > 0 ? selectedProdMilestones : null
+          selectedProdMilestones.length > 0 ? selectedProdMilestones : null,
+          controller.signal
         ),
-        fetch(`http://localhost:3001/api/dashboard/${projectId}/quality-rates${queryString}`).then(res => res.json()).catch(() => ({ success: false }))
+        fetch(`http://localhost:3001/api/dashboard/${projectId}/quality-rates${queryString}`, {
+          signal: controller.signal
+        }).then(res => res.json()).catch((err) => {
+          if (err.name === 'AbortError') throw err;
+          return { success: false };
+        })
       ]);
+
+      // Ignorer si cette requête a été annulée entre-temps
+      if (controller.signal.aborted) return;
 
       if (metricsResponse.success) {
         setMetrics({
@@ -128,15 +163,20 @@ function App() {
           qualityRates: qualityResponse.success ? qualityResponse.data : null
         });
         setLastUpdate(new Date());
+        lastRefreshRef.current = Date.now();
       } else {
         throw new Error(metricsResponse.error || 'Erreur inconnue');
       }
 
     } catch (err) {
+      if (err.name === 'AbortError' || err.name === 'CanceledError' || controller.signal.aborted) return;
       setError(err.message);
       console.error('Erreur chargement métriques:', err);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+      isLoadingRef.current = false;
     }
   }, [projectId, selectedPreprodMilestones, selectedProdMilestones]);
 
@@ -162,12 +202,19 @@ function App() {
     setProjectId(newProjectId);
   };
 
-  // Effet initial: vérifier backend et charger données
+  // Effet initial: vérifier backend et charger données (une seule fois au mount)
   useEffect(() => {
     checkBackendHealth();
     loadProjects();
-    loadDashboardMetrics();
-  }, [checkBackendHealth, loadProjects, loadDashboardMetrics]);
+    loadDashboardMetrics(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recharger quand le projet ou les milestones changent
+  useEffect(() => {
+    loadDashboardMetrics(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, selectedPreprodMilestones, selectedProdMilestones]);
 
   // Effet: Auto-refresh toutes les minutes (LEAN)
   useEffect(() => {
@@ -182,20 +229,23 @@ function App() {
   }, [autoRefresh, loadDashboardMetrics]);
 
   // Effet: Rafraichissement forcé au retour sur la page (ex: plein écran F11 après veille)
+  // Throttlé pour éviter les avalanches de requêtes (focus + visibilitychange + resize se déclenchent souvent ensemble)
   useEffect(() => {
     if (!autoRefresh) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Auto-refresh] Retour focus/visibilité - Rechargement immédiat des métriques');
+        if (isLoadingRef.current) return;
+        const now = Date.now();
+        if (now - lastRefreshRef.current < REFRESH_COOLDOWN) return;
+        console.log('[Auto-refresh] Retour focus/visibilité - Rechargement des métriques');
+        lastRefreshRef.current = now;
         loadDashboardMetrics();
       }
     };
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
-    // Certains navigateurs peuvent bloquer les updates visuelles en fullscreen s'il n'y a pas d'activité.
-    // L'évènement `resize` pinge lors d'une entrée/sortie F11 pour être sûr que les données s'alignent.
     window.addEventListener('resize', handleVisibilityChange);
 
     return () => {
@@ -400,6 +450,8 @@ function App() {
             isDark={darkMode}
             useBusiness={useBusinessTerms}
             setExportHandler={setExportHandler}
+            showProductionSection={showProductionSection}
+            onToggleProductionSection={setShowProductionSection}
           />
         ) : dashboardView === '5' ? (
           <Dashboard5

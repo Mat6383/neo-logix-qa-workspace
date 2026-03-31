@@ -78,14 +78,17 @@ const apiService = {
    * 
    * @param {number} projectId - ID du projet
    */
-  async getDashboardMetrics(projectId, preprodMilestones = null, prodMilestones = null) {
+  async getDashboardMetrics(projectId, preprodMilestones = null, prodMilestones = null, signal = null) {
     try {
       const params = {};
       if (preprodMilestones) params.preprodMilestones = preprodMilestones.join(',');
       if (prodMilestones) params.prodMilestones = prodMilestones.join(',');
-      const response = await apiClient.get(`/dashboard/${projectId}`, { params });
+      const config = { params };
+      if (signal) config.signal = signal;
+      const response = await apiClient.get(`/dashboard/${projectId}`, config);
       return response.data;
     } catch (error) {
+      if (error.name === 'AbortError' || error.name === 'CanceledError') throw error;
       throw this._handleError('Get Dashboard Metrics', error);
     }
   },
