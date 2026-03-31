@@ -448,10 +448,11 @@ class TestmoService {
           })),
           ...sessions.map(session => {
             // Progression:
-            // 1. Si statut terminal (Passed, Failed, Blocked, Skipped), progression = 100%
+            // 1. Si session fermée (is_closed), progression = 100%
             // 2. Si session "libre" (total=0) mais avec au moins un résultat décisif, progression = 100%
             // 3. Sinon, ratio classique (exécutés / total)
-            const isTerminal = [1, 2, 4, 5].includes(session.status_id);
+            // Note: les sessions utilisent "state_id" (custom), pas "status_id"
+            const isTerminal = !!session.is_closed;
             const total = session.total_count || 0;
             const executed = (session.status1_count || 0) + (session.status2_count || 0) + (session.status4_count || 0) + (session.status5_count || 0);
             
@@ -464,6 +465,14 @@ class TestmoService {
               completionRate = this._calculatePercentage(executed, total);
             }
 
+            // Pass rate: success_count / (success_count + failure_count)
+            // Les sessions Testmo utilisent "state_id" (pas "status_id") et accumulent
+            // tous les logs y compris les retests — on utilise donc les compteurs
+            // success_count/failure_count qui sont les seules données fiables disponibles.
+            const successCount = session.success_count || 0;
+            const failureCount = session.failure_count || 0;
+            const sessionPassRate = this._calculatePercentage(successCount, successCount + failureCount);
+
             return {
               id: `session-${session.id}`,
               name: session.name,
@@ -475,9 +484,8 @@ class TestmoService {
               wip: session.status7_count || 0,
               untested: session.untested_count || 0,
               completionRate: completionRate,
-              // Success Rate: Basé sur latest status_id (1 = Passed)
-              passRate: session.status_id === 1 ? 100 : 0,
-              status_id: session.status_id,
+              passRate: sessionPassRate,
+              state_id: session.state_id,
               created_at: session.created_at,
               milestone: session.milestone_id,
               isExploratory: true,
