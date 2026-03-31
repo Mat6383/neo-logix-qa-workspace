@@ -357,36 +357,26 @@ class TestmoService {
         completed: 0, success: 0, failure: 0
       });
 
-      // Ajout des sessions exploratoires dans la répartition globale (1 session = 1 unité)
+      // Ajout des sessions exploratoires dans la répartition globale
+      // Les sessions utilisent "state_id" (custom) et non "status_id" — on utilise
+      // donc success_count/failure_count pour ajouter les vrais résultats de test.
       sessions.forEach(session => {
-        aggregated.total += 1;
-        switch (session.status_id) {
-          case 1: // Passed
-            aggregated.passed += 1;
-            aggregated.completed += 1;
-            aggregated.success += 1;
-            break;
-          case 2: // Failed
-            aggregated.failed += 1;
-            aggregated.completed += 1;
-            aggregated.failure += 1;
-            break;
-          case 3: // Retest
-            aggregated.retest += 1;
-            break;
-          case 4: // Blocked
-            aggregated.blocked += 1;
-            aggregated.completed += 1;
-            break;
-          case 5: // Skipped
-            aggregated.skipped += 1;
-            aggregated.completed += 1;
-            break;
-          case 7: // WIP
-            aggregated.wip += 1;
-            break;
-          default:
-            aggregated.untested += 1;
+        const sc = session.success_count || 0;
+        const fc = session.failure_count || 0;
+        const sessionTotal = sc + fc;
+
+        if (sessionTotal > 0) {
+          // Session avec résultats : on ajoute les vrais compteurs
+          aggregated.total     += sessionTotal;
+          aggregated.passed    += sc;
+          aggregated.failed    += fc;
+          aggregated.completed += sessionTotal;
+          aggregated.success   += sc;
+          aggregated.failure   += fc;
+        } else {
+          // Session sans résultat encore → comptée comme 1 WIP
+          aggregated.total += 1;
+          aggregated.wip   += 1;
         }
       });
 
