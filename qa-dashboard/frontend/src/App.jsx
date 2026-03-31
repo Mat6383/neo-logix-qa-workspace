@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import './styles/App.css';
 
+const REFRESH_COOLDOWN = 5000; // 5s minimum entre deux rechargements
+
 function App() {
   // État de l'application (avec persistance localStorage)
   const [projectId, setProjectId] = useState(() => parseInt(localStorage.getItem('testmo_projectId')) || 1);
@@ -69,8 +71,6 @@ function App() {
   const abortControllerRef = useRef(null);
   const lastRefreshRef = useRef(Date.now()); // Initialisé à now pour bloquer les refreshs pendant le chargement initial
   const isLoadingRef = useRef(false);
-  const REFRESH_COOLDOWN = 5000; // 5s minimum entre deux rechargements
-
   // Effet: Sauvegarde des préférences dans le localStorage
   useEffect(() => {
     localStorage.setItem('testmo_projectId', projectId);

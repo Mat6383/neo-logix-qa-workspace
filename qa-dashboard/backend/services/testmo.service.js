@@ -361,18 +361,18 @@ class TestmoService {
       // Les sessions utilisent "state_id" (custom) et non "status_id" — on utilise
       // donc success_count/failure_count pour ajouter les vrais résultats de test.
       sessions.forEach(session => {
-        const sc = session.success_count || 0;
-        const fc = session.failure_count || 0;
-        const sessionTotal = sc + fc;
+        const successCount = session.success_count || 0;
+        const failureCount = session.failure_count || 0;
+        const sessionTotal = successCount + failureCount;
 
         if (sessionTotal > 0) {
           // Session avec résultats : on ajoute les vrais compteurs
           aggregated.total     += sessionTotal;
-          aggregated.passed    += sc;
-          aggregated.failed    += fc;
+          aggregated.passed    += successCount;
+          aggregated.failed    += failureCount;
           aggregated.completed += sessionTotal;
-          aggregated.success   += sc;
-          aggregated.failure   += fc;
+          aggregated.success   += successCount;
+          aggregated.failure   += failureCount;
         } else {
           // Session sans résultat encore → comptée comme 1 WIP
           aggregated.total += 1;
@@ -456,9 +456,7 @@ class TestmoService {
             }
 
             // Pass rate: success_count / (success_count + failure_count)
-            // Les sessions Testmo utilisent "state_id" (pas "status_id") et accumulent
-            // tous les logs y compris les retests — on utilise donc les compteurs
-            // success_count/failure_count qui sont les seules données fiables disponibles.
+            // Compteurs cumulatifs (retests inclus) — seule donnée fiable pour les sessions.
             const successCount = session.success_count || 0;
             const failureCount = session.failure_count || 0;
             const sessionPassRate = this._calculatePercentage(successCount, successCount + failureCount);
