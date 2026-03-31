@@ -43,12 +43,12 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
     return 'Release';
   })();
 
-  const milestoneId = runs[0]?.milestone_id || null;
+  const milestoneId = runs[0]?.milestone || null;
   const projectId = project?.id || 1;
 
-  const totalTests = runs.reduce((s, r) => s + (r.total_count || 0), 0);
-  const totalPassed = runs.reduce((s, r) => s + (r.success_count || r.passed || 0), 0);
-  const totalFailed = runs.reduce((s, r) => s + (r.failure_count || r.failed || 0), 0);
+  const totalTests = runs.reduce((s, r) => s + (r.total || 0), 0);
+  const totalPassed = runs.reduce((s, r) => s + (r.passed || 0), 0);
+  const totalFailed = runs.reduce((s, r) => s + (r.failed || 0), 0);
 
   // Recommendations handlers
   const updateReco = (id, field, value) => {
