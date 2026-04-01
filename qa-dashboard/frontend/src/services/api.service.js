@@ -209,6 +209,71 @@ const apiService = {
     }
   },
 
+  // ---- Dashboard 6: Sync GitLab → Testmo --------------------------------
+
+  /**
+   * Récupère la liste des projets sync configurés
+   * @returns {Promise<Array>} [{ id, label, configured }]
+   */
+  async getSyncProjects() {
+    try {
+      const response = await apiClient.get('/sync/projects');
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Sync Projects', error);
+    }
+  },
+
+  /**
+   * Recherche les itérations GitLab disponibles pour un projet
+   * @param {string} projectId  - ID interne (ex: 'neo-pilot')
+   * @param {string} search     - Terme de recherche (facultatif)
+   * @returns {Promise<Array>} [{ id, title, state, web_url }]
+   */
+  async getSyncIterations(projectId, search = '') {
+    try {
+      const response = await apiClient.get(`/sync/${projectId}/iterations`, {
+        params: search ? { search } : {}
+      });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Sync Iterations', error);
+    }
+  },
+
+  /**
+   * Lance un aperçu (dry-run) de synchronisation
+   * @param {string} projectId     - ID interne du projet
+   * @param {string} iterationName - Nom de l'itération
+   * @returns {Promise<Object>} { iteration, folder, issues, summary }
+   */
+  async previewSync(projectId, iterationName) {
+    try {
+      const response = await apiClient.post('/sync/preview', { projectId, iterationName }, { timeout: 60000 });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Preview Sync', error);
+    }
+  },
+
+  /**
+   * Récupère l'historique des synchronisations (50 derniers)
+   * @returns {Promise<Array>}
+   */
+  async getSyncHistory() {
+    try {
+      const response = await apiClient.get('/sync/history');
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Sync History', error);
+    }
+  },
+
+  // Note: la synchronisation réelle (execute) utilise EventSource (SSE) côté frontend,
+  // pas axios. Voir Dashboard6.jsx → executeSyncSSE().
+
+  // ---- Fin Dashboard 6 ---------------------------------------------------
+
   /**
    * Gestion des erreurs
    * @private

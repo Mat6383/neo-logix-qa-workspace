@@ -29,6 +29,86 @@ class SyncService {
   }
 
   /**
+   * Retourne une version du service configurée pour un projet spécifique.
+   * N'instancie pas une nouvelle classe — retourne un objet proxy léger
+   * qui surcharge les propriétés sans muter le singleton.
+   *
+   * @param {Object} projectConfig - Entrée de projects.config.js
+   * @returns {Object} Proxy avec config surchargée
+   */
+  _withProjectConfig(projectConfig) {
+    const testmo = projectConfig.testmo || {};
+    const gitlab = projectConfig.gitlab || {};
+
+    return {
+      // Bind toutes les méthodes utiles sur ce contexte étendu
+      projectId:                testmo.projectId   || this.projectId,
+      rootGroupId:              testmo.rootFolderId !== undefined ? testmo.rootFolderId : this.rootGroupId,
+      gitlabLabel:              gitlab.label       || this.gitlabLabel,
+      gitlabIntegrationId:      testmo.gitlabIntegrationId           || this.gitlabIntegrationId,
+      gitlabConnectionProjectId: testmo.gitlabConnectionProjectId    || this.gitlabConnectionProjectId,
+      apiDelay:                 this.apiDelay,
+      _delay:                   this._delay.bind(this),
+      parseIterationName:       this.parseIterationName.bind(this),
+      buildCasePayload:         (issue, folderId, iterationName) =>
+        this._buildCasePayloadWith(issue, folderId, iterationName, {
+          gitlabIntegrationId: testmo.gitlabIntegrationId || this.gitlabIntegrationId,
+          gitlabConnectionProjectId: testmo.gitlabConnectionProjectId || this.gitlabConnectionProjectId
+        }),
+      ensureFolderHierarchy:    (iterationName, isTest) =>
+        this._ensureFolderHierarchyWith(iterationName, isTest, testmo.projectId || this.projectId, testmo.rootFolderId !== undefined ? testmo.rootFolderId : this.rootGroupId),
+      gitlabProjectId:          gitlab.projectId
+    };
+  }
+
+  /**
+   * Version paramétrée de buildCasePayload (évite de muter this)
+   */
+  _buildCasePayloadWith(issue, folderId, iterationName, integrationConfig) {
+    const iid = issue.iid;
+    const title = issue.title || '';
+    const description = issue.description || '';
+
+    const tags = ['sync-auto'];
+    const estimate = gitlabService.constructor.formatEstimate(issue.time_stats?.time_estimate || 0);
+
+    const payload = {
+      name: title,
+      folder_id: folderId,
+      tags,
+      custom_description: description ? marked.parse(description.substring(0, 4000)) : '',
+      issues: [{
+        display_id: String(iid),
+        integration_id: integrationConfig.gitlabIntegrationId,
+        connection_project_id: integrationConfig.gitlabConnectionProjectId
+      }]
+    };
+
+    if (estimate) {
+      payload.estimate = estimate;
+    }
+
+    return payload;
+  }
+
+  /**
+   * Version paramétrée de ensureFolderHierarchy
+   */
+  async _ensureFolderHierarchyWith(iterationName, isTest = false, projectId, rootGroupId) {
+    const { parent, child } = this.parseIterationName(iterationName);
+    const parentName = isTest ? `[TEST-API] ${parent}` : parent;
+
+    logger.info(`Sync: Création arborescence — "${parentName}" > "${child}" (project=${projectId}, root=${rootGroupId})`);
+
+    const parentFolder = await testmoService.getOrCreateFolder(projectId, parentName, rootGroupId);
+    await this._delay();
+
+    const childFolder = await testmoService.getOrCreateFolder(projectId, child, parentFolder.id);
+
+    return { parentFolder, childFolder };
+  }
+
+  /**
    * Pause entre requêtes API
    */
   _delay() {
@@ -65,27 +145,7 @@ class SyncService {
    * @returns {{ parentFolder: Object, childFolder: Object }}
    */
   async ensureFolderHierarchy(iterationName, isTest = false) {
-    const { parent, child } = this.parseIterationName(iterationName);
-    const parentName = isTest ? `[TEST-API] ${parent}` : parent;
-
-    logger.info(`Sync: Création arborescence — "${parentName}" > "${child}"`);
-
-    // 1. Créer/récupérer le dossier parent sous la racine (group_id=4514)
-    const parentFolder = await testmoService.getOrCreateFolder(
-      this.projectId,
-      parentName,
-      this.rootGroupId
-    );
-    await this._delay();
-
-    // 2. Créer/récupérer le sous-dossier
-    const childFolder = await testmoService.getOrCreateFolder(
-      this.projectId,
-      child,
-      parentFolder.id
-    );
-
-    return { parentFolder, childFolder };
+    return this._ensureFolderHierarchyWith(iterationName, isTest, this.projectId, this.rootGroupId);
   }
 
   /**
@@ -97,81 +157,104 @@ class SyncService {
    * @returns {Object} Payload Testmo
    */
   buildCasePayload(issue, folderId, iterationName) {
-    const iid = issue.iid;
-    const title = issue.title || '';
-    const description = issue.description || '';
-
-    // Tags : sync marker uniquement (itération = nom du dossier, IID = champ Issues)
-    const tags = ['sync-auto'];
-
-    // Estimate : GitLab time_estimate (secondes) → format Testmo
-    const estimate = gitlabService.constructor.formatEstimate(issue.time_stats?.time_estimate || 0);
-
-    const payload = {
-      name: title,
-      folder_id: folderId,
-      tags,
-      custom_description: description ? marked.parse(description.substring(0, 4000)) : '',
-      // Lien natif GitLab → Testmo Issues (remplace le tag gitlab-IID)
-      issues: [{
-        display_id: String(iid),
-        integration_id: this.gitlabIntegrationId,
-        connection_project_id: this.gitlabConnectionProjectId
-      }]
-    };
-
-    if (estimate) {
-      payload.estimate = estimate;
-    }
-
-    return payload;
+    return this._buildCasePayloadWith(issue, folderId, iterationName, {
+      gitlabIntegrationId: this.gitlabIntegrationId,
+      gitlabConnectionProjectId: this.gitlabConnectionProjectId
+    });
   }
 
   /**
    * Pipeline principal de synchronisation
    * LEAN : flux pull, idempotent, anti-Muda
    *
-   * @param {string} iterationName - Nom de l'itération (ex: "R06 - run 1")
-   * @param {Object} options
-   * @param {boolean} options.isTest - Mode test (préfixe [TEST-API])
-   * @param {boolean} options.dryRun - Mode simulation (pas d'écriture)
+   * @param {string}   iterationName          - Nom de l'itération (ex: "R06 - run 1")
+   * @param {Object}   options
+   * @param {boolean}  options.isTest         - Mode test (préfixe [TEST-API])
+   * @param {boolean}  options.dryRun         - Mode simulation (pas d'écriture)
+   * @param {Object}   options.projectConfig  - Config projet (projects.config.js), surcharge les env vars
+   * @param {Function} onEvent                - Callback (type, data) pour les événements SSE
    * @returns {Object} Rapport de synchronisation
    */
-  async syncIteration(iterationName, options = {}) {
-    const { isTest = false, dryRun = false } = options;
+  async syncIteration(iterationName, options = {}, onEvent = null) {
+    const { isTest = false, dryRun = false, projectConfig = null } = options;
     const stats = { created: 0, updated: 0, skipped: 0, enriched: 0, errors: 0, total: 0 };
+
+    // Résoudre la config effective
+    const cfg = projectConfig ? this._withProjectConfig(projectConfig) : {
+      projectId: this.projectId,
+      rootGroupId: this.rootGroupId,
+      gitlabLabel: this.gitlabLabel,
+      gitlabIntegrationId: this.gitlabIntegrationId,
+      gitlabConnectionProjectId: this.gitlabConnectionProjectId,
+      gitlabProjectId: null,
+      buildCasePayload: this.buildCasePayload.bind(this),
+      ensureFolderHierarchy: this.ensureFolderHierarchy.bind(this)
+    };
+
+    const emit = (type, data = {}) => {
+      if (typeof onEvent === 'function') {
+        onEvent(type, data);
+      }
+    };
 
     logger.info('='.repeat(60));
     logger.info(`Sync: Démarrage synchronisation GitLab → Testmo`);
-    logger.info(`Sync: Itération="${iterationName}" | Label="${this.gitlabLabel}" | Test=${isTest} | DryRun=${dryRun}`);
+    logger.info(`Sync: Itération="${iterationName}" | Label="${cfg.gitlabLabel}" | Test=${isTest} | DryRun=${dryRun}`);
     logger.info('='.repeat(60));
+
+    emit('start', { iterationName, dryRun });
 
     try {
       // 1. Rechercher l'itération dans GitLab
       logger.info('Sync: [1/4] Recherche itération GitLab...');
-      const iteration = await gitlabService.findIteration(iterationName);
+
+      // Support per-project GitLab projectId
+      let iteration;
+      if (cfg.gitlabProjectId) {
+        iteration = await gitlabService.findIterationForProject(cfg.gitlabProjectId, iterationName);
+      } else {
+        iteration = await gitlabService.findIteration(iterationName);
+      }
+
       if (!iteration) {
-        return { ...stats, error: `Itération "${iterationName}" non trouvée dans GitLab` };
+        const errMsg = `Itération "${iterationName}" non trouvée dans GitLab`;
+        emit('error', { message: errMsg });
+        return { ...stats, error: errMsg };
       }
       await this._delay();
 
       // 2. Récupérer les tickets
       logger.info('Sync: [2/4] Récupération tickets GitLab...');
-      const issues = await gitlabService.getIssuesByLabelAndIteration(
-        this.gitlabLabel,
-        iteration.id
-      );
+      let issues;
+      if (cfg.gitlabProjectId) {
+        issues = await gitlabService.getIssuesByLabelAndIterationForProject(
+          cfg.gitlabProjectId,
+          cfg.gitlabLabel,
+          iteration.id
+        );
+      } else {
+        issues = await gitlabService.getIssuesByLabelAndIteration(cfg.gitlabLabel, iteration.id);
+      }
       stats.total = issues.length;
 
       if (issues.length === 0) {
         logger.info('Sync: Aucun ticket trouvé — rien à synchroniser');
+        emit('done', { ...stats });
         return stats;
       }
       await this._delay();
 
       // 3. Créer l'arborescence Testmo
       logger.info('Sync: [3/4] Création arborescence Testmo...');
-      const { childFolder } = await this.ensureFolderHierarchy(iterationName, isTest);
+      const { parentFolder, childFolder } = await this._ensureFolderHierarchyWith(
+        iterationName, isTest, cfg.projectId, cfg.rootGroupId
+      );
+      emit('folder', {
+        parent: parentFolder.name,
+        child: childFolder.name,
+        parentId: parentFolder.id,
+        childId: childFolder.id
+      });
       await this._delay();
 
       // 4. Synchroniser chaque ticket
@@ -183,7 +266,7 @@ class SyncService {
 
           // Vérifier si le case existe déjà (idempotence par nom)
           const existingCase = await testmoService.findCaseByName(
-            this.projectId,
+            cfg.projectId,
             issue.title,
             childFolder.id
           );
@@ -195,30 +278,46 @@ class SyncService {
               logger.info(`Sync: Case #${iid} "${issue.title}" — ENRICHI, skip`);
               stats.enriched++;
               stats.skipped++;
+              emit('case_skipped', { name: issue.title, gitlabIid: iid, reason: 'enriched' });
               continue;
             }
 
             // Mettre à jour
+            let updatedCase = existingCase;
             if (!dryRun) {
-              const payload = this.buildCasePayload(issue, childFolder.id, iterationName);
-              await testmoService.updateCase(this.projectId, existingCase.id, payload);
+              const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
+              updatedCase = await testmoService.updateCase(cfg.projectId, existingCase.id, payload);
             }
             logger.info(`Sync: Case #${iid} "${issue.title}" — MIS À JOUR`);
             stats.updated++;
+            emit('case_updated', {
+              name: issue.title,
+              gitlabIid: iid,
+              gitlabUrl: issue.web_url,
+              testmoUrl: this._buildTestmoUrl(cfg.projectId, existingCase.id)
+            });
           } else {
             // Créer
+            let createdCase = null;
             if (!dryRun) {
-              const payload = this.buildCasePayload(issue, childFolder.id, iterationName);
-              await testmoService.createCase(this.projectId, payload);
+              const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
+              createdCase = await testmoService.createCase(cfg.projectId, payload);
             }
             logger.info(`Sync: Case #${iid} "${issue.title}" — CRÉÉ`);
             stats.created++;
+            emit('case_created', {
+              name: issue.title,
+              gitlabIid: iid,
+              gitlabUrl: issue.web_url,
+              testmoUrl: createdCase ? this._buildTestmoUrl(cfg.projectId, createdCase.id) : null
+            });
           }
 
           await this._delay();
         } catch (err) {
           logger.error(`Sync: Erreur sur ticket #${issue.iid} "${issue.title}":`, err.message);
           stats.errors++;
+          emit('case_error', { name: issue.title, gitlabIid: issue.iid, message: err.message });
         }
       }
 
@@ -232,12 +331,132 @@ class SyncService {
       logger.info(`  Total     : ${stats.total}`);
       logger.info('='.repeat(60));
 
+      emit('done', { ...stats });
       return stats;
 
     } catch (error) {
       logger.error('Sync: Erreur fatale:', error.message);
+      emit('error', { message: error.message });
       return { ...stats, error: error.message };
     }
+  }
+
+  /**
+   * Construit l'URL d'un case Testmo
+   */
+  _buildTestmoUrl(projectId, caseId) {
+    if (!process.env.TESTMO_URL || !caseId) return null;
+    return `${process.env.TESTMO_URL}/projects/${projectId}/repository/cases/${caseId}`;
+  }
+
+  /**
+   * Mode aperçu (dry-run enrichi) — retourne ce qui SERAIT fait sans rien écrire.
+   *
+   * @param {string} iterationName  - Nom de l'itération
+   * @param {Object} projectConfig  - Entrée de projects.config.js
+   * @returns {Object} { iteration, folder, issues, summary }
+   */
+  async previewIteration(iterationName, projectConfig) {
+    const cfg = this._withProjectConfig(projectConfig);
+
+    logger.info(`Preview: Début pour "${iterationName}" (projet: ${projectConfig.label})`);
+
+    // 1. Trouver l'itération
+    let iteration;
+    try {
+      if (cfg.gitlabProjectId) {
+        iteration = await gitlabService.findIterationForProject(cfg.gitlabProjectId, iterationName);
+      } else {
+        iteration = await gitlabService.findIteration(iterationName);
+      }
+    } catch (err) {
+      throw new Error(`Erreur recherche itération: ${err.message}`);
+    }
+
+    if (!iteration) {
+      throw new Error(`Itération "${iterationName}" non trouvée dans GitLab`);
+    }
+    await this._delay();
+
+    // 2. Récupérer les tickets
+    let issues;
+    try {
+      if (cfg.gitlabProjectId) {
+        issues = await gitlabService.getIssuesByLabelAndIterationForProject(
+          cfg.gitlabProjectId, cfg.gitlabLabel, iteration.id
+        );
+      } else {
+        issues = await gitlabService.getIssuesByLabelAndIteration(cfg.gitlabLabel, iteration.id);
+      }
+    } catch (err) {
+      throw new Error(`Erreur récupération tickets: ${err.message}`);
+    }
+    await this._delay();
+
+    // 3. Vérifier l'arborescence (existence seulement, pas de création)
+    const { parent, child } = this.parseIterationName(iterationName);
+    let folderExists = false;
+    try {
+      const existingChild = await testmoService.findFolder(cfg.projectId, child, null);
+      folderExists = !!existingChild;
+    } catch (_) {
+      folderExists = false;
+    }
+    await this._delay();
+
+    // 4. Analyser chaque ticket
+    const issueAnalysis = [];
+    let toCreate = 0, toUpdate = 0, toSkip = 0;
+
+    for (const issue of issues) {
+      let status = 'create';
+      try {
+        // On ne peut pas savoir le folderId précis sans créer le folder,
+        // donc on cherche dans tout le projet par nom de case
+        const existingCase = await testmoService.findCaseByNameGlobal
+          ? await testmoService.findCaseByNameGlobal(cfg.projectId, issue.title)
+          : null;
+
+        await this._delay();
+
+        if (existingCase) {
+          status = testmoService.isCaseEnriched(existingCase) ? 'skip_enriched' : 'update';
+        }
+      } catch (_) {
+        status = 'create'; // En cas d'erreur API, on suppose création
+      }
+
+      if (status === 'create') toCreate++;
+      else if (status === 'update') toUpdate++;
+      else toSkip++;
+
+      issueAnalysis.push({
+        iid:    issue.iid,
+        title:  issue.title,
+        url:    issue.web_url,
+        status
+      });
+    }
+
+    return {
+      iteration: {
+        id:        iteration.id,
+        name:      iteration.title,
+        gitlabUrl: iteration.web_url || null
+      },
+      folder: {
+        parent,
+        child,
+        exists: folderExists
+      },
+      issues: issueAnalysis,
+      summary: {
+        toCreate,
+        toUpdate,
+        toSkip,
+        total: issues.length
+      }
+    };
   }
 
   /**

@@ -150,6 +150,89 @@ class GitLabService {
   }
 
   /**
+   * Recherche une itération dans un projet GitLab spécifique (autre que le projet par défaut)
+   *
+   * @param {number|string} projectId   - ID du projet GitLab cible
+   * @param {string}        iterationName - Nom de l'itération
+   * @returns {Object|null}
+   */
+  async findIterationForProject(projectId, iterationName) {
+    try {
+      const searchTerm = iterationName.replace(/[-\s]+/g, ' ').trim();
+      const searchPrefix = searchTerm.split(' ')[0];
+
+      const iterations = await this._getPaginated(
+        `/projects/${projectId}/iterations`,
+        { search: searchPrefix, state: 'all' }
+      );
+
+      const normalize = (str) => str.toLowerCase().replace(/[-\s]+/g, '');
+      const normalizedSearch = normalize(iterationName);
+
+      const found = iterations.find(iter => normalize(iter.title || '') === normalizedSearch);
+
+      if (found) {
+        logger.info(`GitLab: Itération trouvée (project ${projectId}) - "${found.title}" (id=${found.id})`);
+      } else {
+        logger.warn(`GitLab: Itération "${iterationName}" non trouvée dans project ${projectId}`);
+      }
+
+      return found || null;
+    } catch (error) {
+      logger.error(`GitLab: Erreur recherche itération projet ${projectId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère les tickets par label ET itération pour un projet spécifique
+   *
+   * @param {number|string} projectId   - ID du projet GitLab cible
+   * @param {string}        label       - Label scoped
+   * @param {number}        iterationId - ID de l'itération
+   * @returns {Array}
+   */
+  async getIssuesByLabelAndIterationForProject(projectId, label, iterationId) {
+    try {
+      const issues = await this._getPaginated(
+        `/projects/${projectId}/issues`,
+        { labels: label, iteration_id: iterationId, state: 'all', scope: 'all' }
+      );
+      logger.info(`GitLab: ${issues.length} ticket(s) (project=${projectId}, label="${label}", iteration_id=${iterationId})`);
+      return issues;
+    } catch (error) {
+      logger.error(`GitLab: Erreur récupération issues projet ${projectId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Recherche les itérations d'un projet pour le dropdown du Dashboard 6
+   *
+   * @param {number|string} projectId  - ID du projet GitLab
+   * @param {string}        search     - Terme de recherche (facultatif)
+   * @returns {Array}
+   */
+  async searchIterations(projectId, search = '') {
+    try {
+      const params = { state: 'all', per_page: 50 };
+      if (search) params.search = search;
+
+      const iterations = await this._getPaginated(
+        `/projects/${projectId}/iterations`,
+        params
+      );
+
+      // Trier par titre décroissant (les plus récentes en premier)
+      iterations.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      return iterations;
+    } catch (error) {
+      logger.error(`GitLab: Erreur recherche itérations projet ${projectId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Récupère les tickets par label uniquement (fallback)
    *
    * @param {string} label - Label scoped (ex: "test::TODO")

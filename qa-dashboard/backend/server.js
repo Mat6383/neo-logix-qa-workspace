@@ -471,6 +471,189 @@ app.post('/api/reports/generate', async (req, res) => {
 // ROUTES SYNC GitLab → Testmo
 // ==========================================
 const syncService = require('./services/sync.service');
+const syncHistoryService = require('./services/syncHistory.service');
+const PROJECTS = require('./config/projects.config');
+const gitlabServiceInstance = require('./services/gitlab.service');
+
+// Initialise SQLite au démarrage
+syncHistoryService.initDb();
+
+// ---- Dashboard 6: Multi-project Sync API --------------------------------
+
+/**
+ * GET /api/sync/projects
+ * Retourne la liste des projets configurés (id, label, configured)
+ */
+app.get('/api/sync/projects', (req, res) => {
+  const list = PROJECTS.map(p => ({
+    id:         p.id,
+    label:      p.label,
+    configured: p.configured
+  }));
+  res.json({ success: true, data: list, timestamp: new Date().toISOString() });
+});
+
+/**
+ * GET /api/sync/:projectId/iterations
+ * Recherche les itérations GitLab d'un projet
+ * Query: ?search=R14
+ */
+app.get('/api/sync/:projectId/iterations', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const search = req.query.search || '';
+
+    const project = PROJECTS.find(p => p.id === projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+    }
+    if (!project.configured) {
+      return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré (pas d'accès GitLab)` });
+    }
+    if (!project.gitlab.projectId) {
+      return res.status(400).json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
+    }
+
+    const iterations = await gitlabServiceInstance.searchIterations(project.gitlab.projectId, search);
+
+    res.json({
+      success: true,
+      data: iterations.map(it => ({
+        id:    it.id,
+        title: it.title,
+        state: it.state,
+        web_url: it.web_url
+      })),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`Erreur GET /api/sync/${req.params.projectId}/iterations:`, error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * POST /api/sync/preview
+ * Body: { projectId, iterationName }
+ * Dry-run — retourne { iteration, folder, issues, summary }
+ */
+app.post('/api/sync/preview', async (req, res) => {
+  try {
+    const { projectId, iterationName } = req.body;
+    if (!projectId || !iterationName) {
+      return res.status(400).json({ success: false, error: '"projectId" et "iterationName" requis' });
+    }
+
+    const project = PROJECTS.find(p => p.id === projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+    }
+    if (!project.configured) {
+      return res.status(400).json({
+        success: false,
+        error: `Projet "${project.label}" non configuré — accès GitLab manquant`
+      });
+    }
+
+    logger.info(`Preview: ${project.label} / "${iterationName}"`);
+    const preview = await syncService.previewIteration(iterationName, project);
+
+    // Enregistrer le preview en historique
+    syncHistoryService.addRun(project.label, iterationName, 'preview', {
+      created: preview.summary.toCreate,
+      updated: preview.summary.toUpdate,
+      skipped: preview.summary.toSkip,
+      total:   preview.summary.total
+    });
+
+    res.json({ success: true, data: preview, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur POST /api/sync/preview:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * POST /api/sync/execute
+ * Body: { projectId, iterationName }
+ * Exécute la synchronisation avec streaming SSE
+ */
+app.post('/api/sync/execute', async (req, res) => {
+  const { projectId, iterationName } = req.body;
+
+  if (!projectId || !iterationName) {
+    return res.status(400).json({ success: false, error: '"projectId" et "iterationName" requis' });
+  }
+
+  const project = PROJECTS.find(p => p.id === projectId);
+  if (!project) {
+    return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+  }
+  if (!project.configured) {
+    return res.status(400).json({
+      success: false,
+      error: `Projet "${project.label}" non configuré — accès GitLab manquant`
+    });
+  }
+
+  // SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // désactive le buffering nginx si présent
+  res.flushHeaders();
+
+  const send = (type, data = {}) => {
+    const payload = JSON.stringify({ type, ...data });
+    res.write(`data: ${payload}\n\n`);
+    if (typeof res.flush === 'function') res.flush();
+  };
+
+  // Heartbeat pour garder la connexion vivante
+  const heartbeat = setInterval(() => {
+    res.write(': ping\n\n');
+  }, 15000);
+
+  try {
+    logger.info(`Execute: ${project.label} / "${iterationName}"`);
+
+    const stats = await syncService.syncIteration(
+      iterationName,
+      { projectConfig: project },
+      (type, data) => send(type, data)
+    );
+
+    // Enregistrer en historique
+    syncHistoryService.addRun(project.label, iterationName, 'execute', stats);
+
+    // 'done' a déjà été émis par syncIteration, mais on s'assure
+    if (!stats.error) {
+      // déjà émis — ne pas doubler
+    }
+  } catch (error) {
+    logger.error('Execute SSE error:', error);
+    send('error', { message: error.message });
+  } finally {
+    clearInterval(heartbeat);
+    res.end();
+  }
+});
+
+/**
+ * GET /api/sync/history
+ * Retourne les 50 derniers runs depuis SQLite
+ */
+app.get('/api/sync/history', (req, res) => {
+  try {
+    const rows = syncHistoryService.getHistory(50);
+    res.json({ success: true, data: rows, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur GET /api/sync/history:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// ---- Fin Dashboard 6 ---------------------------------------------------
 
 /**
  * Test API Testmo — Valide les endpoints folders/cases (beta)

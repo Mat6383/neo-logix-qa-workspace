@@ -1,0 +1,486 @@
+/**
+ * ================================================
+ * DASHBOARD 6 - Synchronisation GitLab → Testmo
+ * ================================================
+ * Styles adaptés au thème sombre de l'application
+ *
+ * @author Matou - Neo-Logix QA Lead
+ * @version 1.0.0
+ */
+
+/* ==========================================
+   Conteneur principal
+   ========================================== */
+.d6-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  font-family: inherit;
+  color: var(--text-color);
+}
+
+.d6-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.d6-title svg {
+  color: var(--color-primary);
+}
+
+/* ==========================================
+   Sections
+   ========================================== */
+.d6-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+}
+
+.d6-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-gray-800);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dark-theme .d6-section-header {
+  background: var(--color-gray-700);
+}
+
+.d6-section-body {
+  padding: var(--spacing-lg);
+}
+
+/* ==========================================
+   Ligne de configuration
+   ========================================== */
+.d6-config-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+.d6-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.d6-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.d6-select,
+.d6-input {
+  padding: 8px 12px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 0.875rem;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.d6-select:focus,
+.d6-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.d6-select:disabled,
+.d6-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   Boutons
+   ========================================== */
+.d6-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.d6-btn:active {
+  transform: scale(0.97);
+}
+
+.d6-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.d6-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.d6-btn-primary:hover:not(:disabled) {
+  background: #2563EB;
+}
+
+.d6-btn-success {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.d6-btn-success:hover:not(:disabled) {
+  background: #059669;
+}
+
+.d6-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.d6-btn-ghost:hover:not(:disabled) {
+  background: var(--color-gray-100);
+}
+
+.dark-theme .d6-btn-ghost:hover:not(:disabled) {
+  background: var(--color-gray-700);
+}
+
+.d6-btn-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-top: var(--spacing-md);
+}
+
+/* ==========================================
+   Badge de statut projet
+   ========================================== */
+.d6-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.d6-badge-configured {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.d6-badge-unconfigured {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+/* ==========================================
+   Aperçu
+   ========================================== */
+.d6-preview-path {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.d6-preview-path-sep {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.d6-preview-summary {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+
+.d6-summary-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.d6-chip-create  { background: rgba(16, 185, 129, 0.12); color: var(--color-success); }
+.d6-chip-update  { background: rgba(59, 130, 246, 0.12);  color: var(--color-primary); }
+.d6-chip-skip    { background: rgba(107, 114, 128, 0.12); color: var(--color-gray-500); }
+.d6-chip-total   { background: rgba(139, 92, 246, 0.12);  color: var(--color-secondary); }
+
+/* ==========================================
+   Liste tickets (aperçu)
+   ========================================== */
+.d6-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.d6-issue-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.82rem;
+  transition: background 0.1s;
+}
+
+.d6-issue-item:last-child {
+  border-bottom: none;
+}
+
+.d6-issue-item:hover {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.d6-issue-iid {
+  color: var(--color-primary);
+  font-weight: 700;
+  min-width: 52px;
+  font-size: 0.78rem;
+}
+
+.d6-issue-title {
+  flex: 1;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d6-issue-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.d6-status-create { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+.d6-status-update { background: rgba(59, 130, 246, 0.15); color: var(--color-primary); }
+.d6-status-skip   { background: rgba(107, 114, 128, 0.15); color: var(--color-gray-500); }
+
+/* ==========================================
+   Progression (SSE log)
+   ========================================== */
+.d6-log {
+  font-size: 0.8rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: var(--spacing-sm) 0;
+}
+
+.d6-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  padding: 4px var(--spacing-sm);
+  border-radius: 3px;
+  line-height: 1.5;
+}
+
+.d6-log-line:hover {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.d6-log-icon {
+  font-size: 0.9rem;
+  min-width: 18px;
+  text-align: center;
+}
+
+.d6-log-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.d6-log-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.75rem;
+}
+
+.d6-log-link:hover {
+  text-decoration: underline;
+}
+
+.d6-log-created  { color: var(--color-success); }
+.d6-log-updated  { color: var(--color-primary); }
+.d6-log-skipped  { color: var(--color-gray-500); }
+.d6-log-error    { color: var(--color-danger); }
+.d6-log-info     { color: var(--text-muted); }
+.d6-log-done     { color: var(--color-success); font-weight: 700; }
+
+/* ==========================================
+   Barre de progression
+   ========================================== */
+.d6-progress-bar-outer {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.d6-progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* ==========================================
+   Historique
+   ========================================== */
+.d6-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.d6-history-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--color-gray-800);
+  color: #CBD5E1;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.dark-theme .d6-history-table th {
+  background: var(--color-gray-700);
+}
+
+.d6-history-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+  vertical-align: middle;
+}
+
+.d6-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.d6-history-table tr:hover td {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.d6-mode-execute { color: var(--color-success); font-weight: 600; }
+.d6-mode-preview { color: var(--color-warning); font-weight: 600; }
+
+/* ==========================================
+   Messages d'état
+   ========================================== */
+.d6-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
+}
+
+.d6-alert-info    { background: rgba(6, 182, 212, 0.1);  color: var(--color-info); }
+.d6-alert-warn    { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
+.d6-alert-success { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
+.d6-alert-error   { background: rgba(239, 68, 68, 0.1);  color: var(--color-danger); }
+
+/* ==========================================
+   Spinner
+   ========================================== */
+.d6-spinner {
+  animation: d6-spin 0.8s linear infinite;
+}
+
+@keyframes d6-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   Stats finales (done)
+   ========================================== */
+.d6-stats-row {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md);
+}
+
+.d6-stat-card {
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+}
+
+.d6-stat-number {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.d6-stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.d6-stat-created { color: var(--color-success); }
+.d6-stat-updated { color: var(--color-primary); }
+.d6-stat-skipped { color: var(--color-gray-500); }
+.d6-stat-errors  { color: var(--color-danger); }
