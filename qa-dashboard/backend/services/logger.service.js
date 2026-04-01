@@ -33,7 +33,18 @@ const customFormat = winston.format.combine(
       delete metadata[Symbol.for('splat')];
       
       if (Object.keys(metadata).length > 0) {
-        message += `\n${JSON.stringify(metadata, null, 2)}`;
+        try {
+          const seen = new WeakSet();
+          message += `\n${JSON.stringify(metadata, (_k, v) => {
+            if (typeof v === 'object' && v !== null) {
+              if (seen.has(v)) return '[Circular]';
+              seen.add(v);
+            }
+            return v;
+          }, 2)}`;
+        } catch (_) {
+          message += `\n[metadata non-sérialisable]`;
+        }
       }
     }
     
