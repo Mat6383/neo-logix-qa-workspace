@@ -655,6 +655,142 @@ app.get('/api/sync/history', (req, res) => {
 
 // ---- Fin Dashboard 6 ---------------------------------------------------
 
+// ==========================================
+// ROUTES DASHBOARD 7 — CrossTest OK
+// ==========================================
+const commentsService = require('./services/comments.service');
+commentsService.init();
+
+const CROSSTEST_PROJECT_ID = 63;
+
+/**
+ * GET /api/crosstest/iterations
+ * Liste les itérations GitLab du projet 63 (avec filtre search optionnel)
+ */
+app.get('/api/crosstest/iterations', async (req, res) => {
+  try {
+    const search = req.query.search || '';
+    const iterations = await gitlabServiceInstance.searchIterations(CROSSTEST_PROJECT_ID, search);
+    res.json({
+      success: true,
+      data: iterations.map(it => ({ id: it.id, title: it.title, state: it.state })),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Erreur GET /api/crosstest/iterations:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * GET /api/crosstest/issues/:iterationId
+ * Issues avec label CrossTest::OK pour l'itération donnée
+ */
+app.get('/api/crosstest/issues/:iterationId', async (req, res) => {
+  try {
+    const iterationId = parseInt(req.params.iterationId);
+    if (isNaN(iterationId)) {
+      return res.status(400).json({ success: false, error: 'iterationId invalide' });
+    }
+
+    const issues = await gitlabServiceInstance.getIssuesByLabelAndIterationForProject(
+      CROSSTEST_PROJECT_ID,
+      'CrossTest::OK',
+      iterationId
+    );
+
+    const data = issues.map(issue => ({
+      iid:        issue.iid,
+      title:      issue.title,
+      url:        issue.web_url,
+      state:      issue.state,
+      assignees:  (issue.assignees || []).map(a => a.name),
+      labels:     (issue.labels || []).filter(l => l !== 'CrossTest::OK'),
+      created_at: issue.created_at,
+      closed_at:  issue.closed_at || null
+    }));
+
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error(`Erreur GET /api/crosstest/issues/${req.params.iterationId}:`, error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * GET /api/crosstest/comments
+ * Tous les commentaires (indexés par issue_iid)
+ */
+app.get('/api/crosstest/comments', (req, res) => {
+  try {
+    const data = commentsService.getAll();
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur GET /api/crosstest/comments:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * POST /api/crosstest/comments
+ * Crée ou met à jour un commentaire { issue_iid, comment, milestone_context }
+ */
+app.post('/api/crosstest/comments', (req, res) => {
+  try {
+    const { issue_iid, comment, milestone_context } = req.body;
+    if (!issue_iid || !comment) {
+      return res.status(400).json({ success: false, error: '"issue_iid" et "comment" requis' });
+    }
+    const row = commentsService.upsert(issue_iid, comment, milestone_context || null);
+    res.json({ success: true, data: row, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur POST /api/crosstest/comments:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * PUT /api/crosstest/comments/:iid
+ * Met à jour le texte d'un commentaire { comment, milestone_context }
+ */
+app.put('/api/crosstest/comments/:iid', (req, res) => {
+  try {
+    const iid = parseInt(req.params.iid);
+    if (isNaN(iid)) {
+      return res.status(400).json({ success: false, error: 'iid invalide' });
+    }
+    const { comment, milestone_context } = req.body;
+    if (!comment) {
+      return res.status(400).json({ success: false, error: '"comment" requis' });
+    }
+    const row = commentsService.upsert(iid, comment, milestone_context || null);
+    res.json({ success: true, data: row, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error(`Erreur PUT /api/crosstest/comments/${req.params.iid}:`, error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * DELETE /api/crosstest/comments/:iid
+ * Supprime le commentaire d'une issue
+ */
+app.delete('/api/crosstest/comments/:iid', (req, res) => {
+  try {
+    const iid = parseInt(req.params.iid);
+    if (isNaN(iid)) {
+      return res.status(400).json({ success: false, error: 'iid invalide' });
+    }
+    const deleted = commentsService.delete(iid);
+    res.json({ success: true, deleted, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error(`Erreur DELETE /api/crosstest/comments/${req.params.iid}:`, error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// ---- Fin Dashboard 7 ---------------------------------------------------
+
 /**
  * Test API Testmo — Valide les endpoints folders/cases (beta)
  * Crée un dossier [TEST-API] R06 > R06 - run 1 + un case de test

@@ -23,6 +23,7 @@ import Dashboard3 from './components/Dashboard3';
 import Dashboard4 from './components/Dashboard4';
 import Dashboard5 from './components/Dashboard5';
 import Dashboard6 from './components/Dashboard6';
+import Dashboard7 from './components/Dashboard7';
 import ConfigurationScreen from './components/ConfigurationScreen';
 import {
   RefreshCw,
@@ -362,6 +363,7 @@ function App() {
               <option value="5">Dashboard 5 (Tendances Annuelles)</option>
               <option value="7">⚙ Sync GitLab → Testmo</option>
               <option value="6">⚙️ Configuration des Cycles</option>
+              <option value="8">🔗 CrossTest OK</option>
             </select>
           </div>
 
@@ -463,6 +465,10 @@ function App() {
           />
         ) : dashboardView === '7' ? (
           <Dashboard6
+            isDark={darkMode}
+          />
+        ) : dashboardView === '8' ? (
+          <Dashboard7
             isDark={darkMode}
           />
         ) : dashboardView === '6' ? (

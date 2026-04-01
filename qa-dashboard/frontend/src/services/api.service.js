@@ -274,6 +274,87 @@ const apiService = {
 
   // ---- Fin Dashboard 6 ---------------------------------------------------
 
+  // ---- Dashboard 7: CrossTest OK ----------------------------------------
+
+  /**
+   * Liste les itérations GitLab du projet 63
+   * @param {string} search - Terme de recherche facultatif
+   * @returns {Promise<Array>} [{ id, title, state }]
+   */
+  async getCrosstestIterations(search = '') {
+    try {
+      const response = await apiClient.get('/crosstest/iterations', {
+        params: search ? { search } : {}
+      });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Crosstest Iterations', error);
+    }
+  },
+
+  /**
+   * Issues avec label CrossTest::OK pour une itération donnée
+   * @param {number} iterationId - ID de l'itération GitLab
+   * @returns {Promise<Array>} [{ iid, title, url, state, assignees, labels, ... }]
+   */
+  async getCrosstestIssues(iterationId) {
+    try {
+      const response = await apiClient.get(`/crosstest/issues/${iterationId}`);
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Crosstest Issues', error);
+    }
+  },
+
+  /**
+   * Récupère tous les commentaires CrossTest (indexés par issue_iid)
+   * @returns {Promise<Object>} { [iid]: { comment, ... } }
+   */
+  async getCrosstestComments() {
+    try {
+      const response = await apiClient.get('/crosstest/comments');
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Crosstest Comments', error);
+    }
+  },
+
+  /**
+   * Crée ou met à jour un commentaire pour une issue
+   * @param {number} iid               - Issue IID GitLab
+   * @param {string} comment           - Texte du commentaire
+   * @param {string} milestoneContext  - Nom de l'itération (ex: "R06")
+   * @returns {Promise<Object>} La ligne enregistrée
+   */
+  async saveCrosstestComment(iid, comment, milestoneContext = null) {
+    try {
+      const response = await apiClient.post('/crosstest/comments', {
+        issue_iid: iid,
+        comment,
+        milestone_context: milestoneContext
+      });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Save Crosstest Comment', error);
+    }
+  },
+
+  /**
+   * Supprime le commentaire d'une issue
+   * @param {number} iid - Issue IID GitLab
+   * @returns {Promise<boolean>}
+   */
+  async deleteCrosstestComment(iid) {
+    try {
+      const response = await apiClient.delete(`/crosstest/comments/${iid}`);
+      return response.data.deleted;
+    } catch (error) {
+      throw this._handleError('Delete Crosstest Comment', error);
+    }
+  },
+
+  // ---- Fin Dashboard 7 ---------------------------------------------------
+
   /**
    * Gestion des erreurs
    * @private
