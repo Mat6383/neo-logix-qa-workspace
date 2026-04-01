@@ -180,6 +180,124 @@ describe('aggregateSessions — intégration des sessions dans les métriques gl
   });
 });
 
+// ─── Helper extrait de sync.service.js — _extractStepsFromNotes ─────────────
+// marked est ESM-only, on utilise un stub simple pour les tests unitaires
+function fakeMarked(text) { return `<p>${text.trim()}</p>`; }
+
+function extractStepsFromNotes(notes, markedFn = fakeMarked) {
+  const SECTION_HEADER_RE = /\[([^\]]+)\]/g;
+  const TEST_RE = /^tests?$/i;
+
+  const structured = notes.filter(n => n.body && /\[[^\]]+\]/.test(n.body));
+  if (structured.length === 0) return [];
+
+  const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
+  const body = best.body;
+
+  const headers = [];
+  let m;
+  const re = new RegExp(SECTION_HEADER_RE.source, 'g');
+  while ((m = re.exec(body)) !== null) {
+    headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
+  }
+  if (headers.length === 0) return [];
+
+  const sections = headers.map((h, i) => {
+    const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
+    return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
+  }).filter(s => s.content.length > 0);
+
+  if (sections.length === 0) return [];
+
+  const testSections  = sections.filter(s =>  TEST_RE.test(s.label));
+  const otherSections = sections.filter(s => !TEST_RE.test(s.label));
+  const EXPECTED = '<p>Conforme aux specs fonctionnelles</p>';
+
+  return [...otherSections, ...testSections].map((s, i) => ({
+    text1: markedFn(`**[${s.label}]**\n\n${s.content}`),
+    text3: EXPECTED,
+    display_order: i + 1
+  }));
+}
+
+describe('extractStepsFromNotes — parsing commentaires GitLab → steps Testmo', () => {
+  test('commentaire sans section → []', () => {
+    const notes = [{ body: 'Simple commentaire sans balise.' }];
+    expect(extractStepsFromNotes(notes)).toEqual([]);
+  });
+
+  test('notes vides → []', () => {
+    expect(extractStepsFromNotes([])).toEqual([]);
+  });
+
+  test('commentaire avec [PRÉREQUIS] et [TEST] → TEST toujours en dernier', () => {
+    const body = '[PRÉREQUIS]\nAvoir un compte.\n[TEST]\nFaire le test.';
+    const steps = extractStepsFromNotes([{ body }]);
+    expect(steps).toHaveLength(2);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('[TEST]');
+    expect(steps[0].display_order).toBe(1);
+    expect(steps[1].display_order).toBe(2);
+  });
+
+  test('TEST placé en dernier même s\'il est premier dans le commentaire', () => {
+    const body = '[TEST]\nEtapes.\n[IMPACT]\nScript R14.';
+    const steps = extractStepsFromNotes([{ body }]);
+    expect(steps).toHaveLength(2);
+    expect(steps[0].text1).toContain('[IMPACT]');
+    expect(steps[1].text1).toContain('[TEST]');
+  });
+
+  test('[TESTS] (pluriel) aussi mis en dernier', () => {
+    const body = '[PRÉREQUIS]\nPré.\n[TESTS]\nTest pluriel.';
+    const steps = extractStepsFromNotes([{ body }]);
+    expect(steps[steps.length - 1].text1).toContain('[TESTS]');
+  });
+
+  test('expected = "Conforme aux specs fonctionnelles" pour tous les steps', () => {
+    const body = '[PRÉREQUIS]\nPré.\n[TEST]\nTest.';
+    const steps = extractStepsFromNotes([{ body }]);
+    steps.forEach(s => expect(s.text3).toBe('<p>Conforme aux specs fonctionnelles</p>'));
+  });
+
+  test('champs text1 non vide (format Testmo correct)', () => {
+    const body = '[PRÉREQUIS]\nAvoir un client.\n[TEST]\nFaire la manip.';
+    const steps = extractStepsFromNotes([{ body }]);
+    steps.forEach(s => {
+      expect(s.text1).toBeTruthy();
+      expect(s.text1.trim().length).toBeGreaterThan(0);
+      expect(s).toHaveProperty('text3');
+      expect(s).toHaveProperty('display_order');
+    });
+  });
+
+  test('prend le commentaire le plus long si plusieurs notes structurées', () => {
+    const notes = [
+      { body: '[TEST]\nCourt.' },
+      { body: '[PRÉREQUIS]\nLong prérequis avec beaucoup de texte.\n[TEST]\nTest long avec beaucoup d\'étapes.' }
+    ];
+    const steps = extractStepsFromNotes(notes);
+    expect(steps).toHaveLength(2); // 2 sections dans le plus long
+  });
+
+  test('commentaire réel R14 (PRÉREQUIS + TEST + IMPACT) → 3 steps, TEST en dernier', () => {
+    const body = `[PRÉREQUIS]
+Tester avant de passer le script R14.
+Avoir un client avec compte-poids.
+[TEST]
+Pour générer des mouvement de compte-poids prévisionnels :
+Trouver un client sur compte-poids.
+Vente → Commande → Nouvelle commande sur ce client.
+[IMPACT]
+Script R14.`;
+    const steps = extractStepsFromNotes([{ body }]);
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('[IMPACT]');
+    expect(steps[2].text1).toContain('[TEST]');
+  });
+});
+
 // ─── Helper extrait de testmo.service.js — isCaseEnriched ────────────────────
 function isCaseEnriched(testCase) {
   if (testCase.estimate && testCase.estimate > 0) return true;
@@ -194,7 +312,12 @@ function isCaseEnriched(testCase) {
 
   if (testCase.custom_priority && testCase.custom_priority !== 'Normal' && testCase.custom_priority !== 2) return true;
   if (testCase.attachments && testCase.attachments.length > 0) return true;
-  if (testCase.custom_steps && testCase.custom_steps.length > 0) return true;
+  // Format Testmo réel: text1 = contenu du step
+  const nonEmptySteps = (testCase.custom_steps || []).filter(s => {
+    const content = typeof s === 'object' ? (s.text1 || s.step || s.content || '') : String(s || '');
+    return content.trim().length > 0;
+  });
+  if (nonEmptySteps.length > 0) return true;
 
   return false;
 }
@@ -216,9 +339,19 @@ describe('isCaseEnriched — protection anti-écrasement des cas enrichis', () =
   });
 
   // ── Cas ENRICHIS (sync doit skiper) ──
-  test('a des custom_steps (data ajoutée manuellement) → true', () => {
-    const c = { custom_steps: [{ step: 'Ouvrir la page', expected: 'Page affichée' }] };
+  test('a des custom_steps avec text1 (format Testmo réel) → true', () => {
+    const c = { custom_steps: [{ text1: '<p>Ouvrir la page</p>', text3: '<p>Page affichée</p>', display_order: 1 }] };
     expect(isCaseEnriched(c)).toBe(true);
+  });
+
+  test('custom_steps avec text1 vide (steps vides créés par erreur) → false', () => {
+    const c = { custom_steps: [{ text1: '', text3: null, display_order: 1 }] };
+    expect(isCaseEnriched(c)).toBe(false);
+  });
+
+  test('custom_steps avec text1 whitespace seulement → false', () => {
+    const c = { custom_steps: [{ text1: '   ', text3: null, display_order: 1 }] };
+    expect(isCaseEnriched(c)).toBe(false);
   });
 
   test('a un estimate → true', () => {

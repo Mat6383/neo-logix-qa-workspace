@@ -1249,10 +1249,16 @@ class TestmoService {
    */
   async createCase(projectId, caseData) {
     try {
+      if (caseData.custom_steps) {
+        logger.info(`Testmo: createCase payload custom_steps: ${JSON.stringify(caseData.custom_steps).substring(0, 500)}`);
+      }
       const response = await this.client.post(`/projects/${projectId}/cases`, {
         cases: [caseData]
       });
       const created = response.data.result ? response.data.result[0] : response.data;
+      if (created?.custom_steps) {
+        logger.info(`Testmo: Case créé — steps retournés: ${JSON.stringify(created.custom_steps).substring(0, 300)}`);
+      }
       logger.info(`Testmo: Case créé — "${caseData.name}" (id=${created.id})`);
       return created;
     } catch (error) {
@@ -1302,7 +1308,12 @@ class TestmoService {
 
     if (testCase.custom_priority && testCase.custom_priority !== 'Normal' && testCase.custom_priority !== 2) return true;
     if (testCase.attachments && testCase.attachments.length > 0) return true;
-    if (testCase.custom_steps && testCase.custom_steps.length > 0) return true;
+    // Ne compter que les steps avec du contenu réel (format Testmo: text1 = contenu du step)
+    const nonEmptySteps = (testCase.custom_steps || []).filter(s => {
+      const content = typeof s === 'object' ? (s.text1 || s.step || s.content || '') : String(s || '');
+      return content.trim().length > 0;
+    });
+    if (nonEmptySteps.length > 0) return true;
 
     return false;
   }

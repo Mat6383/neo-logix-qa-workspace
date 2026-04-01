@@ -117,29 +117,63 @@ class SyncService {
 
   /**
    * Extrait des steps Testmo depuis les commentaires GitLab d'une issue.
-   * Cherche les commentaires contenant des sections structurées :
-   * [PRÉREQUIS], [TEST], [IMPACT], [PRECONDITION], [STEPS], etc.
-   * Prend le commentaire le plus complet (le plus long avec au moins une section).
+   *
+   * Règles de construction des steps :
+   *   - Chaque section [LABEL] du commentaire devient un step distinct
+   *   - Les sections [TEST] / [TESTS] (peu importe casse/accents) sont toujours placées EN DERNIER
+   *   - Toutes les autres sections ([PRÉREQUIS], [CONTEXTE], [IMPACT]...) gardent leur ordre d'apparition
+   *   - Prend le commentaire le plus complet (le plus long) qui contient au moins une section
    *
    * @param {Array} notes - Commentaires GitLab (filtrés, sans notes système)
-   * @returns {Array} Tableau de steps Testmo [{ step: string, expected: string }] ou []
+   * @returns {Array} Steps Testmo [{ step: string, expected: string }] ou []
    */
   _extractStepsFromNotes(notes) {
-    const SECTION_RE = /\[(PRÉREQUIS|PREREQUIS|PRÉCONDITION|PRECONDITION|TEST|IMPACT|ÉTAPES?|STEPS?|RÉSULTAT|RESULTAT)\]/i;
+    const SECTION_HEADER_RE = /\[([^\]]+)\]/g;
+    const TEST_RE = /^tests?$/i;
 
-    const structured = notes.filter(n => n.body && SECTION_RE.test(n.body));
+    // Garder seulement les commentaires avec au moins un [LABEL]
+    const structured = notes.filter(n => n.body && /\[[^\]]+\]/.test(n.body));
     if (structured.length === 0) return [];
 
-    // Prendre le commentaire le plus complet (le plus long)
+    // Prendre le commentaire le plus complet
     const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
+    const body = best.body;
 
-    // Convertir en HTML via marked (déjà importé dans le service)
-    const stepHtml = marked.parse(best.body.trim());
+    // Extraire les positions de chaque section
+    const headers = [];
+    let m;
+    const re = new RegExp(SECTION_HEADER_RE.source, 'g');
+    while ((m = re.exec(body)) !== null) {
+      headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
+    }
+    if (headers.length === 0) return [];
 
-    return [{
-      step: stepHtml,
-      expected: '<p>Conforme aux specs fonctionnelles</p>'
-    }];
+    // Construire { label, content } pour chaque section
+    const sections = headers.map((h, i) => {
+      const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
+      return {
+        label: h.label,
+        content: body.slice(h.end, contentEnd).trim()
+      };
+    }).filter(s => s.content.length > 0);
+
+    if (sections.length === 0) return [];
+
+    // Séparer sections TEST (last) des autres (ordre original)
+    const testSections  = sections.filter(s =>  TEST_RE.test(s.label));
+    const otherSections = sections.filter(s => !TEST_RE.test(s.label));
+
+    const EXPECTED = '<p>Conforme aux specs fonctionnelles</p>';
+
+    // Format Testmo : text1 = contenu, text3 = expected, display_order = position
+    const steps = [...otherSections, ...testSections].map((s, i) => ({
+      text1: marked.parse(`**[${s.label}]**\n\n${s.content}`),
+      text3: EXPECTED,
+      display_order: i + 1
+    }));
+
+    logger.info(`Sync: _extractStepsFromNotes → ${steps.length} step(s). Aperçu step[0].text1: ${steps[0]?.text1?.substring(0, 200)}`);
+    return steps;
   }
 
   /**

@@ -39,6 +39,9 @@ apiClient.interceptors.response.use(
     return response;
   },
   error => {
+    if (error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+      return Promise.reject(error);
+    }
     console.error('[API] Response error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
