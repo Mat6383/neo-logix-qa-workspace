@@ -1294,7 +1294,8 @@ class TestmoService {
 
     // Tags : ignorer les tags auto (gitlab-#, iteration:, sync-auto)
     const manualTags = (testCase.tags || []).filter(t => {
-      const name = typeof t === 'string' ? t : t.name;
+      const name = typeof t === 'string' ? t : (t.name || t.tag || '');
+      if (!name) return false;
       return !name.startsWith('gitlab-') && !name.startsWith('iteration-') && name !== 'sync-auto';
     });
     if (manualTags.length > 0) return true;

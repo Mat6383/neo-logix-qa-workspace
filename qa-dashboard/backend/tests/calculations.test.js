@@ -180,6 +180,93 @@ describe('aggregateSessions — intégration des sessions dans les métriques gl
   });
 });
 
+// ─── Helper extrait de testmo.service.js — isCaseEnriched ────────────────────
+function isCaseEnriched(testCase) {
+  if (testCase.estimate && testCase.estimate > 0) return true;
+  if (testCase.issues && testCase.issues.length > 0) return true;
+
+  const manualTags = (testCase.tags || []).filter(t => {
+    const name = typeof t === 'string' ? t : (t.name || t.tag || '');
+    if (!name) return false;
+    return !name.startsWith('gitlab-') && !name.startsWith('iteration-') && name !== 'sync-auto';
+  });
+  if (manualTags.length > 0) return true;
+
+  if (testCase.custom_priority && testCase.custom_priority !== 'Normal' && testCase.custom_priority !== 2) return true;
+  if (testCase.attachments && testCase.attachments.length > 0) return true;
+  if (testCase.custom_steps && testCase.custom_steps.length > 0) return true;
+
+  return false;
+}
+
+describe('isCaseEnriched — protection anti-écrasement des cas enrichis', () => {
+  // ── Cas NON enrichis (sync peut écraser) ──
+  test('case vide (auto-créé, pas de data) → false', () => {
+    expect(isCaseEnriched({})).toBe(false);
+  });
+
+  test('only auto-tags (sync-auto, gitlab-, iteration-) → false', () => {
+    const c = { tags: ['sync-auto', 'gitlab-6015', 'iteration-r14-run-1'] };
+    expect(isCaseEnriched(c)).toBe(false);
+  });
+
+  test('tags sous forme objet { name } uniquement auto → false', () => {
+    const c = { tags: [{ name: 'sync-auto' }, { name: 'gitlab-6015' }] };
+    expect(isCaseEnriched(c)).toBe(false);
+  });
+
+  // ── Cas ENRICHIS (sync doit skiper) ──
+  test('a des custom_steps (data ajoutée manuellement) → true', () => {
+    const c = { custom_steps: [{ step: 'Ouvrir la page', expected: 'Page affichée' }] };
+    expect(isCaseEnriched(c)).toBe(true);
+  });
+
+  test('a un estimate → true', () => {
+    expect(isCaseEnriched({ estimate: 900 })).toBe(true);
+  });
+
+  test('a des issues liées → true', () => {
+    expect(isCaseEnriched({ issues: [{ id: 1 }] })).toBe(true);
+  });
+
+  test('a un tag manuel (ni gitlab-, ni iteration-, ni sync-auto) → true', () => {
+    const c = { tags: ['sync-auto', 'regression'] };
+    expect(isCaseEnriched(c)).toBe(true);
+  });
+
+  test('priorité custom ≠ Normal → true', () => {
+    expect(isCaseEnriched({ custom_priority: 'High' })).toBe(true);
+  });
+
+  test('a des attachments → true', () => {
+    expect(isCaseEnriched({ attachments: [{ id: 1 }] })).toBe(true);
+  });
+
+  // ── Régression : tags malformés (bug #6015) ──
+  test('tag objet avec champ .tag (pas .name) → ne crash pas, auto-tag ignoré', () => {
+    // Cas qui provoquait "Cannot read properties of undefined (reading 'startsWith')"
+    const c = { tags: [{ id: 5, tag: 'sync-auto' }, { id: 6, tag: 'gitlab-6015' }] };
+    expect(() => isCaseEnriched(c)).not.toThrow();
+    expect(isCaseEnriched(c)).toBe(false); // ce sont des auto-tags
+  });
+
+  test('tag objet avec champ .tag manuel → true', () => {
+    const c = { tags: [{ id: 5, tag: 'sync-auto' }, { id: 7, tag: 'smoke' }] };
+    expect(isCaseEnriched(c)).toBe(true);
+  });
+
+  test('tag objet sans .name ni .tag (objet incomplet) → ne crash pas', () => {
+    const c = { tags: [{ id: 5 }, { id: 6 }] };
+    expect(() => isCaseEnriched(c)).not.toThrow();
+    expect(isCaseEnriched(c)).toBe(false);
+  });
+
+  test('tags null/undefined → ne crash pas → false', () => {
+    expect(isCaseEnriched({ tags: null })).toBe(false);
+    expect(isCaseEnriched({ tags: undefined })).toBe(false);
+  });
+});
+
 describe('globalMetrics — formules ISTQB', () => {
   test('completionRate = completed / total', () => {
     const agg = { total: 10, completed: 8, passed: 6, failed: 2 };

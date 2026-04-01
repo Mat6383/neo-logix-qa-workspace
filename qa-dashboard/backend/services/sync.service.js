@@ -396,9 +396,10 @@ class SyncService {
     // 3. Vérifier l'arborescence (existence seulement, pas de création)
     const { parent, child } = this.parseIterationName(iterationName);
     let folderExists = false;
+    let existingChildFolder = null;
     try {
-      const existingChild = await testmoService.findFolder(cfg.projectId, child, null);
-      folderExists = !!existingChild;
+      existingChildFolder = await testmoService.findFolder(cfg.projectId, child, null);
+      folderExists = !!existingChildFolder;
     } catch (_) {
       folderExists = false;
     }
@@ -411,10 +412,9 @@ class SyncService {
     for (const issue of issues) {
       let status = 'create';
       try {
-        // On ne peut pas savoir le folderId précis sans créer le folder,
-        // donc on cherche dans tout le projet par nom de case
-        const existingCase = await testmoService.findCaseByNameGlobal
-          ? await testmoService.findCaseByNameGlobal(cfg.projectId, issue.title)
+        // Si le dossier existe, chercher le case à l'intérieur (même logique que syncIteration)
+        const existingCase = existingChildFolder
+          ? await testmoService.findCaseByName(cfg.projectId, issue.title, existingChildFolder.id)
           : null;
 
         await this._delay();
