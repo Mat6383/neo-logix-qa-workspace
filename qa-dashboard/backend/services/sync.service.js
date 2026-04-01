@@ -128,11 +128,12 @@ class SyncService {
    * @returns {Array} Steps Testmo [{ step: string, expected: string }] ou []
    */
   _extractStepsFromNotes(notes) {
-    const SECTION_HEADER_RE = /\[([^\]]+)\]/g;
+    // (?!\() exclut les liens markdown [texte](url) — seuls les [LABEL] sans parenthèse après
+    const SECTION_HEADER_RE = /\[([^\]]+)\](?!\()/g;
     const TEST_RE = /^tests?$/i;
 
-    // Garder seulement les commentaires avec au moins un [LABEL]
-    const structured = notes.filter(n => n.body && /\[[^\]]+\]/.test(n.body));
+    // Garder seulement les commentaires avec au moins un [LABEL] (pas un lien markdown)
+    const structured = notes.filter(n => n.body && /\[[^\]]+\](?!\()/.test(n.body));
     if (structured.length === 0) return [];
 
     // Prendre le commentaire le plus complet

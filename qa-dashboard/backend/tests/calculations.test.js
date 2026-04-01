@@ -185,10 +185,11 @@ describe('aggregateSessions — intégration des sessions dans les métriques gl
 function fakeMarked(text) { return `<p>${text.trim()}</p>`; }
 
 function extractStepsFromNotes(notes, markedFn = fakeMarked) {
-  const SECTION_HEADER_RE = /\[([^\]]+)\]/g;
+  // (?!\() exclut les liens markdown [texte](url)
+  const SECTION_HEADER_RE = /\[([^\]]+)\](?!\()/g;
   const TEST_RE = /^tests?$/i;
 
-  const structured = notes.filter(n => n.body && /\[[^\]]+\]/.test(n.body));
+  const structured = notes.filter(n => n.body && /\[[^\]]+\](?!\()/.test(n.body));
   if (structured.length === 0) return [];
 
   const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
@@ -278,6 +279,28 @@ describe('extractStepsFromNotes — parsing commentaires GitLab → steps Testmo
     ];
     const steps = extractStepsFromNotes(notes);
     expect(steps).toHaveLength(2); // 2 sections dans le plus long
+  });
+
+  test('lien markdown [R14.sql](url) dans le contenu ne crée pas de faux step', () => {
+    // Cas réel #5777 : [TEST] contient [R14.sql](https://...) qui ne doit pas être traité comme section
+    const body = `[TEST]
+Passer le script [R14.sql](https://gitlab.neo-logix.fr/blob/master/SQL/R14.sql)
+
+> Atelier > OF
+Ouvrir un OF qui est état lancé
+
+[IMPACT]
+FEN_OF
+FEN_PLANNING_DAY`;
+    const steps = extractStepsFromNotes([{ body }]);
+    // Doit produire 2 steps (TEST + IMPACT), pas 3 avec [R14.sql] comme section
+    expect(steps).toHaveLength(2);
+    // Le contenu du TEST doit inclure le lien
+    const testStep = steps.find(s => s.text1.includes('[TEST]'));
+    expect(testStep).toBeDefined();
+    expect(testStep.text1).toContain('R14.sql');
+    // TEST doit être en dernier
+    expect(steps[steps.length - 1].text1).toContain('[TEST]');
   });
 
   test('commentaire réel R14 (PRÉREQUIS + TEST + IMPACT) → 3 steps, TEST en dernier', () => {
