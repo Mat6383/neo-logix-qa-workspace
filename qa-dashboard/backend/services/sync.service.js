@@ -116,6 +116,33 @@ class SyncService {
   }
 
   /**
+   * Extrait des steps Testmo depuis les commentaires GitLab d'une issue.
+   * Cherche les commentaires contenant des sections structurées :
+   * [PRÉREQUIS], [TEST], [IMPACT], [PRECONDITION], [STEPS], etc.
+   * Prend le commentaire le plus complet (le plus long avec au moins une section).
+   *
+   * @param {Array} notes - Commentaires GitLab (filtrés, sans notes système)
+   * @returns {Array} Tableau de steps Testmo [{ step: string, expected: string }] ou []
+   */
+  _extractStepsFromNotes(notes) {
+    const SECTION_RE = /\[(PRÉREQUIS|PREREQUIS|PRÉCONDITION|PRECONDITION|TEST|IMPACT|ÉTAPES?|STEPS?|RÉSULTAT|RESULTAT)\]/i;
+
+    const structured = notes.filter(n => n.body && SECTION_RE.test(n.body));
+    if (structured.length === 0) return [];
+
+    // Prendre le commentaire le plus complet (le plus long)
+    const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
+
+    // Convertir en HTML via marked (déjà importé dans le service)
+    const stepHtml = marked.parse(best.body.trim());
+
+    return [{
+      step: stepHtml,
+      expected: '<p>Conforme aux specs fonctionnelles</p>'
+    }];
+  }
+
+  /**
    * Parse le nom d'itération pour extraire le dossier parent et sous-dossier
    * Ex: "R06-run1" ou "R06 - run 1" → { parent: "R06", child: "R06 - run 1" }
    *
@@ -282,10 +309,17 @@ class SyncService {
               continue;
             }
 
-            // Mettre à jour
+            // Mettre à jour (case sans data manuelle) + enrichir depuis commentaires GitLab
             let updatedCase = existingCase;
             if (!dryRun) {
               const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
+              const gitlabPid = cfg.gitlabProjectId || issue.project_id;
+              if (gitlabPid) {
+                const notes = await gitlabService.getIssueNotes(gitlabPid, iid);
+                const steps = this._extractStepsFromNotes(notes);
+                if (steps.length > 0) payload.custom_steps = steps;
+                await this._delay();
+              }
               updatedCase = await testmoService.updateCase(cfg.projectId, existingCase.id, payload);
             }
             logger.info(`Sync: Case #${iid} "${issue.title}" — MIS À JOUR`);
@@ -297,10 +331,20 @@ class SyncService {
               testmoUrl: this._buildTestmoUrl(cfg.projectId, existingCase.id)
             });
           } else {
-            // Créer
+            // Créer + enrichir depuis commentaires GitLab
             let createdCase = null;
             if (!dryRun) {
               const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
+              const gitlabPid = cfg.gitlabProjectId || issue.project_id;
+              if (gitlabPid) {
+                const notes = await gitlabService.getIssueNotes(gitlabPid, iid);
+                const steps = this._extractStepsFromNotes(notes);
+                if (steps.length > 0) {
+                  payload.custom_steps = steps;
+                  logger.info(`Sync: Case #${iid} — ${steps.length} step(s) extrait(s) des commentaires GitLab`);
+                }
+                await this._delay();
+              }
               createdCase = await testmoService.createCase(cfg.projectId, payload);
             }
             logger.info(`Sync: Case #${iid} "${issue.title}" — CRÉÉ`);

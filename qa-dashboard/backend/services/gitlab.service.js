@@ -258,6 +258,29 @@ class GitLabService {
   }
 
   /**
+   * Récupère les commentaires (notes) d'une issue GitLab
+   * Exclut les notes système (transitions automatiques GitLab)
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @param {number} issueIid        - IID de l'issue (numéro affiché #XXXX)
+   * @returns {Array} Notes triées par date croissante, sans notes système
+   */
+  async getIssueNotes(projectId, issueIid) {
+    try {
+      const notes = await this._getPaginated(
+        `/projects/${projectId}/issues/${issueIid}/notes`,
+        { sort: 'asc', order_by: 'created_at' }
+      );
+      const filtered = notes.filter(n => !n.system);
+      logger.info(`GitLab: ${filtered.length} commentaire(s) récupéré(s) pour #${issueIid}`);
+      return filtered;
+    } catch (error) {
+      logger.error(`GitLab: Erreur récupération commentaires #${issueIid}:`, error.message);
+      return [];
+    }
+  }
+
+  /**
    * Convertit time_estimate (secondes) en format Testmo
    * Ex: 1800 → "30m", 3600 → "1h", 5400 → "1h 30m"
    *
