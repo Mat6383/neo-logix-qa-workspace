@@ -361,6 +361,37 @@ const apiService = {
 
   // ---- Fin Dashboard 7 ---------------------------------------------------
 
+  // ---- Dashboard 8: Auto-Sync Control Panel ------------------------------
+
+  /**
+   * Récupère la config courante du cron auto-sync
+   * @returns {Promise<Object>} { enabled, runId, iterationName, gitlabProjectId, updatedAt }
+   */
+  async getAutoSyncConfig() {
+    try {
+      const response = await apiClient.get('/sync/auto-config');
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Auto-Sync Config', error);
+    }
+  },
+
+  /**
+   * Met à jour la config du cron auto-sync à chaud
+   * @param {Object} patch - Champs à modifier { enabled, runId, iterationName, gitlabProjectId }
+   * @returns {Promise<Object>} Config mise à jour
+   */
+  async updateAutoSyncConfig(patch) {
+    try {
+      const response = await apiClient.put('/sync/auto-config', patch);
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Update Auto-Sync Config', error);
+    }
+  },
+
+  // ---- Fin Dashboard 8 ---------------------------------------------------
+
   /**
    * Gestion des erreurs
    * @private

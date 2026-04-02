@@ -895,6 +895,45 @@ app.delete('/api/sync/test-cleanup', async (req, res) => {
   }
 });
 
+// ─── Routes API : lecture / mise à jour de la config cron auto-sync ──────────
+
+/**
+ * GET /api/sync/auto-config
+ * Retourne la configuration courante du cron auto-sync
+ */
+app.get('/api/sync/auto-config', (req, res) => {
+  res.json({ success: true, data: autoSyncConfig.getConfig(), timestamp: new Date().toISOString() });
+});
+
+/**
+ * PUT /api/sync/auto-config
+ * Met à jour la config à chaud (pas de redémarrage nécessaire)
+ *
+ * Body (tous les champs sont optionnels) :
+ *   { enabled, runId, iterationName, gitlabProjectId }
+ */
+app.put('/api/sync/auto-config', (req, res) => {
+  try {
+    const { enabled, runId, iterationName, gitlabProjectId } = req.body;
+    const patch = {};
+    if (enabled          !== undefined) patch.enabled         = Boolean(enabled);
+    if (runId            !== undefined) patch.runId           = parseInt(runId);
+    if (iterationName    !== undefined) patch.iterationName   = String(iterationName).trim();
+    if (gitlabProjectId  !== undefined) patch.gitlabProjectId = String(gitlabProjectId).trim();
+
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ success: false, error: 'Aucun champ valide fourni (enabled, runId, iterationName, gitlabProjectId)' });
+    }
+
+    const updated = autoSyncConfig.updateConfig(patch);
+    logger.info(`[AutoSync] Config mise à jour via API: ${JSON.stringify(updated)}`);
+    res.json({ success: true, data: updated, timestamp: new Date().toISOString() });
+  } catch (err) {
+    logger.error('Erreur PUT /api/sync/auto-config:', err);
+    res.status(500).json({ success: false, error: err.message, timestamp: new Date().toISOString() });
+  }
+});
+
 // ==========================================
 // Gestion des erreurs 404
 // ==========================================
@@ -984,48 +1023,6 @@ cron.schedule('*/5 8-17 * * 1-5', () => {
 
 logger.info('[AutoSync] Cron enregistré — lun-ven 8h-18h toutes les 5 min (Europe/Paris)');
 logger.info(`[AutoSync] Config initiale: ${JSON.stringify(autoSyncConfig.getConfig())}`);
-
-// ─── Routes API : lecture / mise à jour de la config cron ─────────────────────
-
-/**
- * GET /api/sync/auto-config
- * Retourne la configuration courante du cron auto-sync
- */
-app.get('/api/sync/auto-config', (req, res) => {
-  res.json({ success: true, data: autoSyncConfig.getConfig(), timestamp: new Date().toISOString() });
-});
-
-/**
- * PUT /api/sync/auto-config
- * Met à jour la config à chaud (pas de redémarrage nécessaire)
- *
- * Body (tous les champs sont optionnels) :
- *   { enabled, runId, iterationName, gitlabProjectId }
- *
- * Exemple pour passer sur R14 :
- *   { "runId": 295, "iterationName": "R14 - run 1", "gitlabProjectId": 63 }
- */
-app.put('/api/sync/auto-config', (req, res) => {
-  try {
-    const { enabled, runId, iterationName, gitlabProjectId } = req.body;
-    const patch = {};
-    if (enabled          !== undefined) patch.enabled         = Boolean(enabled);
-    if (runId            !== undefined) patch.runId           = parseInt(runId);
-    if (iterationName    !== undefined) patch.iterationName   = String(iterationName).trim();
-    if (gitlabProjectId  !== undefined) patch.gitlabProjectId = String(gitlabProjectId).trim();
-
-    if (Object.keys(patch).length === 0) {
-      return res.status(400).json({ success: false, error: 'Aucun champ valide fourni (enabled, runId, iterationName, gitlabProjectId)' });
-    }
-
-    const updated = autoSyncConfig.updateConfig(patch);
-    logger.info(`[AutoSync] Config mise à jour via API: ${JSON.stringify(updated)}`);
-    res.json({ success: true, data: updated, timestamp: new Date().toISOString() });
-  } catch (err) {
-    logger.error('Erreur PUT /api/sync/auto-config:', err);
-    res.status(500).json({ success: false, error: err.message, timestamp: new Date().toISOString() });
-  }
-});
 
 // ==========================================
 // Démarrage du serveur

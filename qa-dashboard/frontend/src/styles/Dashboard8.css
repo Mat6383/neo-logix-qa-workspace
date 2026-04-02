@@ -1,0 +1,349 @@
+/* ================================================
+   DASHBOARD 8 — Auto-Sync Control Panel
+   ================================================ */
+
+.d8-root {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: var(--font-family, 'Inter', sans-serif);
+  color: var(--text-color, #1e293b);
+}
+
+/* ── Header ─────────────────────────────────────── */
+.d8-header {
+  margin-bottom: 28px;
+}
+.d8-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.d8-header-title h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-color, #1e293b);
+}
+.d8-header-icon {
+  color: #3B82F6;
+}
+.d8-header-sub {
+  color: var(--text-muted, #64748b);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ── Grid layout ─────────────────────────────────── */
+.d8-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.d8-card--run {
+  grid-column: 1 / -1;
+}
+
+/* ── Cards ───────────────────────────────────────── */
+.d8-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.d8-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-color, #1e293b);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+/* ── Status card ─────────────────────────────────── */
+.d8-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--border-color, #f1f5f9);
+  color: var(--text-color, #334155);
+}
+.d8-status-row:last-of-type { border-bottom: none; }
+.d8-value {
+  font-weight: 500;
+  color: var(--text-color, #1e293b);
+}
+
+/* Badges */
+.d8-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.d8-badge--on  { background: #d1fae5; color: #065f46; }
+.d8-badge--off { background: #fee2e2; color: #991b1b; }
+
+/* Toggle button */
+.d8-btn-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.d8-btn-toggle--on  { background: #fee2e2; color: #b91c1c; }
+.d8-btn-toggle--on:hover  { background: #fecaca; }
+.d8-btn-toggle--off { background: #d1fae5; color: #065f46; }
+.d8-btn-toggle--off:hover { background: #a7f3d0; }
+
+/* ── Config card ─────────────────────────────────── */
+.d8-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.d8-form-group label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+}
+.d8-input {
+  padding: 9px 12px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--input-bg, #f8fafc);
+  color: var(--text-color, #1e293b);
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.d8-input:focus {
+  border-color: #3B82F6;
+  background: var(--card-bg, #fff);
+}
+.d8-form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* ── Boutons génériques ──────────────────────────── */
+.d8-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: #3B82F6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.d8-btn-primary:hover:not(:disabled) { background: #2563eb; }
+.d8-btn-primary:disabled,
+.d8-btn--disabled { opacity: 0.45; cursor: not-allowed; }
+
+.d8-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: var(--card-bg, #fff);
+  color: #3B82F6;
+  border: 1px solid #3B82F6;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.d8-btn-secondary:hover:not(:disabled) { background: #eff6ff; }
+.d8-btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.d8-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.d8-btn-danger:hover { background: #fecaca; }
+
+.d8-btn-ghost {
+  background: none;
+  border: none;
+  color: var(--text-muted, #64748b);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.d8-btn-ghost:hover { background: var(--border-color, #f1f5f9); }
+
+/* ── Config summary ──────────────────────────────── */
+.d8-config-summary {
+  background: var(--input-bg, #f8fafc);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+}
+.d8-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  color: var(--text-muted, #64748b);
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.d8-summary-row:last-child { border-bottom: none; }
+.d8-summary-row strong {
+  color: var(--text-color, #1e293b);
+  font-weight: 600;
+}
+
+/* ── Run card ─────────────────────────────────────── */
+.d8-run-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.d8-run-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+  margin: 0 0 14px;
+}
+
+/* ── Log SSE ─────────────────────────────────────── */
+.d8-log-container {
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  max-height: 340px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+.d8-log-line {
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.d8-log-info     { color: #94a3b8; }
+.d8-log-warn     { color: #fbbf24; }
+.d8-log-error    { color: #f87171; }
+.d8-log-updated  { color: #34d399; }
+.d8-log-would    { color: #60a5fa; }
+.d8-log-skip     { color: #6b7280; }
+.d8-log-done     {
+  color: #a78bfa;
+  font-weight: bold;
+  border-top: 1px solid #1e293b;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+/* ── Erreur / Loading ────────────────────────────── */
+.d8-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+.d8-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted, #64748b);
+  padding: 40px 0;
+  justify-content: center;
+}
+
+/* ── Spinner ─────────────────────────────────────── */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Dark mode ───────────────────────────────────── */
+.d8-root.dark .d8-card {
+  background: var(--card-bg, #1e293b);
+  border-color: var(--border-color, #334155);
+}
+.d8-root.dark .d8-input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+.d8-root.dark .d8-input:focus {
+  background: #1e293b;
+  border-color: #3B82F6;
+}
+.d8-root.dark .d8-config-summary {
+  background: #0f172a;
+}
+.d8-root.dark .d8-btn-secondary {
+  background: transparent;
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+.d8-root.dark .d8-btn-secondary:hover:not(:disabled) {
+  background: #1e3a5f;
+}
+.d8-root.dark .d8-btn-ghost {
+  color: #94a3b8;
+}
+.d8-root.dark .d8-btn-ghost:hover {
+  background: #1e293b;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 700px) {
+  .d8-grid {
+    grid-template-columns: 1fr;
+  }
+  .d8-card--run {
+    grid-column: 1;
+  }
+}
