@@ -474,6 +474,7 @@ const syncService = require('./services/sync.service');
 const syncHistoryService = require('./services/syncHistory.service');
 const PROJECTS = require('./config/projects.config');
 const gitlabServiceInstance = require('./services/gitlab.service');
+const statusSyncService = require('./services/status-sync.service');
 
 // Initialise SQLite au démarrage
 syncHistoryService.initDb();
@@ -822,6 +823,61 @@ app.post('/api/sync/iteration', async (req, res) => {
   } catch (error) {
     logger.error('Erreur POST /api/sync/iteration:', error);
     res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+/**
+ * POST /api/sync/status-to-gitlab
+ * Synchronise les statuts Testmo d'un run vers les labels GitLab.
+ * Utilise SSE pour le streaming de la progression.
+ *
+ * Body: { runId, iterationName, gitlabProjectId }
+ *   runId           - ID du run Testmo (ex: 283)
+ *   iterationName   - Nom de l'itération GitLab (ex: "R14 - run 1")
+ *   gitlabProjectId - ID du projet GitLab (ex: 42)
+ */
+app.post('/api/sync/status-to-gitlab', async (req, res) => {
+  const { runId, iterationName, gitlabProjectId } = req.body;
+
+  if (!runId || !iterationName || !gitlabProjectId) {
+    return res.status(400).json({
+      success: false,
+      error: '"runId", "iterationName" et "gitlabProjectId" requis'
+    });
+  }
+
+  // SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const send = (type, data = {}) => {
+    const payload = JSON.stringify({ type, ...data });
+    res.write(`data: ${payload}\n\n`);
+    if (typeof res.flush === 'function') res.flush();
+  };
+
+  const heartbeat = setInterval(() => {
+    res.write(': ping\n\n');
+  }, 15000);
+
+  try {
+    logger.info(`StatusSync: run=${runId} iteration="${iterationName}" glProject=${gitlabProjectId}`);
+
+    await statusSyncService.syncRunStatusToGitLab(
+      parseInt(runId),
+      iterationName,
+      gitlabProjectId,
+      (type, data) => send(type, data)
+    );
+  } catch (error) {
+    logger.error('Erreur POST /api/sync/status-to-gitlab:', error);
+    send('error', { message: error.message });
+  } finally {
+    clearInterval(heartbeat);
+    res.end();
   }
 });
 

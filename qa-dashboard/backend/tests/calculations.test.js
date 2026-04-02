@@ -490,3 +490,181 @@ describe('globalMetrics — formules ISTQB', () => {
     expect(m.testEfficiency).toBe(0);
   });
 });
+
+// ─── Helpers extraits de status-sync.service.js ──────────────────────────────
+
+// Mapping Testmo status_id → GitLab label
+const STATUS_TO_LABEL = {
+  1: 'Test::OK',
+  2: 'Test::KO',
+  3: 'DoubleTestNécessaire',
+  4: 'Test::BLOCKED',
+  5: 'Test::SKIPPED',
+  7: 'Test::WIP'
+};
+
+const ALL_TEST_LABELS = [
+  'Test::OK',
+  'Test::KO',
+  'Test::WIP',
+  'Test::SKIPPED',
+  'Test::BLOCKED',
+  'DoubleTestNécessaire',
+  'Test::TODO'
+];
+
+/**
+ * Calcule les changements de labels à appliquer à une issue.
+ * Extrait de StatusSyncService.syncRunStatusToGitLab()
+ */
+function computeLabelChanges(currentLabels, newLabel) {
+  if (!newLabel) return { addLabel: null, removeLabels: [], action: 'skip' };
+
+  const labelsToRemove = currentLabels.filter(l => ALL_TEST_LABELS.includes(l) && l !== newLabel);
+  const alreadyHasLabel = currentLabels.includes(newLabel);
+
+  if (alreadyHasLabel && labelsToRemove.length === 0) {
+    return { addLabel: newLabel, removeLabels: [], action: 'noop' };
+  }
+  return { addLabel: newLabel, removeLabels: labelsToRemove, action: 'update' };
+}
+
+describe('STATUS_TO_LABEL — mapping Testmo status_id → GitLab label', () => {
+  test('1 (Passed) → Test::OK', () => {
+    expect(STATUS_TO_LABEL[1]).toBe('Test::OK');
+  });
+
+  test('2 (Failed) → Test::KO', () => {
+    expect(STATUS_TO_LABEL[2]).toBe('Test::KO');
+  });
+
+  test('3 (Retest) → DoubleTestNécessaire', () => {
+    expect(STATUS_TO_LABEL[3]).toBe('DoubleTestNécessaire');
+  });
+
+  test('4 (Blocked) → Test::BLOCKED', () => {
+    expect(STATUS_TO_LABEL[4]).toBe('Test::BLOCKED');
+  });
+
+  test('5 (Skipped) → Test::SKIPPED', () => {
+    expect(STATUS_TO_LABEL[5]).toBe('Test::SKIPPED');
+  });
+
+  test('7 (WIP) → Test::WIP', () => {
+    expect(STATUS_TO_LABEL[7]).toBe('Test::WIP');
+  });
+
+  test('8 (Untested) → undefined (pas de label)', () => {
+    expect(STATUS_TO_LABEL[8]).toBeUndefined();
+  });
+
+  test('statut inconnu → undefined', () => {
+    expect(STATUS_TO_LABEL[99]).toBeUndefined();
+  });
+
+  test('tous les statuts actifs (1-5, 7) ont un label défini', () => {
+    [1, 2, 3, 4, 5, 7].forEach(id => {
+      expect(STATUS_TO_LABEL[id]).toBeTruthy();
+    });
+  });
+});
+
+describe('ALL_TEST_LABELS — liste exhaustive des labels Test:: gérés', () => {
+  test('contient tous les labels attendus', () => {
+    expect(ALL_TEST_LABELS).toContain('Test::OK');
+    expect(ALL_TEST_LABELS).toContain('Test::KO');
+    expect(ALL_TEST_LABELS).toContain('Test::WIP');
+    expect(ALL_TEST_LABELS).toContain('Test::SKIPPED');
+    expect(ALL_TEST_LABELS).toContain('Test::BLOCKED');
+    expect(ALL_TEST_LABELS).toContain('DoubleTestNécessaire');
+    expect(ALL_TEST_LABELS).toContain('Test::TODO');
+  });
+
+  test('toutes les valeurs de STATUS_TO_LABEL sont dans ALL_TEST_LABELS', () => {
+    Object.values(STATUS_TO_LABEL).forEach(label => {
+      expect(ALL_TEST_LABELS).toContain(label);
+    });
+  });
+});
+
+describe('computeLabelChanges — logique de mise à jour des labels GitLab', () => {
+  // ── Issue sans aucun label Test:: ──────────────────────────────────────────
+  test('issue sans label + Passed → ajoute Test::OK, rien à retirer', () => {
+    const { addLabel, removeLabels, action } = computeLabelChanges([], 'Test::OK');
+    expect(addLabel).toBe('Test::OK');
+    expect(removeLabels).toEqual([]);
+    expect(action).toBe('update');
+  });
+
+  test('issue sans label + WIP → ajoute Test::WIP', () => {
+    const { addLabel, removeLabels } = computeLabelChanges([], 'Test::WIP');
+    expect(addLabel).toBe('Test::WIP');
+    expect(removeLabels).toEqual([]);
+  });
+
+  // ── Issue avec un label Test:: existant ───────────────────────────────────
+  test('issue Test::KO → Passed : retire Test::KO, ajoute Test::OK', () => {
+    const { addLabel, removeLabels, action } = computeLabelChanges(['Test::KO'], 'Test::OK');
+    expect(addLabel).toBe('Test::OK');
+    expect(removeLabels).toEqual(['Test::KO']);
+    expect(action).toBe('update');
+  });
+
+  test('issue Test::TODO → WIP : retire Test::TODO, ajoute Test::WIP', () => {
+    const { addLabel, removeLabels } = computeLabelChanges(['Test::TODO'], 'Test::WIP');
+    expect(addLabel).toBe('Test::WIP');
+    expect(removeLabels).toEqual(['Test::TODO']);
+  });
+
+  test('issue DoubleTestNécessaire → KO : retire DoubleTestNécessaire, ajoute Test::KO', () => {
+    const { addLabel, removeLabels } = computeLabelChanges(['DoubleTestNécessaire'], 'Test::KO');
+    expect(addLabel).toBe('Test::KO');
+    expect(removeLabels).toEqual(['DoubleTestNécessaire']);
+  });
+
+  // ── Label déjà correct (idempotent) ───────────────────────────────────────
+  test('issue déjà Test::OK → Passed : action=noop, rien à retirer', () => {
+    const { action, removeLabels } = computeLabelChanges(['Test::OK'], 'Test::OK');
+    expect(action).toBe('noop');
+    expect(removeLabels).toEqual([]);
+  });
+
+  test('issue déjà Test::WIP → WIP : noop', () => {
+    const { action } = computeLabelChanges(['Test::WIP'], 'Test::WIP');
+    expect(action).toBe('noop');
+  });
+
+  // ── Labels non-Test:: préservés ───────────────────────────────────────────
+  test('labels non-Test:: ne sont pas dans removeLabels', () => {
+    const { removeLabels } = computeLabelChanges(['Test::KO', 'Bug', 'Sprint::R14'], 'Test::OK');
+    expect(removeLabels).toContain('Test::KO');
+    expect(removeLabels).not.toContain('Bug');
+    expect(removeLabels).not.toContain('Sprint::R14');
+  });
+
+  // ── Statut Untested (8) — pas de label ────────────────────────────────────
+  test('newLabel=undefined (Untested) → action=skip', () => {
+    const { action, addLabel } = computeLabelChanges(['Test::KO'], undefined);
+    expect(action).toBe('skip');
+    expect(addLabel).toBeNull();
+  });
+
+  test('newLabel=null → action=skip, removeLabels vide', () => {
+    const { action, removeLabels } = computeLabelChanges(['Test::OK'], null);
+    expect(action).toBe('skip');
+    expect(removeLabels).toEqual([]);
+  });
+
+  // ── Plusieurs labels Test:: simultanément (situation anormale mais possible) ──
+  test('issue avec plusieurs labels Test:: → tous retirés sauf le nouveau', () => {
+    const { removeLabels, addLabel } = computeLabelChanges(
+      ['Test::KO', 'Test::WIP', 'Bug'],
+      'Test::OK'
+    );
+    expect(addLabel).toBe('Test::OK');
+    expect(removeLabels).toContain('Test::KO');
+    expect(removeLabels).toContain('Test::WIP');
+    expect(removeLabels).not.toContain('Bug');
+    expect(removeLabels).not.toContain('Test::OK');
+  });
+});

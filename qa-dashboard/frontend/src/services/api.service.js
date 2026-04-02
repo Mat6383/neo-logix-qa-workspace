@@ -275,6 +275,9 @@ const apiService = {
   // Note: la synchronisation réelle (execute) utilise EventSource (SSE) côté frontend,
   // pas axios. Voir Dashboard6.jsx → executeSyncSSE().
 
+  // Note: syncStatusToGitLabSSE() utilise aussi fetch+ReadableStream (SSE).
+  // Voir l'implémentation dans le composant qui l'appelle.
+
   // ---- Fin Dashboard 6 ---------------------------------------------------
 
   // ---- Dashboard 7: CrossTest OK ----------------------------------------

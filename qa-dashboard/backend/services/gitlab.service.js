@@ -281,6 +281,62 @@ class GitLabService {
   }
 
   /**
+   * Récupère TOUTES les issues d'une itération (sans filtre de label)
+   * Utilisé par le StatusSync pour obtenir tous les tickets de l'itération.
+   *
+   * @param {number|string} projectId   - ID du projet GitLab
+   * @param {number}        iterationId - ID de l'itération
+   * @returns {Array}
+   */
+  async getIssuesForIteration(projectId, iterationId) {
+    try {
+      const issues = await this._getPaginated(
+        `/projects/${projectId}/issues`,
+        { iteration_id: iterationId, state: 'all', scope: 'all' }
+      );
+      logger.info(`GitLab: ${issues.length} issue(s) pour iteration_id=${iterationId} (project=${projectId})`);
+      return issues;
+    } catch (error) {
+      logger.error(`GitLab: Erreur récupération issues iteration ${iterationId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Met à jour les labels d'une issue GitLab :
+   * - Ajoute `addLabel` (si non null)
+   * - Retire les labels de `removeLabels`
+   *
+   * GitLab API: PUT /projects/:id/issues/:iid
+   *   { add_labels: "Test::OK", remove_labels: "Test::KO,Test::WIP" }
+   *
+   * @param {number|string} projectId    - ID du projet GitLab
+   * @param {number}        issueIid     - IID de l'issue (numéro #XXXX)
+   * @param {string|null}   addLabel     - Label à ajouter (peut être null)
+   * @param {string[]}      removeLabels - Labels à retirer
+   * @returns {Object} Issue mise à jour
+   */
+  async updateIssueLabel(projectId, issueIid, addLabel, removeLabels = []) {
+    try {
+      const body = {};
+      if (addLabel)              body.add_labels    = addLabel;
+      if (removeLabels.length)   body.remove_labels = removeLabels.join(',');
+
+      if (!body.add_labels && !body.remove_labels) {
+        logger.debug(`GitLab: updateIssueLabel #${issueIid} — rien à faire`);
+        return null;
+      }
+
+      const resp = await this.client.put(`/projects/${projectId}/issues/${issueIid}`, body);
+      logger.info(`GitLab: Labels mis à jour pour #${issueIid} — +[${addLabel}] -[${removeLabels.join(',')}]`);
+      return resp.data;
+    } catch (error) {
+      logger.error(`GitLab: Erreur updateIssueLabel #${issueIid}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Convertit time_estimate (secondes) en format Testmo
    * Ex: 1800 → "30m", 3600 → "1h", 5400 → "1h 30m"
    *
