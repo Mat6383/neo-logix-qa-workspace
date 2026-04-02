@@ -928,6 +928,65 @@ app.use((err, req, res, next) => {
 });
 
 // ==========================================
+// AUTO-SYNC CRON — Testmo → GitLab
+// ==========================================
+// Toutes les 5 minutes, lundi-vendredi de 8h à 18h
+// Expression cron : */5 8-17 * * 1-5
+// (heure 8-17 = de 8:00 à 17:55, dernière exécution avant 18h)
+
+const cron = require('node-cron');
+
+/**
+ * Lance la sync automatique Testmo → GitLab
+ * sans SSE (logging uniquement)
+ */
+async function runAutoSync() {
+  const runId         = parseInt(process.env.SYNC_AUTO_RUN_ID);
+  const iterationName = process.env.SYNC_AUTO_ITERATION_NAME;
+  const gitlabProjId  = process.env.SYNC_AUTO_GITLAB_PROJECT_ID;
+
+  if (!runId || !iterationName || !gitlabProjId) {
+    logger.warn('[AutoSync] Variables manquantes (SYNC_AUTO_RUN_ID / SYNC_AUTO_ITERATION_NAME / SYNC_AUTO_GITLAB_PROJECT_ID) — sync ignorée');
+    return;
+  }
+
+  logger.info(`[AutoSync] Démarrage — run=${runId} iteration="${iterationName}" glProject=${gitlabProjId}`);
+
+  try {
+    const stats = await statusSyncService.syncRunStatusToGitLab(
+      runId,
+      iterationName,
+      gitlabProjId,
+      (type, data) => {
+        // Pas de SSE en mode cron, on logue les événements importants
+        if (type === 'updated')      logger.info(`[AutoSync] ✓ #${data.issueIid} "${data.caseName}" → ${data.label}`);
+        else if (type === 'error')   logger.error(`[AutoSync] ✗ #${data.issueIid} "${data.caseName}": ${data.error}`);
+        else if (type === 'done')    logger.info(`[AutoSync] Terminé — updated=${data.updated} skipped=${data.skipped} errors=${data.errors}`);
+        else if (type === 'warn')    logger.warn(`[AutoSync] ${data.message}`);
+      },
+      false // dryRun = false
+    );
+    logger.info(`[AutoSync] Stats: updated=${stats.updated} skipped=${stats.skipped} errors=${stats.errors} total=${stats.total}`);
+  } catch (err) {
+    logger.error(`[AutoSync] Erreur critique: ${err.message}`);
+  }
+}
+
+if (process.env.SYNC_AUTO_ENABLED === 'true') {
+  // */5 8-17 * * 1-5 → toutes les 5 min, lun-ven, de 8h00 à 17h55
+  cron.schedule('*/5 8-17 * * 1-5', () => {
+    logger.info('[AutoSync] Cron déclenché');
+    runAutoSync();
+  }, {
+    timezone: 'Europe/Paris'
+  });
+
+  logger.info('[AutoSync] Cron activé — lun-ven 8h-18h, toutes les 5 min (Europe/Paris)');
+} else {
+  logger.info('[AutoSync] Cron désactivé (SYNC_AUTO_ENABLED != true)');
+}
+
+// ==========================================
 // Démarrage du serveur
 // ==========================================
 app.listen(PORT, () => {
