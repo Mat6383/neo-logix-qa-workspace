@@ -35,3 +35,7 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Runtime data (config dynamique auto-sync, DB SQLite)
+data/*.json
+data/*.db
