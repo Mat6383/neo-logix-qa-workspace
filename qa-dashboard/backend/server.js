@@ -837,7 +837,7 @@ app.post('/api/sync/iteration', async (req, res) => {
  *   gitlabProjectId - ID du projet GitLab (ex: 42)
  */
 app.post('/api/sync/status-to-gitlab', async (req, res) => {
-  const { runId, iterationName, gitlabProjectId } = req.body;
+  const { runId, iterationName, gitlabProjectId, dryRun = false } = req.body;
 
   if (!runId || !iterationName || !gitlabProjectId) {
     return res.status(400).json({
@@ -870,7 +870,8 @@ app.post('/api/sync/status-to-gitlab', async (req, res) => {
       parseInt(runId),
       iterationName,
       gitlabProjectId,
-      (type, data) => send(type, data)
+      (type, data) => send(type, data),
+      Boolean(dryRun)
     );
   } catch (error) {
     logger.error('Erreur POST /api/sync/status-to-gitlab:', error);

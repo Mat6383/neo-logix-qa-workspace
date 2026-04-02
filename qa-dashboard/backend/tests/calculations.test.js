@@ -494,13 +494,12 @@ describe('globalMetrics — formules ISTQB', () => {
 // ─── Helpers extraits de status-sync.service.js ──────────────────────────────
 
 // Mapping Testmo status_id → GitLab label
+// Mapping empiriquement vérifié sur cette instance Testmo (≠ IDs standards)
 const STATUS_TO_LABEL = {
-  1: 'Test::OK',
-  2: 'Test::KO',
-  3: 'DoubleTestNécessaire',
-  4: 'Test::BLOCKED',
-  5: 'Test::SKIPPED',
-  7: 'Test::WIP'
+  2: 'Test::OK',               // Passed  (vert)
+  3: 'Test::KO',               // Failed  (rouge)
+  4: 'DoubleTestNécessaire',   // Retest  (orange)
+  8: 'Test::WIP'               // WIP     (violet)
 };
 
 const ALL_TEST_LABELS = [
@@ -530,40 +529,35 @@ function computeLabelChanges(currentLabels, newLabel) {
 }
 
 describe('STATUS_TO_LABEL — mapping Testmo status_id → GitLab label', () => {
-  test('1 (Passed) → Test::OK', () => {
-    expect(STATUS_TO_LABEL[1]).toBe('Test::OK');
+  // Mapping empiriquement vérifié sur l'instance Neo-Logix Testmo (≠ IDs standards)
+  test('2 (Passed, vert) → Test::OK', () => {
+    expect(STATUS_TO_LABEL[2]).toBe('Test::OK');
   });
 
-  test('2 (Failed) → Test::KO', () => {
-    expect(STATUS_TO_LABEL[2]).toBe('Test::KO');
+  test('3 (Failed, rouge) → Test::KO', () => {
+    expect(STATUS_TO_LABEL[3]).toBe('Test::KO');
   });
 
-  test('3 (Retest) → DoubleTestNécessaire', () => {
-    expect(STATUS_TO_LABEL[3]).toBe('DoubleTestNécessaire');
+  test('4 (Retest, orange) → DoubleTestNécessaire', () => {
+    expect(STATUS_TO_LABEL[4]).toBe('DoubleTestNécessaire');
   });
 
-  test('4 (Blocked) → Test::BLOCKED', () => {
-    expect(STATUS_TO_LABEL[4]).toBe('Test::BLOCKED');
+  test('8 (WIP, violet) → Test::WIP', () => {
+    expect(STATUS_TO_LABEL[8]).toBe('Test::WIP');
   });
 
-  test('5 (Skipped) → Test::SKIPPED', () => {
-    expect(STATUS_TO_LABEL[5]).toBe('Test::SKIPPED');
+  test('1 (Untested initial — pas de result créé) → undefined', () => {
+    expect(STATUS_TO_LABEL[1]).toBeUndefined();
   });
 
-  test('7 (WIP) → Test::WIP', () => {
-    expect(STATUS_TO_LABEL[7]).toBe('Test::WIP');
+  test('statut inconnu (5, 6, 7, 99) → undefined (ignoré)', () => {
+    [5, 6, 7, 99].forEach(id => {
+      expect(STATUS_TO_LABEL[id]).toBeUndefined();
+    });
   });
 
-  test('8 (Untested) → undefined (pas de label)', () => {
-    expect(STATUS_TO_LABEL[8]).toBeUndefined();
-  });
-
-  test('statut inconnu → undefined', () => {
-    expect(STATUS_TO_LABEL[99]).toBeUndefined();
-  });
-
-  test('tous les statuts actifs (1-5, 7) ont un label défini', () => {
-    [1, 2, 3, 4, 5, 7].forEach(id => {
+  test('tous les statuts observés (2,3,4,8) ont un label défini', () => {
+    [2, 3, 4, 8].forEach(id => {
       expect(STATUS_TO_LABEL[id]).toBeTruthy();
     });
   });

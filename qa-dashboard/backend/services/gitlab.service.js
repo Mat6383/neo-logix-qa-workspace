@@ -16,12 +16,19 @@ class GitLabService {
   constructor() {
     this.baseURL = process.env.GITLAB_URL;
     this.token = process.env.GITLAB_TOKEN;
+    // Token d'écriture séparé pour modifier les labels (scope api requis)
+    // Si absent, on retombe sur GITLAB_TOKEN (peut échouer en 403 si read-only)
+    this.writeToken = process.env.GITLAB_WRITE_TOKEN || process.env.GITLAB_TOKEN;
     this.projectId = process.env.GITLAB_PROJECT_ID;
     this.verifySsl = process.env.GITLAB_VERIFY_SSL !== 'false';
     this.timeout = parseInt(process.env.API_TIMEOUT) || 10000;
 
     // Délai entre requêtes API (rate-limit protection)
     this.apiDelay = 300;
+
+    const httpsAgent = this.verifySsl === false
+      ? new (require('https').Agent)({ rejectUnauthorized: false })
+      : undefined;
 
     this.client = axios.create({
       baseURL: `${this.baseURL}/api/v4`,
@@ -31,9 +38,18 @@ class GitLabService {
         'Content-Type': 'application/json'
       },
       // Support self-signed certificates (GitLab on-premise)
-      ...(this.verifySsl === false && {
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
-      })
+      ...(httpsAgent && { httpsAgent })
+    });
+
+    // Client dédié aux opérations d'écriture (labels, etc.)
+    this.writeClient = axios.create({
+      baseURL: `${this.baseURL}/api/v4`,
+      timeout: this.timeout,
+      headers: {
+        'PRIVATE-TOKEN': this.writeToken,
+        'Content-Type': 'application/json'
+      },
+      ...(httpsAgent && { httpsAgent })
     });
 
     this.client.interceptors.response.use(
@@ -327,7 +343,7 @@ class GitLabService {
         return null;
       }
 
-      const resp = await this.client.put(`/projects/${projectId}/issues/${issueIid}`, body);
+      const resp = await this.writeClient.put(`/projects/${projectId}/issues/${issueIid}`, body);
       logger.info(`GitLab: Labels mis à jour pour #${issueIid} — +[${addLabel}] -[${removeLabels.join(',')}]`);
       return resp.data;
     } catch (error) {

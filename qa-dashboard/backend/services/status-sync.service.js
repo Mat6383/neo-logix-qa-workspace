@@ -23,13 +23,15 @@ const gitlabService = require('./gitlab.service');
 
 // ─── Constantes ─────────────────────────────────────────────────────────────
 
+// Mapping empiriquement vérifié sur cette instance Testmo (≠ IDs standards)
+// Confirmé en croisant l'UI Testmo et les données /runs/{id}/results
 const STATUS_TO_LABEL = {
-  1: 'Test::OK',
-  2: 'Test::KO',
-  3: 'DoubleTestNécessaire',
-  4: 'Test::BLOCKED',
-  5: 'Test::SKIPPED',
-  7: 'Test::WIP'
+  2: 'Test::OK',               // Passed  (vert)
+  3: 'Test::KO',               // Failed  (rouge)
+  4: 'DoubleTestNécessaire',   // Retest  (orange)
+  8: 'Test::WIP'               // WIP     (violet)
+  // 1 = Untested initial (aucun result créé)
+  // 5, 6, 7 = statuts non observés → ignorés pour l'instant
 };
 
 // Tous les labels Test:: gérés par cette sync (pour les retirer avant d'en ajouter un nouveau)
@@ -77,46 +79,62 @@ class StatusSyncService {
    * @returns {Array} [{ case_id, case_name, status_id, is_latest, ... }]
    */
   async _getRunResults(runId) {
-    const results = [];
+    const all = [];
     let page = 1;
 
     while (true) {
       const resp = await this.client.get(`/runs/${runId}/results`, {
-        params: {
-          per_page: 100,
-          page,
-          is_latest: 1,
-          expands: 'cases'
-        }
+        params: page > 1 ? { page } : {}
+        // Note: per_page et is_latest en query param causent 422 → filtre mémoire + défaut API
       });
 
-      const data = resp.data?.data || resp.data || [];
+      const data = resp.data?.result || resp.data?.data || [];
       if (!Array.isArray(data) || data.length === 0) break;
-      results.push(...data);
+      all.push(...data);
 
-      const nextPage = resp.data?.meta?.next_page || resp.headers?.['x-next-page'];
+      const nextPage = resp.data?.next_page;
       if (!nextPage) break;
-      page = parseInt(nextPage);
+      page = nextPage;
     }
 
-    return results;
+    // Ne garder que le résultat le plus récent par case_id
+    return all.filter(r => r.is_latest === true);
   }
 
   /**
-   * Récupère les cases d'un run pour obtenir les noms (case_name).
-   * L'endpoint /runs/{id}/results contient déjà case_name quand expands=cases.
+   * Construit un map case_id → case_name en paginant sur /projects/{id}/cases
+   * jusqu'à ce que tous les IDs demandés soient trouvés.
    *
-   * @param {number} runId
-   * @returns {Map<number, string>}  case_id → case_name
+   * @param {number[]} neededIds  - Liste des case_ids à résoudre
+   * @returns {Map<number, string>}
    */
-  async _getCaseNamesForRun(runId) {
-    const resp = await this.client.get(`/runs/${runId}/cases`, {
-      params: { per_page: 500 }
-    });
-    const cases = resp.data?.data || resp.data || [];
+  async _getCaseNames(neededIds) {
+    const projectId = process.env.TESTMO_PROJECT_ID || 1;
     const map = new Map();
-    for (const c of cases) {
-      if (c.id && c.name) map.set(c.id, c.name);
+    const remaining = new Set(neededIds);
+    let page = 1;
+
+    while (remaining.size > 0) {
+      const resp = await this.client.get(`/projects/${projectId}/cases`, {
+        params: { page }
+        // Note: per_page en query param cause 422 → on utilise le défaut (100)
+      });
+      const data   = resp.data?.result || [];
+      const pages  = resp.data?.last_page || 1;
+
+      for (const c of data) {
+        if (remaining.has(c.id)) {
+          map.set(c.id, c.name);
+          remaining.delete(c.id);
+        }
+      }
+
+      if (page >= pages || remaining.size === 0) break;
+      page++;
+    }
+
+    if (remaining.size > 0) {
+      logger.warn(`[StatusSync] ${remaining.size} case_id(s) introuvable(s): ${[...remaining].join(', ')}`);
     }
     return map;
   }
@@ -139,12 +157,13 @@ class StatusSyncService {
    * @param {string} iterationName   - Nom de l'itération GitLab (ex: "R14 - run 1")
    * @param {number|string} gitlabProjectId - ID du projet GitLab
    * @param {Function} onEvent       - callback(type, data) pour SSE
+   * @param {boolean}  dryRun        - Si true : calcule sans appeler GitLab
    * @returns {Object} { updated, skipped, errors, total }
    */
-  async syncRunStatusToGitLab(runId, iterationName, gitlabProjectId, onEvent = () => {}) {
-    const stats = { updated: 0, skipped: 0, errors: 0, total: 0 };
+  async syncRunStatusToGitLab(runId, iterationName, gitlabProjectId, onEvent = () => {}, dryRun = false) {
+    const stats = { updated: 0, skipped: 0, errors: 0, total: 0, dryRun };
 
-    onEvent('info', { message: `Démarrage sync Testmo run #${runId} → GitLab "${iterationName}"` });
+    onEvent('info', { message: `Démarrage sync Testmo run #${runId} → GitLab "${iterationName}"${dryRun ? ' [DRY-RUN — aucune modif GitLab]' : ''}` });
     logger.info(`[StatusSync] run=${runId}, iteration="${iterationName}", glProject=${gitlabProjectId}`);
 
     // 1. Résultats Testmo (is_latest)
@@ -156,19 +175,11 @@ class StatusSyncService {
     }
     onEvent('info', { message: `${results.length} résultat(s) Testmo trouvé(s).` });
 
-    // Récupère les noms de cases si non déjà inclus dans results
-    let caseNames = new Map(); // case_id → name
-    const firstResult = results[0];
-    if (firstResult.case_name) {
-      // expands=cases a fonctionné
-      for (const r of results) {
-        if (r.case_id && r.case_name) caseNames.set(r.case_id, r.case_name);
-      }
-    } else {
-      // Fallback : fetch séparé
-      onEvent('info', { message: 'Récupération des noms de cases…' });
-      caseNames = await this._getCaseNamesForRun(runId);
-    }
+    // Récupère les noms de cases (les résultats ne les contiennent pas)
+    onEvent('info', { message: 'Résolution des noms de cases Testmo…' });
+    const neededIds = [...new Set(results.map(r => r.case_id).filter(Boolean))];
+    const caseNames = await this._getCaseNames(neededIds);
+    onEvent('info', { message: `${caseNames.size}/${neededIds.length} noms de cases résolus.` });
 
     // 2. Issues GitLab de l'itération
     onEvent('info', { message: `Recherche itération GitLab "${iterationName}"…` });
@@ -228,6 +239,19 @@ class StatusSyncService {
         // Rien à faire
         stats.skipped++;
         onEvent('skip', { caseName, label: newLabel, reason: 'déjà à jour' });
+        continue;
+      }
+
+      if (dryRun) {
+        // Dry-run : affiche ce qui serait fait sans appeler GitLab
+        stats.updated++;
+        onEvent('would-update', {
+          caseName,
+          issueIid:  issue.iid,
+          label:     newLabel,
+          removed:   labelsToRemove,
+          current:   currentLabels.filter(l => ALL_TEST_LABELS.includes(l))
+        });
         continue;
       }
 
