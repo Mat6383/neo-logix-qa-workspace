@@ -34,6 +34,14 @@ const STATUS_TO_LABEL = {
   // 5, 6, 7 = statuts non observés → ignorés pour l'instant
 };
 
+// Noms lisibles des statuts (pour les commentaires GitLab)
+const STATUS_ID_TO_NAME = {
+  2: 'Passed',
+  3: 'Failed',
+  4: 'Retest',
+  8: 'WIP'
+};
+
 // Tous les labels Test:: gérés par cette sync (pour les retirer avant d'en ajouter un nouveau)
 const ALL_TEST_LABELS = [
   'Test::OK',
@@ -71,6 +79,17 @@ class StatusSyncService {
   }
 
   // ─── Testmo API helpers ────────────────────────────────────────────────────
+
+  /**
+   * Récupère les métadonnées d'un run Testmo (nom, etc.)
+   *
+   * @param {number} runId
+   * @returns {Object} { id, name, ... }
+   */
+  async _getRunInfo(runId) {
+    const resp = await this.client.get(`/runs/${runId}`);
+    return resp.data?.result || resp.data || {};
+  }
 
   /**
    * Récupère tous les résultats (is_latest seulement) d'un run Testmo.
@@ -139,6 +158,51 @@ class StatusSyncService {
     return map;
   }
 
+  // ─── Commentaires GitLab ──────────────────────────────────────────────────
+
+  /**
+   * Formate le texte du commentaire automatique.
+   *
+   * @param {string} runName    - Nom du run Testmo (ex: "R10 - run 1")
+   * @param {number} statusId   - ID du statut Testmo
+   * @returns {string} Texte du commentaire
+   */
+  _buildCommentText(runName, statusId) {
+    const statusName = STATUS_ID_TO_NAME[statusId] || String(statusId);
+    return `Commentaire ajouté automatiquement - Test sur le run: ${runName} - Status ${statusName}`;
+  }
+
+  /**
+   * Poste un commentaire sur une issue GitLab uniquement si un commentaire
+   * identique (même run + même statut) n'existe pas déjà (idempotence).
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @param {number}        issueIid  - IID de l'issue
+   * @param {string}        caseName  - Nom du cas de test (pour les logs)
+   * @param {string}        runName   - Nom du run Testmo
+   * @param {number}        statusId  - ID du statut Testmo
+   */
+  async _postCommentIfNeeded(projectId, issueIid, caseName, runName, statusId) {
+    const commentText = this._buildCommentText(runName, statusId);
+
+    try {
+      // Récupère les commentaires existants pour vérifier l'idempotence
+      const existingNotes = await gitlabService.getIssueNotes(projectId, issueIid);
+      const alreadyExists = existingNotes.some(n => n.body === commentText);
+
+      if (alreadyExists) {
+        logger.info(`[StatusSync] Commentaire déjà présent sur #${issueIid} pour run="${runName}" status=${statusId} — ignoré`);
+        return;
+      }
+
+      await gitlabService.addIssueComment(projectId, issueIid, commentText);
+      logger.info(`[StatusSync] Commentaire ajouté sur #${issueIid} "${caseName}" : "${commentText}"`);
+    } catch (err) {
+      // Non-bloquant : une erreur sur le commentaire ne doit pas annuler la sync
+      logger.error(`[StatusSync] Erreur commentaire #${issueIid} "${caseName}": ${err.message}`);
+    }
+  }
+
   // ─── Sync principale ───────────────────────────────────────────────────────
 
   /**
@@ -165,6 +229,17 @@ class StatusSyncService {
 
     onEvent('info', { message: `Démarrage sync Testmo run #${runId} → GitLab "${iterationName}"${dryRun ? ' [DRY-RUN — aucune modif GitLab]' : ''}` });
     logger.info(`[StatusSync] run=${runId}, iteration="${iterationName}", glProject=${gitlabProjectId}`);
+
+    // 0. Nom du run Testmo (pour les commentaires GitLab)
+    onEvent('info', { message: 'Récupération du nom du run Testmo…' });
+    let runName = `Run #${runId}`;
+    try {
+      const runInfo = await this._getRunInfo(runId);
+      runName = runInfo.name || runName;
+      onEvent('info', { message: `Run Testmo : "${runName}"` });
+    } catch (err) {
+      logger.warn(`[StatusSync] Impossible de récupérer le nom du run ${runId}: ${err.message}`);
+    }
 
     // 1. Résultats Testmo (is_latest)
     onEvent('info', { message: 'Récupération des résultats Testmo…' });
@@ -260,6 +335,9 @@ class StatusSyncService {
         stats.updated++;
         onEvent('updated', { caseName, issueIid: issue.iid, label: newLabel, removed: labelsToRemove });
         logger.info(`[StatusSync] #${issue.iid} "${caseName}" → ${newLabel}`);
+
+        // Ajouter un commentaire GitLab (idempotent par run+statut)
+        await this._postCommentIfNeeded(gitlabProjectId, issue.iid, caseName, runName, statusId);
       } catch (err) {
         stats.errors++;
         onEvent('error', { caseName, issueIid: issue.iid, error: err.message });
@@ -281,5 +359,6 @@ const statusSyncService = new StatusSyncService();
 
 module.exports = statusSyncService;
 module.exports.STATUS_TO_LABEL   = STATUS_TO_LABEL;
+module.exports.STATUS_ID_TO_NAME = STATUS_ID_TO_NAME;
 module.exports.ALL_TEST_LABELS   = ALL_TEST_LABELS;
 module.exports.StatusSyncService = StatusSyncService;

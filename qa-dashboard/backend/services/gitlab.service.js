@@ -353,6 +353,28 @@ class GitLabService {
   }
 
   /**
+   * Ajoute un commentaire (note) sur une issue GitLab
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @param {number}        issueIid  - IID de l'issue (numéro #XXXX)
+   * @param {string}        body      - Contenu du commentaire
+   * @returns {Object} Note créée
+   */
+  async addIssueComment(projectId, issueIid, body) {
+    try {
+      const resp = await this.writeClient.post(
+        `/projects/${projectId}/issues/${issueIid}/notes`,
+        { body }
+      );
+      logger.info(`GitLab: Commentaire ajouté sur #${issueIid} (project=${projectId})`);
+      return resp.data;
+    } catch (error) {
+      logger.error(`GitLab: Erreur addIssueComment #${issueIid}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Convertit time_estimate (secondes) en format Testmo
    * Ex: 1800 → "30m", 3600 → "1h", 5400 → "1h 30m"
    *

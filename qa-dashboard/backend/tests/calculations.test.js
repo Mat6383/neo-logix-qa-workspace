@@ -493,6 +493,14 @@ describe('globalMetrics — formules ISTQB', () => {
 
 // ─── Helpers extraits de status-sync.service.js ──────────────────────────────
 
+// Noms lisibles des statuts Testmo (pour les commentaires GitLab)
+const STATUS_ID_TO_NAME = {
+  2: 'Passed',
+  3: 'Failed',
+  4: 'Retest',
+  8: 'WIP'
+};
+
 // Mapping Testmo status_id → GitLab label
 // Mapping empiriquement vérifié sur cette instance Testmo (≠ IDs standards)
 const STATUS_TO_LABEL = {
@@ -526,6 +534,21 @@ function computeLabelChanges(currentLabels, newLabel) {
     return { addLabel: newLabel, removeLabels: [], action: 'noop' };
   }
   return { addLabel: newLabel, removeLabels: labelsToRemove, action: 'update' };
+}
+
+/**
+ * Formate le texte du commentaire automatique (extrait de StatusSyncService._buildCommentText)
+ */
+function buildCommentText(runName, statusId) {
+  const statusName = STATUS_ID_TO_NAME[statusId] || String(statusId);
+  return `Commentaire ajouté automatiquement - Test sur le run: ${runName} - Status ${statusName}`;
+}
+
+/**
+ * Vérifie si un commentaire identique existe déjà (extrait de _postCommentIfNeeded)
+ */
+function isCommentDuplicate(existingNotes, commentText) {
+  return existingNotes.some(n => n.body === commentText);
 }
 
 describe('STATUS_TO_LABEL — mapping Testmo status_id → GitLab label', () => {
@@ -578,6 +601,119 @@ describe('ALL_TEST_LABELS — liste exhaustive des labels Test:: gérés', () =>
     Object.values(STATUS_TO_LABEL).forEach(label => {
       expect(ALL_TEST_LABELS).toContain(label);
     });
+  });
+});
+
+describe('STATUS_ID_TO_NAME — noms lisibles des statuts Testmo', () => {
+  test('2 → "Passed"', () => {
+    expect(STATUS_ID_TO_NAME[2]).toBe('Passed');
+  });
+
+  test('3 → "Failed"', () => {
+    expect(STATUS_ID_TO_NAME[3]).toBe('Failed');
+  });
+
+  test('4 → "Retest"', () => {
+    expect(STATUS_ID_TO_NAME[4]).toBe('Retest');
+  });
+
+  test('8 → "WIP"', () => {
+    expect(STATUS_ID_TO_NAME[8]).toBe('WIP');
+  });
+
+  test('statut inconnu → undefined', () => {
+    expect(STATUS_ID_TO_NAME[99]).toBeUndefined();
+  });
+
+  test('tous les statuts de STATUS_TO_LABEL ont un nom lisible', () => {
+    Object.keys(STATUS_TO_LABEL).forEach(id => {
+      expect(STATUS_ID_TO_NAME[Number(id)]).toBeTruthy();
+    });
+  });
+});
+
+describe('buildCommentText — format du commentaire automatique GitLab', () => {
+  test('format correct pour un run et un statut Passed', () => {
+    const text = buildCommentText('R10 - run 1', 2);
+    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Passed');
+  });
+
+  test('format correct pour un statut WIP', () => {
+    const text = buildCommentText('R14 - run 2', 8);
+    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R14 - run 2 - Status WIP');
+  });
+
+  test('format correct pour un statut Failed', () => {
+    const text = buildCommentText('R10 - run 1', 3);
+    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Failed');
+  });
+
+  test('format correct pour un statut Retest', () => {
+    const text = buildCommentText('R10 - run 1', 4);
+    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Retest');
+  });
+
+  test('statut inconnu → affiche l\'id brut comme fallback', () => {
+    const text = buildCommentText('R10 - run 1', 99);
+    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status 99');
+  });
+
+  test('deux runs différents → deux textes distincts', () => {
+    const textA = buildCommentText('R10 - run 1', 2);
+    const textB = buildCommentText('R11 - run 1', 2);
+    expect(textA).not.toBe(textB);
+  });
+
+  test('même run, deux statuts différents → deux textes distincts', () => {
+    const textWIP    = buildCommentText('R10 - run 1', 8);
+    const textPassed = buildCommentText('R10 - run 1', 2);
+    expect(textWIP).not.toBe(textPassed);
+  });
+});
+
+describe('isCommentDuplicate — idempotence des commentaires GitLab', () => {
+  const runName  = 'R10 - run 1';
+  const statusId = 2; // Passed
+  const commentText = buildCommentText(runName, statusId);
+
+  test('liste vide → pas de doublon', () => {
+    expect(isCommentDuplicate([], commentText)).toBe(false);
+  });
+
+  test('commentaire identique existe → doublon détecté', () => {
+    const notes = [{ body: commentText }];
+    expect(isCommentDuplicate(notes, commentText)).toBe(true);
+  });
+
+  test('commentaire différent → pas de doublon', () => {
+    const notes = [{ body: 'Un autre commentaire' }];
+    expect(isCommentDuplicate(notes, commentText)).toBe(false);
+  });
+
+  test('plusieurs notes, une seule identique → doublon détecté', () => {
+    const notes = [
+      { body: 'Commentaire manuel du testeur' },
+      { body: commentText },
+      { body: 'Autre note auto' }
+    ];
+    expect(isCommentDuplicate(notes, commentText)).toBe(true);
+  });
+
+  test('même run WIP + Passed = deux commentaires distincts (pas de faux doublon)', () => {
+    const wipText    = buildCommentText(runName, 8);
+    const passedText = buildCommentText(runName, 2);
+    // On a uniquement le commentaire WIP dans les notes
+    const notes = [{ body: wipText }];
+    // Vérifier Passed → pas de doublon (c'est un nouveau statut)
+    expect(isCommentDuplicate(notes, passedText)).toBe(false);
+    // Vérifier WIP → doublon (déjà posté)
+    expect(isCommentDuplicate(notes, wipText)).toBe(true);
+  });
+
+  test('note avec body null/undefined → ne crash pas', () => {
+    const notes = [{ body: null }, { body: undefined }, { body: commentText }];
+    expect(() => isCommentDuplicate(notes, commentText)).not.toThrow();
+    expect(isCommentDuplicate(notes, commentText)).toBe(true);
   });
 });
 
