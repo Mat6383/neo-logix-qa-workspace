@@ -38,7 +38,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
     // --- Données Dashboard 1 (Métriques globales) ---
     const d1 = metrics;
     const raw = d1.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
-    const runs = runs || [];
+    const runs = d1.runs || [];
     // --- Données Dashboard 3 (Quality Rates) ---
     const rates = metrics.qualityRates || {
         escapeRate: 0, detectionRate: 0, bugsInProd: 0, bugsInTest: 0, totalBugs: 0,
