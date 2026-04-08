@@ -453,6 +453,9 @@ function App() {
           <Dashboard4
             metrics={metrics}
             project={projects.find(p => p.id === projectId)}
+            projects={projects}
+            projectId={projectId}
+            onProjectChange={(id) => setProjectId(id)}
             isDark={darkMode}
             useBusiness={useBusinessTerms}
             setExportHandler={setExportHandler}

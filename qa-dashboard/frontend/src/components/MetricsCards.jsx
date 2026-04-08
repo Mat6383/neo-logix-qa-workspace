@@ -28,7 +28,7 @@ const MetricsCards = ({ metrics, useBusiness }) => {
   }
 
   const getAlertForMetric = (metricName) => {
-    if (!metrics.slaStatus || metrics.slaStatus.ok) return null;
+    if (!metrics.slaStatus || metrics.slaStatus.ok || !metrics.slaStatus.alerts) return null;
     return metrics.slaStatus.alerts.find(a => a.metric === metricName);
   };
 

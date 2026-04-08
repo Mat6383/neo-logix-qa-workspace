@@ -210,7 +210,7 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
                 <div style={{ backgroundColor: 'var(--card-bg)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)', borderLeft: '6px solid #F59E0B' }}>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Stabilité Versions</div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-color)', marginTop: '0.25rem' }}>
-                        {Math.round((trends.filter(t => t.escapeRate < 5).length / trends.length) * 100)}%
+                        {trends.length ? Math.round((trends.filter(t => t.escapeRate < 5).length / trends.length) * 100) : 0}%
                     </div>
                 </div>
             </div>

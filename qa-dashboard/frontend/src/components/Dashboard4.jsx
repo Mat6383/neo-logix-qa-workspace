@@ -9,7 +9,7 @@ import TestClosureModal from './TestClosureModal';
 import QuickClosureModal from './QuickClosureModal';
 import ReportGeneratorModal from './ReportGeneratorModal';
 
-const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setExportHandler, showProductionSection = true, onToggleProductionSection }) => {
+const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, showProductionSection = true, onToggleProductionSection }) => {
     const dashboardRef = useRef(null);
     const [showAllRuns, setShowAllRuns] = React.useState(false);
     const [showClosureModal, setShowClosureModal] = React.useState(false);
@@ -37,6 +37,8 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
 
     // --- Données Dashboard 1 (Métriques globales) ---
     const d1 = metrics;
+    const raw = d1.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
+    const runs = runs || [];
     // --- Données Dashboard 3 (Quality Rates) ---
     const rates = metrics.qualityRates || {
         escapeRate: 0, detectionRate: 0, bugsInProd: 0, bugsInTest: 0, totalBugs: 0,
@@ -47,7 +49,7 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
     const ddpOk = rates.detectionRate > 95;
 
     const getAlertForMetric = (metricName) => {
-        if (!metrics.slaStatus || metrics.slaStatus.ok) return null;
+        if (!metrics.slaStatus || metrics.slaStatus.ok || !metrics.slaStatus.alerts) return null;
         return metrics.slaStatus.alerts.find(a => a.metric === metricName);
     };
 
@@ -108,6 +110,23 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
 
     return (
         <div style={{ padding: '0.5rem', width: '100%', margin: '0 auto' }}>
+
+            {/* Sélecteur de projet — hors PDF */}
+            {projects.length > 0 && onProjectChange && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-color)' }}>Projet :</span>
+                    <select
+                        value={projectId}
+                        onChange={(e) => onProjectChange(parseInt(e.target.value))}
+                        className="project-selector"
+                        style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
+                    >
+                        {projects.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {/* Conteneur principal à exporter en PDF */}
             <div
@@ -196,7 +215,7 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                             </div>
                             <div style={{ marginTop: '0.75rem', fontSize: '1.05rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <span style={{ padding: '0.2rem 0.6rem', backgroundColor: d1.completionRate >= 90 ? 'rgba(16,185,129,0.1)' : d1.completionRate >= 80 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)', color: d1.completionRate >= 90 ? '#10B981' : d1.completionRate >= 80 ? '#F59E0B' : '#EF4444', borderRadius: '6px', fontWeight: 600 }}>
-                                    {d1.raw.completed} / {d1.raw.total}
+                                    {raw.completed} / {raw.total}
                                 </span>
                                 <span style={{ color: 'var(--text-muted)' }}>{useBusiness ? 'tests exécutés (Cible: ≥ 90%)' : 'tests executed (Target: ≥ 90%)'}</span>
                             </div>
@@ -219,7 +238,7 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                             </div>
                             <div style={{ marginTop: '0.75rem', fontSize: '1.05rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <span style={{ padding: '0.2rem 0.6rem', backgroundColor: d1.passRate >= 95 ? 'rgba(16,185,129,0.1)' : d1.passRate >= 90 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)', color: d1.passRate >= 95 ? '#10B981' : d1.passRate >= 90 ? '#F59E0B' : '#EF4444', borderRadius: '6px', fontWeight: 600 }}>
-                                    {d1.raw.passed}
+                                    {raw.passed}
                                 </span>
                                 <span style={{ color: 'var(--text-muted)' }}>{useBusiness ? 'tests réussis (Cible: ≥ 95%)' : 'tests passed (Target: ≥ 95%)'}</span>
                             </div>
@@ -245,7 +264,7 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                             </div>
                             <div style={{ marginTop: '0.75rem', fontSize: '1.05rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <span style={{ padding: '0.2rem 0.6rem', backgroundColor: d1.failureRate <= 5 ? 'rgba(16,185,129,0.1)' : d1.failureRate <= 10 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)', color: d1.failureRate <= 5 ? '#10B981' : d1.failureRate <= 10 ? '#F59E0B' : '#EF4444', borderRadius: '6px', fontWeight: 600 }}>
-                                    {d1.raw.failed}
+                                    {raw.failed}
                                 </span>
                                 <span style={{ color: 'var(--text-muted)' }}>{useBusiness ? 'tests échoués (Cible: ≤ 5%)' : 'tests failed (Target: ≤ 5%)'}</span>
                             </div>
@@ -285,11 +304,11 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                             <BarChart3 size={24} /> Répartition Globale
                         </div>
                         {[
-                            { label: useBusiness ? 'Réussis' : 'Passed', val: d1.raw.passed, color: '#10B981' },
-                            { label: useBusiness ? 'Échoués' : 'Failed', val: d1.raw.failed, color: '#EF4444' },
-                            { label: useBusiness ? 'En cours' : 'WIP', val: d1.raw.wip, color: '#3B82F6' },
-                            { label: useBusiness ? 'Bloqués' : 'Blocked', val: d1.raw.blocked, color: '#F59E0B' },
-                            { label: useBusiness ? 'Non testés' : 'Untested', val: d1.raw.untested, color: '#9CA3AF' }
+                            { label: useBusiness ? 'Réussis' : 'Passed', val: raw.passed, color: '#10B981' },
+                            { label: useBusiness ? 'Échoués' : 'Failed', val: raw.failed, color: '#EF4444' },
+                            { label: useBusiness ? 'En cours' : 'WIP', val: raw.wip, color: '#3B82F6' },
+                            { label: useBusiness ? 'Bloqués' : 'Blocked', val: raw.blocked, color: '#F59E0B' },
+                            { label: useBusiness ? 'Non testés' : 'Untested', val: raw.untested, color: '#9CA3AF' }
                         ].map(stat => (
                             <div key={stat.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', backgroundColor: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: stat.color }}></div>
@@ -344,7 +363,7 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                             </div>
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {d1.runs.slice(0, showAllRuns ? d1.runs.length : (d1.runs.length <= 12 ? 12 : 8)).map(run => (
+                            {runs.slice(0, showAllRuns ? runs.length : (runs.length <= 12 ? 12 : 8)).map(run => (
                                 <div 
                                     key={run.id} 
                                     title={run.isExploratory ? `${useBusiness ? 'Session' : 'Session'} #${run.id.replace('session-', '')}: ${run.name}` : run.name}
@@ -430,9 +449,9 @@ const Dashboard4 = ({ metrics, project, isDark = false, useBusiness = true, setE
                                     </div>
                                 </div>
                             ))}
-                            {d1.runs.length > 12 && !showAllRuns && (
+                            {runs.length > 12 && !showAllRuns && (
                                 <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '1.1rem', fontStyle: 'italic', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-                                    + {d1.runs.length - 8} {useBusiness ? 'autres campagnes...' : 'other campaigns...'}
+                                    + {runs.length - 8} {useBusiness ? 'autres campagnes...' : 'other campaigns...'}
                                 </div>
                             )}
                         </div>

@@ -97,7 +97,7 @@ const TvDashboard = ({ metrics, project, isDark, useBusiness }) => {
                             <div className="kpi-card-value warning">
                                 {metrics.istqb?.milestonesCompleted}/{metrics.istqb?.milestonesTotal}
                             </div>
-                            <div className="kpi-card-target">{Math.round((metrics.istqb?.milestonesCompleted / metrics.istqb?.milestonesTotal) * 100)}%</div>
+                            <div className="kpi-card-target">{metrics.istqb?.milestonesTotal ? Math.round((metrics.istqb.milestonesCompleted / metrics.istqb.milestonesTotal) * 100) : 0}%</div>
                         </div>
                         <div className="kpi-card">
                             <div className="kpi-card-title">ISTQB<br />{useBusiness ? 'Taux de Blocage' : 'Block Rate'}</div>

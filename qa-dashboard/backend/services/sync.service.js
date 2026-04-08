@@ -185,10 +185,18 @@ class SyncService {
    * @returns {{ parent: string, child: string }}
    */
   parseIterationName(iterationName) {
-    // Normalise les espaces autour du tiret
-    const normalized = iterationName.replace(/\s*-\s*/, ' - ').trim();
+    // Cas cadences auto GitLab : "Itération #N (date → date)"
+    const generatedMatch = iterationName.match(/#(\d+)/) && /it.ration/i.test(iterationName) ? iterationName.match(/#(\d+)/) : null;
+    if (generatedMatch) {
+      const label = `Iteration-${generatedMatch[1]}`;
+      return {
+        parent: label,   // ex: "Iteration-1"
+        child:  label    // même valeur — pas de sous-niveau
+      };
+    }
 
-    // Split sur " - " pour séparer R06 de run 1
+    // Cas standard : "R06 - run 1"
+    const normalized = iterationName.replace(/\s*-\s*/, ' - ').trim();
     const parts = normalized.split(' - ');
     const parent = parts[0].trim(); // "R06"
 

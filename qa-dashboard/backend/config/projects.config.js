@@ -41,7 +41,7 @@ const PROJECTS = [
       token: null,
       label: 'Test::TODO'
     },
-    configured: false
+    configured: true
   },
   {
     id: 'workshop',
@@ -58,7 +58,7 @@ const PROJECTS = [
       token: null,
       label: 'Test::TODO'
     },
-    configured: false
+    configured: true
   },
   {
     id: 'link',
@@ -75,7 +75,7 @@ const PROJECTS = [
       token: null,
       label: 'Test::TODO'
     },
-    configured: false
+    configured: true
   },
   {
     id: 'kiosk',

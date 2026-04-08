@@ -174,17 +174,27 @@ class GitLabService {
    */
   async findIterationForProject(projectId, iterationName) {
     try {
-      const searchTerm = iterationName.replace(/[-\s]+/g, ' ').trim();
-      const searchPrefix = searchTerm.split(' ')[0];
-
+      // Récupère toutes les itérations (sans passer search : les cadences auto ont title=null)
       const iterations = await this._getPaginated(
         `/projects/${projectId}/iterations`,
-        { search: searchPrefix, state: 'all' }
+        { state: 'all' }
       );
 
+      // Cas 1 : titre généré "Itération #N (date → date)" → match par iid
+      // Regex large pour gérer tous encodages de é et variantes
+      const generatedMatch = iterationName.match(/#(\d+)/);
+      if (generatedMatch && /it.ration/i.test(iterationName)) {
+        const targetIid = parseInt(generatedMatch[1]);
+        const found = iterations.find(it => it.iid === targetIid);
+        if (found) {
+          logger.info(`GitLab: Itération trouvée par iid=${targetIid} (project ${projectId}, id=${found.id})`);
+          return found;
+        }
+      }
+
+      // Cas 2 : match par titre normalisé (ex: "R06 - run 1")
       const normalize = (str) => str.toLowerCase().replace(/[-\s]+/g, '');
       const normalizedSearch = normalize(iterationName);
-
       const found = iterations.find(iter => normalize(iter.title || '') === normalizedSearch);
 
       if (found) {
@@ -231,16 +241,35 @@ class GitLabService {
    */
   async searchIterations(projectId, search = '') {
     try {
+      // On récupère toutes les itérations sans passer le search à GitLab
+      // (les cadences auto ont title=null, GitLab ne peut pas chercher dessus)
       const params = { state: 'all', per_page: 50 };
-      if (search) params.search = search;
 
       const iterations = await this._getPaginated(
         `/projects/${projectId}/iterations`,
         params
       );
 
-      // Trier par titre décroissant (les plus récentes en premier)
-      iterations.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      // Générer un titre de fallback si title est null (cadences automatiques GitLab)
+      const formatDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '?';
+      iterations.forEach(it => {
+        if (!it.title) {
+          it.title = `Itération #${it.iid || it.sequence || it.id} (${formatDate(it.start_date)} → ${formatDate(it.due_date)})`;
+        }
+      });
+
+      // Trier par iid décroissant (plus récente en premier)
+      iterations.sort((a, b) => {
+        if (a.iid != null && b.iid != null) return b.iid - a.iid;
+        return (b.title || '').localeCompare(a.title || '');
+      });
+
+      // Filtrer localement par search si fourni
+      if (search) {
+        const q = search.toLowerCase();
+        return iterations.filter(it => (it.title || '').toLowerCase().includes(q));
+      }
+
       return iterations;
     } catch (error) {
       logger.error(`GitLab: Erreur recherche itérations projet ${projectId}:`, error.message);
