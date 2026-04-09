@@ -37,19 +37,32 @@ class ReportService {
     const runsData = [];
     for (const runId of numericRunIds) {
       const runDetail = await ts.apiGet(`/runs/${runId}?expands=issues`);
-      const resultsResp = await ts.apiGet(`/runs/${runId}/results?limit=200&expands=issues`);
+
+      // Pagination complète — les runs avec "Case (steps)" génèrent
+      // N résultats par cas (1 par step + 1 global), dépassant souvent limit=200
+      let allResults = [];
+      let allExpandedIssues = [];
+      let page = 1;
+      let lastPage = 1;
+      while (page <= lastPage) {
+        const resp = await ts.apiGet(`/runs/${runId}/results?limit=200&page=${page}&expands=issues`);
+        allResults = allResults.concat(resp.result || []);
+        allExpandedIssues = allExpandedIssues.concat(resp.expands?.issues || []);
+        lastPage = resp.last_page || 1;
+        page++;
+      }
 
       // Build issue map (testmo id → gitlab iid)
       const issueMap = {};
       for (const i of (runDetail.expands?.issues || [])) {
         issueMap[i.id] = i.display_id;
       }
-      for (const i of (resultsResp.expands?.issues || [])) {
+      for (const i of allExpandedIssues) {
         issueMap[i.id] = i.display_id;
       }
 
       // Get latest results only
-      const latestResults = resultsResp.result.filter(r => r.is_latest);
+      const latestResults = allResults.filter(r => r.is_latest);
 
       // IDs Testmo pour résultats individuels (/results endpoint) :
       // 2=Passed, 3=Failed, 4=Retest, 5=Blocked, 6=Skipped, 8=WIP
