@@ -39,6 +39,10 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
     const d1 = metrics;
     const raw = d1.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
     const runs = d1.runs || [];
+    // Runs en premier, sessions exploratoires en dernier
+    const sortedRuns = [...runs].sort((a, b) => (a.isExploratory ? 1 : 0) - (b.isExploratory ? 1 : 0));
+    // Titre : projet + dernier run non-exploratoire actif
+    const latestRun = runs.find(r => !r.isExploratory) || runs[0];
     // --- Données Dashboard 3 (Quality Rates) ---
     const rates = metrics.qualityRates || {
         escapeRate: 0, detectionRate: 0, bugsInProd: 0, bugsInTest: 0, totalBugs: 0,
@@ -142,6 +146,36 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                 <header style={{ display: 'none' }}>
                     {/* Ancien header masqué */}
                 </header>
+
+                {/* --- TITRE DYNAMIQUE : Projet — Itération — Run --- */}
+                {(project || latestRun) && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                        marginBottom: '1rem', padding: '0.75rem 1.5rem',
+                        backgroundColor: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.06)',
+                        borderRadius: '10px', border: '1px solid rgba(59,130,246,0.2)',
+                        flexWrap: 'wrap', textAlign: 'center'
+                    }}>
+                        <span style={{ fontSize: '1.35rem', fontWeight: 700, color: '#3B82F6' }}>
+                            {project?.name}
+                        </span>
+                        {latestRun && (
+                            <>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '1.35rem' }}>—</span>
+                                <span style={{ fontSize: '1.35rem', fontWeight: 600, color: 'var(--text-color)' }}>
+                                    {latestRun.name}
+                                </span>
+                                <span style={{
+                                    padding: '0.2rem 0.65rem', borderRadius: '5px', fontSize: '0.95rem',
+                                    fontWeight: 700, textTransform: 'uppercase',
+                                    backgroundColor: 'rgba(16,185,129,0.12)', color: '#10B981'
+                                }}>
+                                    En cours
+                                </span>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {/* --- SECTION PRÉPRODUCTION --- */}
                 <div style={{ marginBottom: '0.75rem' }}>
@@ -363,7 +397,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                             </div>
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {runs.slice(0, showAllRuns ? runs.length : (runs.length <= 12 ? 12 : 8)).map(run => (
+                            {sortedRuns.slice(0, showAllRuns ? sortedRuns.length : (sortedRuns.length <= 12 ? 12 : 8)).map(run => (
                                 <div 
                                     key={run.id} 
                                     title={run.isExploratory ? `${useBusiness ? 'Session' : 'Session'} #${run.id.replace('session-', '')}: ${run.name}` : run.name}
@@ -449,9 +483,9 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                                     </div>
                                 </div>
                             ))}
-                            {runs.length > 12 && !showAllRuns && (
+                            {sortedRuns.length > 12 && !showAllRuns && (
                                 <div style={{ padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '1.1rem', fontStyle: 'italic', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
-                                    + {runs.length - 8} {useBusiness ? 'autres campagnes...' : 'other campaigns...'}
+                                    + {sortedRuns.length - 8} {useBusiness ? 'autres campagnes...' : 'other campaigns...'}
                                 </div>
                             )}
                         </div>

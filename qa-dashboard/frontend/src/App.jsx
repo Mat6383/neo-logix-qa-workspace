@@ -137,11 +137,6 @@ function App() {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams();
-      if (selectedPreprodMilestones.length > 0) params.append('preprodMilestones', selectedPreprodMilestones.join(','));
-      if (selectedProdMilestones.length > 0) params.append('prodMilestones', selectedProdMilestones.join(','));
-      const queryString = params.toString() ? `?${params.toString()}` : '';
-
       const [metricsResponse, qualityResponse] = await Promise.all([
         apiService.getDashboardMetrics(
           projectId,
@@ -149,12 +144,12 @@ function App() {
           selectedProdMilestones.length > 0 ? selectedProdMilestones : null,
           controller.signal
         ),
-        fetch(`http://localhost:3001/api/dashboard/${projectId}/quality-rates${queryString}`, {
-          signal: controller.signal
-        }).then(res => res.json()).catch((err) => {
-          if (err.name === 'AbortError') throw err;
-          return { success: false };
-        })
+        apiService.getQualityRates(
+          projectId,
+          selectedPreprodMilestones.length > 0 ? selectedPreprodMilestones : null,
+          selectedProdMilestones.length > 0 ? selectedProdMilestones : null,
+          controller.signal
+        )
       ]);
 
       // Ignorer si cette requête a été annulée entre-temps

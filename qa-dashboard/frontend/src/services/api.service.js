@@ -97,8 +97,31 @@ const apiService = {
   },
 
   /**
+   * Récupère les taux qualité d'un projet (escape rate, detection rate...)
+   *
+   * @param {number} projectId
+   * @param {Array|null} preprodMilestones
+   * @param {Array|null} prodMilestones
+   * @param {AbortSignal|null} signal
+   */
+  async getQualityRates(projectId, preprodMilestones = null, prodMilestones = null, signal = null) {
+    try {
+      const params = {};
+      if (preprodMilestones) params.preprodMilestones = preprodMilestones.join(',');
+      if (prodMilestones) params.prodMilestones = prodMilestones.join(',');
+      const config = { params };
+      if (signal) config.signal = signal;
+      const response = await apiClient.get(`/dashboard/${projectId}/quality-rates`, config);
+      return response.data;
+    } catch (error) {
+      if (error.name === 'AbortError' || error.name === 'CanceledError') throw error;
+      return { success: false };
+    }
+  },
+
+  /**
    * Récupère les runs d'un projet
-   * 
+   *
    * @param {number} projectId - ID du projet
    * @param {boolean} activeOnly - Uniquement runs actifs
    */
