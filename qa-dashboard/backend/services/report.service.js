@@ -55,25 +55,26 @@ class ReportService {
       // 2=Passed, 3=Failed, 4=Retest, 5=Blocked, 6=Skipped, 8=WIP
       const statusMap = { 2: 'PASSED', 3: 'FAILED', 4: 'Retest', 5: 'Blocked', 6: 'Skipped', 8: 'WIP' };
 
-      // Priorité de statut pour dédupliquer les cas multi-étapes (Case (steps)) :
-      // FAILED > WIP > Blocked > Retest > Skipped > PASSED
-      // Si une étape est FAILED, le cas entier est FAILED même si d'autres étapes sont PASSED.
-      const statusPriority = { 'FAILED': 6, 'WIP': 5, 'Blocked': 4, 'Retest': 3, 'Skipped': 2, 'PASSED': 1 };
-
-      // Grouper par case_id — pour les "Case (steps)", plusieurs rows par case
+      // Pour les "Case (steps)", l'API retourne N résultats par case_id (un par step)
+      // + un résultat global (case_step_id = null) qui reflète le statut affiché dans Testmo.
+      // On garde uniquement le résultat global (case_step_id absent/null) quand il existe,
+      // sinon on garde le résultat unique du cas simple.
       const caseMap = new Map();
       for (const r of latestResults) {
         const status = statusMap[r.status_id] || `status_${r.status_id}`;
         const tickets = (r.issues || []).map(iid => issueMap[iid] || `?${iid}`);
+        const isStepResult = r.case_step_id != null;
+
         if (!caseMap.has(r.case_id)) {
-          caseMap.set(r.case_id, { caseId: r.case_id, status, correctionTickets: tickets });
+          caseMap.set(r.case_id, { caseId: r.case_id, status, correctionTickets: tickets, hasGlobal: !isStepResult });
         } else {
           const existing = caseMap.get(r.case_id);
-          // Garder le statut le plus grave
-          if ((statusPriority[status] || 0) > (statusPriority[existing.status] || 0)) {
+          if (!isStepResult) {
+            // Résultat global du cas → toujours prioritaire sur les steps
             existing.status = status;
+            existing.hasGlobal = true;
           }
-          // Fusionner les tickets
+          // Fusionner les tickets dans tous les cas
           for (const t of tickets) {
             if (!existing.correctionTickets.includes(t)) existing.correctionTickets.push(t);
           }
