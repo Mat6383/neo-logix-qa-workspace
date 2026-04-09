@@ -52,8 +52,9 @@ class ReportService {
       const latestResults = resultsResp.result.filter(r => r.is_latest);
 
       // Map each result
+      // statusMap aligné sur Testmo : status1_count=Passed, status2_count=Failed, status7_count=WIP
       const results = latestResults.map(r => {
-        const statusMap = { 2: 'PASSED', 3: 'FAILED', 4: 'Retest', 5: 'Blocked', 6: 'Skipped', 8: 'WIP' };
+        const statusMap = { 1: 'PASSED', 2: 'FAILED', 3: 'Retest', 4: 'Blocked', 5: 'Skipped', 7: 'WIP' };
         const correctionTickets = (r.issues || []).map(iid => issueMap[iid] || `?${iid}`);
         return {
           caseId: r.case_id,
@@ -141,8 +142,9 @@ class ReportService {
     const passRate = executed > 0 ? Math.round((totalPassed / executed) * 1000) / 10 : 0;
     const failureRate = executed > 0 ? Math.round((totalFailed / executed) * 1000) / 10 : 0;
 
-    // Failed tests with correction tickets
+    // Failed / WIP / passed-with-tickets
     const failedTests = [];
+    const wipTests = [];
     const passedWithTickets = [];
     runsData.forEach(run => {
       run.results.forEach(r => {
@@ -151,6 +153,12 @@ class ReportService {
             run: run.name,
             caseName: r.caseName,
             correctionTickets: r.correctionTickets,
+          });
+        }
+        if (r.status === 'WIP') {
+          wipTests.push({
+            run: run.name,
+            caseName: r.caseName,
           });
         }
         if (r.status === 'PASSED' && r.correctionTickets.length > 0) {
@@ -188,6 +196,7 @@ class ReportService {
         efficiency: totalTests > 0 ? Math.round((totalPassed / totalTests) * 1000) / 10 : 0,
       },
       failedTests,
+      wipTests,
       passedWithTickets,
       verdict,
       generatedAt: new Date().toISOString(),
@@ -198,7 +207,7 @@ class ReportService {
   // HTML GENERATION
   // ================================================================
   generateHTML(data, recommendations, complement) {
-    const { milestoneName, stats, runs, functionalRuns, tnrRuns, failedTests, passedWithTickets, verdict } = data;
+    const { milestoneName, stats, runs, functionalRuns, tnrRuns, failedTests, wipTests, passedWithTickets, verdict } = data;
     const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
     const refDate = new Date().toISOString().split('T')[0].replace(/-/g, '-');
 
@@ -239,6 +248,12 @@ class ReportService {
       const tickets = ft.correctionTickets.length > 0 ? ft.correctionTickets.map(t => `<strong>#${t}</strong>`).join(', ') : '—';
       const runShort = ft.run.replace(/^.*- /, '');
       return `<tr><td>${runShort}</td><td>${this._esc(ft.caseName)}</td><td class="num"><span class="badge badge-red">Failed</span></td><td class="num">${tickets}</td></tr>`;
+    }).join('');
+
+    // WIP tests table
+    const wipRows = (wipTests || []).map(wt => {
+      const runShort = wt.run.replace(/^.*- /, '');
+      return `<tr><td>${runShort}</td><td>${this._esc(wt.caseName)}</td><td class="num"><span class="badge badge-orange">WIP</span></td></tr>`;
     }).join('');
 
     const passedTicketRows = passedWithTickets.map(pt => {
@@ -416,14 +431,23 @@ class ReportService {
         <td colspan="2">TOTAL TESTS ÉCHOUÉS</td><td class="num">${failedTests.length}</td><td class="num">${failedTests.filter(f => f.correctionTickets.length > 0).length} tickets créés</td>
       </tr>
     </table>` : '<p>Aucun test échoué.</p>'}
+    ${wipTests && wipTests.length > 0 ? `
+    <h3 class="sub-title">3.2 Tests en cours (WIP) — à finaliser</h3>
+    <table style="font-size:9pt;">
+      <tr><th style="width:20%;">Run</th><th>Cas de test</th><th class="num" style="width:12%;">Statut</th></tr>
+      ${wipRows}
+      <tr style="background:#fef3c7;font-weight:700;">
+        <td colspan="2">TOTAL WIP</td><td class="num">${wipTests.length}</td>
+      </tr>
+    </table>` : ''}
     ${passedWithTickets.length > 0 ? `
-    <h3 class="sub-title">3.2 Tests réussis avec ticket de suivi</h3>
+    <h3 class="sub-title">3.3 Tests réussis avec ticket de suivi</h3>
     <table style="font-size:9pt;">
       <tr><th>Run</th><th>Cas de test</th><th class="num">Statut</th><th class="num">Ticket suivi</th></tr>
       ${passedTicketRows}
     </table>` : ''}
     ${ticketsPerRunRows ? `
-    <h3 class="sub-title">3.3 Tickets GitLab testés par run</h3>
+    <h3 class="sub-title">3.4 Tickets GitLab testés par run</h3>
     <table style="font-size:8.5pt;">
       <tr><th style="width:18%;">Run</th><th>Tickets GitLab testés</th><th class="num">Nb</th></tr>
       ${ticketsPerRunRows}
@@ -463,7 +487,7 @@ ${complement ? `
   // PPTX GENERATION
   // ================================================================
   async generatePPTX(data, recommendations, complement) {
-    const { milestoneName, stats, functionalRuns, tnrRuns, failedTests, passedWithTickets, verdict } = data;
+    const { milestoneName, stats, functionalRuns, tnrRuns, failedTests, wipTests, passedWithTickets, verdict } = data;
 
     const C = {
       navy: '0F172A', blue: '1E3A5F', accent: '3B82F6', sky: '38BDF8',
@@ -543,6 +567,15 @@ ${complement ? `
         ft.caseName.substring(0, 55),
         { text: 'FAILED', options: { color: C.red, bold: true, fontSize: 7 } },
         { text: ticket, options: { bold: true, fontSize: 7 } },
+      ]);
+    });
+    (wipTests || []).slice(0, 5).forEach(wt => {
+      const runShort = wt.run.replace(/^.*- /, '');
+      ticketRows.push([
+        runShort,
+        wt.caseName.substring(0, 55),
+        { text: 'WIP', options: { color: C.orange, bold: true, fontSize: 7 } },
+        { text: '—', options: { fontSize: 7 } },
       ]);
     });
     passedWithTickets.slice(0, 4).forEach(pt => {
