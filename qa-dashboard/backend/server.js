@@ -419,19 +419,19 @@ app.post('/api/cache/clear', (req, res) => {
  */
 app.post('/api/reports/generate', async (req, res) => {
   try {
-    const { projectId, milestoneId, formats, recommendations, complement } = req.body;
+    const { projectId, runIds, formats, recommendations, complement } = req.body;
 
-    if (!projectId || !milestoneId) {
-      return res.status(400).json({ success: false, error: 'projectId et milestoneId requis' });
+    if (!projectId || !runIds || !Array.isArray(runIds) || runIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'projectId et runIds (tableau) requis' });
     }
     if (!formats || (!formats.html && !formats.pptx)) {
       return res.status(400).json({ success: false, error: 'Au moins un format (html/pptx) requis' });
     }
 
-    logger.info(`Génération rapport: project=${projectId}, milestone=${milestoneId}, formats=${JSON.stringify(formats)}`);
+    logger.info(`Génération rapport: project=${projectId}, runIds=${JSON.stringify(runIds)}, formats=${JSON.stringify(formats)}`);
 
-    // 1. Collect data
-    const data = await reportService.collectReportData(projectId, milestoneId);
+    // 1. Collect data — fetch each run by ID (no milestone filter)
+    const data = await reportService.collectReportData(projectId, runIds);
 
     const result = { success: true, files: {} };
 

@@ -19,27 +19,25 @@ class ReportService {
   // ================================================================
   // DATA COLLECTION — Récupère toutes les données pour le rapport
   // ================================================================
-  async collectReportData(projectId, milestoneId) {
+  async collectReportData(projectId, runIds) {
     const ts = this.testmoService;
 
-    // 1. Get all runs for this milestone
-    const allRuns = await ts.apiGet(`/projects/${projectId}/runs?limit=50`);
-    const milestoneRuns = allRuns.result.filter(r => r.milestone_id === milestoneId);
+    // runIds : tableau d'IDs envoyés directement depuis le dashboard
+    // On ignore les IDs de sessions exploratoires (préfixe "session-")
+    const numericRunIds = runIds
+      .filter(id => !String(id).startsWith('session-'))
+      .map(id => parseInt(id, 10))
+      .filter(id => !isNaN(id));
 
-    if (milestoneRuns.length === 0) {
-      throw new Error(`Aucun run trouvé pour le milestone ${milestoneId}`);
+    if (numericRunIds.length === 0) {
+      throw new Error('Aucun run valide fourni (les sessions exploratoires ne sont pas incluses dans le rapport)');
     }
 
-    // 2. Get milestone info
-    const milestones = await ts.apiGet(`/projects/${projectId}/milestones`);
-    const milestone = milestones.result.find(m => m.id === milestoneId);
-    const milestoneName = milestone ? milestone.name : `Milestone #${milestoneId}`;
-
-    // 3. Get run details with issues expanded + results
+    // 1. Fetch each run by ID — no milestone filtering needed
     const runsData = [];
-    for (const run of milestoneRuns) {
-      const runDetail = await ts.apiGet(`/runs/${run.id}?expands=issues`);
-      const resultsResp = await ts.apiGet(`/runs/${run.id}/results?limit=200&expands=issues`);
+    for (const runId of numericRunIds) {
+      const runDetail = await ts.apiGet(`/runs/${runId}?expands=issues`);
+      const resultsResp = await ts.apiGet(`/runs/${runId}/results?limit=200&expands=issues`);
 
       // Build issue map (testmo id → gitlab iid)
       const issueMap = {};
@@ -77,7 +75,7 @@ class ReportService {
       const total = results.length;
 
       runsData.push({
-        id: run.id,
+        id: runId,
         name: runDetail.result.name,
         total,
         passed,
@@ -93,6 +91,14 @@ class ReportService {
         startedAt: runDetail.result.started_at || runDetail.result.created_at,
       });
     }
+
+    // 2. Dériver le nom du milestone depuis les noms des runs
+    //    Ex : ["R02 Fonctionnel", "R06 TNR"] → "R02 — R06"
+    const runTags = runsData
+      .map(r => { const m = r.name.match(/R\d+[a-zA-Z]?/i); return m ? m[0] : null; })
+      .filter(Boolean);
+    const uniqueTags = [...new Set(runTags)];
+    const milestoneName = uniqueTags.length > 0 ? uniqueTags.join(' — ') : 'Release';
 
     // 4. Get case names
     const allCaseIds = new Set();
@@ -164,7 +170,7 @@ class ReportService {
 
     return {
       milestoneName,
-      milestoneId,
+      runIds: numericRunIds,
       projectId,
       runs: runsData,
       functionalRuns,

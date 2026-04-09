@@ -77,7 +77,10 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
     return 'Release';
   })();
 
-  const milestoneId = runs[0]?.milestone || null;
+  // Envoyer les IDs des runs réels (pas les sessions "session-X") au backend
+  const runIds = runs
+    .filter(r => !String(r.id).startsWith('session-'))
+    .map(r => r.id);
   const projectId = project?.id || 1;
 
   const totalTests = runs.reduce((s, r) => s + (r.total || 0), 0);
@@ -131,7 +134,7 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
     try {
       const response = await apiService.generateReport({
         projectId,
-        milestoneId,
+        runIds,
         formats,
         recommendations: recommendations.filter(r => r.text.trim()),
         complement: complement.trim(),
