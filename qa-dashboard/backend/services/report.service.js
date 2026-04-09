@@ -252,7 +252,7 @@ class ReportService {
       `<tr>
         <td><strong>${this._esc(r.category)}</strong></td>
         <td>${this._esc(r.text)}</td>
-        <td class="num">${this._esc(r.type || '—')}</td>
+        <td class="num">${this._esc(Array.isArray(r.type) ? r.type.join(', ') : (r.type || '—'))}</td>
         <td class="num">${this._esc(r.statut || '—')}</td>
         <td class="num"><span class="badge ${r.priority === 'Haute' ? 'badge-red' : r.priority === 'Faible' ? 'badge-green' : 'badge-orange'}">${this._esc(r.priority)}</span></td>
       </tr>`
@@ -572,7 +572,7 @@ ${complement ? `
         recoTableRows.push([
           { text: r.category || '', options: { bold: true, fontSize: 8, color: C.text,     align: 'left',   valign: 'middle' } },
           { text: r.text     || '', options: { fontSize: 8,              color: C.darkGray, align: 'left',   valign: 'middle' } },
-          { text: r.type     || '—', options: { fontSize: 8,             color: C.text,     align: 'center', valign: 'middle' } },
+          { text: Array.isArray(r.type) ? r.type.join(', ') : (r.type || '—'), options: { fontSize: 8, color: C.text, align: 'center', valign: 'middle' } },
           { text: r.statut   || '—', options: { fontSize: 8,             color: C.gray,     align: 'center', valign: 'middle' } },
           { text: r.priority || '', options: { fontSize: 8, bold: true,  color: priColor,   align: 'center', valign: 'middle' } },
         ]);

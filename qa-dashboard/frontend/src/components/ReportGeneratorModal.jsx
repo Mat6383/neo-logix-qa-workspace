@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, FileText, Download, Plus, Trash2, Activity, CheckSquare,
-  FileSpreadsheet, Globe, Pencil
+  FileSpreadsheet, Globe, Pencil, ChevronDown
 } from 'lucide-react';
 import apiService from '../services/api.service';
 import '../styles/ReportGeneratorModal.css';
@@ -27,10 +27,10 @@ const RECO_STATUTS = [
 ];
 
 const DEFAULT_RECOMMENDATIONS = [
-  { id: 1, category: 'Muda — Gaspillage',      text: 'Revue de testabilité avant chaque campagne. Formaliser les critères d\'acceptation des cas de test.', type: 'Action proposée',   statut: 'Planifié',    priority: 'Haute' },
-  { id: 2, category: 'Mura — Irrégularité',    text: 'Processus Change Management (CAB) pour les modifications de processus automatisés.',                  type: 'Action proposée',   statut: 'À arbitrer',  priority: 'Haute' },
-  { id: 3, category: 'Jidoka — Qualité int.',  text: 'Renforcer les tests shift-left : revues de code et tests unitaires plus tôt dans le cycle.',          type: 'Recommandation',    statut: 'À analyser',  priority: 'Moyenne' },
-  { id: 4, category: 'Heijunka — Lissage',     text: 'Répartir la charge de test : max 30 tests par run pour un suivi plus granulaire.',                    type: 'Recommandation',    statut: 'À analyser',  priority: 'Moyenne' },
+  { id: 1, category: 'Muda — Gaspillage',      text: 'Revue de testabilité avant chaque campagne. Formaliser les critères d\'acceptation des cas de test.', type: ['Action proposée'],   statut: 'Planifié',    priority: 'Haute' },
+  { id: 2, category: 'Mura — Irrégularité',    text: 'Processus Change Management (CAB) pour les modifications de processus automatisés.',                  type: ['Action proposée'],   statut: 'À arbitrer',  priority: 'Haute' },
+  { id: 3, category: 'Jidoka — Qualité int.',  text: 'Renforcer les tests shift-left : revues de code et tests unitaires plus tôt dans le cycle.',          type: ['Recommandation'],    statut: 'À analyser',  priority: 'Moyenne' },
+  { id: 4, category: 'Heijunka — Lissage',     text: 'Répartir la charge de test : max 30 tests par run pour un suivi plus granulaire.',                    type: ['Recommandation'],    statut: 'À analyser',  priority: 'Moyenne' },
 ];
 
 const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => {
@@ -41,6 +41,8 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
   const [generated, setGenerated] = useState(null);
   const [error, setError] = useState(null);
   const [nextId, setNextId] = useState(DEFAULT_RECOMMENDATIONS.length + 1);
+  const [openTypeDropdown, setOpenTypeDropdown] = useState(null);
+  const typeDropdownRef = useRef(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -50,6 +52,17 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
       setError(null);
     }
   }, [isOpen]);
+
+  // Close type dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target)) {
+        setOpenTypeDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -85,7 +98,7 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
       id: nextId,
       category: '',
       text: '',
-      type: 'Recommandation',
+      type: ['Recommandation'],
       statut: 'À analyser',
       priority: 'Moyenne',
     }]);
@@ -222,14 +235,46 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
                         onChange={(e) => updateReco(reco.id, 'category', e.target.value)}
                         placeholder="Catégorie..."
                       />
-                      <select
-                        className="rgm-reco-priority"
-                        value={reco.type || 'Recommandation'}
-                        onChange={(e) => updateReco(reco.id, 'type', e.target.value)}
-                        title="Type"
+                      <div
+                        className="rgm-reco-type-dropdown"
+                        ref={openTypeDropdown === reco.id ? typeDropdownRef : null}
                       >
-                        {RECO_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
+                        <div
+                          className="rgm-reco-type-trigger"
+                          title="Type"
+                          onClick={() => setOpenTypeDropdown(openTypeDropdown === reco.id ? null : reco.id)}
+                        >
+                          <span className="rgm-reco-type-label">
+                            {(Array.isArray(reco.type) ? reco.type : reco.type ? [reco.type] : []).length === 0
+                              ? 'Type...'
+                              : (Array.isArray(reco.type) ? reco.type : [reco.type]).join(', ')}
+                          </span>
+                          <ChevronDown size={11} />
+                        </div>
+                        {openTypeDropdown === reco.id && (
+                          <div className="rgm-reco-type-menu">
+                            {RECO_TYPES.map(t => {
+                              const current = Array.isArray(reco.type) ? reco.type : reco.type ? [reco.type] : [];
+                              const checked = current.includes(t);
+                              return (
+                                <label key={t} className="rgm-reco-type-option">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      const next = e.target.checked
+                                        ? [...current, t]
+                                        : current.filter(x => x !== t);
+                                      updateReco(reco.id, 'type', next);
+                                    }}
+                                  />
+                                  {t}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <select
                         className="rgm-reco-priority"
                         value={reco.statut || 'À analyser'}
