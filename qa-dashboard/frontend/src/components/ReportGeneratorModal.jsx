@@ -7,10 +7,10 @@ import apiService from '../services/api.service';
 import '../styles/ReportGeneratorModal.css';
 
 const DEFAULT_RECOMMENDATIONS = [
-  { id: 1, category: 'Muda — Gaspillage', text: 'Revue de testabilité avant chaque campagne. Formaliser les critères d\'acceptation des cas de test.', priority: 'Haute' },
-  { id: 2, category: 'Mura — Irrégularité', text: 'Processus Change Management (CAB) pour les modifications de processus automatisés.', priority: 'Haute' },
-  { id: 3, category: 'Jidoka — Qualité intégrée', text: 'Renforcer les tests shift-left : revues de code et tests unitaires plus tôt dans le cycle.', priority: 'Moyenne' },
-  { id: 4, category: 'Heijunka — Lissage', text: 'Répartir la charge de test : max 30 tests par run pour un suivi plus granulaire.', priority: 'Moyenne' },
+  { id: 1, category: 'Muda — Gaspillage', text: 'Revue de testabilité avant chaque campagne. Formaliser les critères d\'acceptation des cas de test.', type: 'Action corrective', priority: 'Haute' },
+  { id: 2, category: 'Mura — Irrégularité', text: 'Processus Change Management (CAB) pour les modifications de processus automatisés.', type: 'Action corrective', priority: 'Haute' },
+  { id: 3, category: 'Jidoka — Qualité intégrée', text: 'Renforcer les tests shift-left : revues de code et tests unitaires plus tôt dans le cycle.', type: 'Amélioration', priority: 'Moyenne' },
+  { id: 4, category: 'Heijunka — Lissage', text: 'Répartir la charge de test : max 30 tests par run pour un suivi plus granulaire.', type: 'Opportunité', priority: 'Moyenne' },
 ];
 
 const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => {
@@ -65,6 +65,7 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
       id: nextId,
       category: '',
       text: '',
+      type: 'Action corrective',
       priority: 'Moyenne',
     }]);
     setNextId(n => n + 1);
@@ -202,8 +203,21 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
                       />
                       <select
                         className="rgm-reco-priority"
+                        value={reco.type || 'Action corrective'}
+                        onChange={(e) => updateReco(reco.id, 'type', e.target.value)}
+                        title="Type / Statut"
+                      >
+                        <option value="Opportunité">Opportunité</option>
+                        <option value="Action corrective">Action corrective</option>
+                        <option value="Amélioration">Amélioration</option>
+                        <option value="Risque">Risque</option>
+                        <option value="Information">Information</option>
+                      </select>
+                      <select
+                        className="rgm-reco-priority"
                         value={reco.priority}
                         onChange={(e) => updateReco(reco.id, 'priority', e.target.value)}
+                        title="Priorité"
                       >
                         <option value="Haute">Haute</option>
                         <option value="Moyenne">Moyenne</option>
@@ -214,7 +228,7 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
                       className="rgm-reco-text"
                       value={reco.text}
                       onChange={(e) => updateReco(reco.id, 'text', e.target.value)}
-                      placeholder="Action recommandée..."
+                      placeholder="Constat et recommandation..."
                       rows={2}
                     />
                   </div>

@@ -252,7 +252,8 @@ class ReportService {
       `<tr>
         <td><strong>${this._esc(r.category)}</strong></td>
         <td>${this._esc(r.text)}</td>
-        <td class="num"><span class="badge ${r.priority === 'Haute' ? 'badge-red' : 'badge-orange'}">${this._esc(r.priority)}</span></td>
+        <td class="num">${this._esc(r.type || '—')}</td>
+        <td class="num"><span class="badge ${r.priority === 'Haute' ? 'badge-red' : r.priority === 'Faible' ? 'badge-green' : 'badge-orange'}">${this._esc(r.priority)}</span></td>
       </tr>`
     ).join('');
 
@@ -430,7 +431,7 @@ class ReportService {
     <h2 class="section-title">4. Recommandations <span style="font-size:9pt;color:#64748b;">(Lessons Learned — LEAN Kaizen / ITIL CSI)</span></h2>
     ${recommendations && recommendations.length > 0 ? `
     <table>
-      <tr><th style="width:22%;">Catégorie</th><th style="width:58%;">Action</th><th class="num" style="width:20%;">Priorité</th></tr>
+      <tr><th style="width:20%;">Catégorie</th><th style="width:45%;">Constat et recommandation</th><th class="num" style="width:20%;">Type / Statut</th><th class="num" style="width:15%;">Priorité</th></tr>
       ${recoRows}
     </table>` : '<p>Aucune recommandation saisie.</p>'}
   </div>
@@ -552,17 +553,33 @@ ${complement ? `
     if (recommendations && recommendations.length > 0) {
       const s5 = pres.addSlide();
       s5.background = { color: C.light };
-      s5.addText('Recommandations', { x: 0.5, y: 0.3, w: 6, h: 0.5, fontSize: 28, fontFace: 'Calibri', bold: true, color: C.text });
-      s5.addText('Lessons Learned — LEAN Kaizen / ITIL CSI', { x: 0.5, y: 0.75, w: 6, h: 0.3, fontSize: 10, fontFace: 'Calibri', color: C.gray });
+      s5.addText('Recommandations', { x: 0.5, y: 0.25, w: 7, h: 0.5, fontSize: 26, fontFace: 'Calibri', bold: true, color: C.text });
+      s5.addText('Lessons Learned — LEAN Kaizen / ITIL CSI', { x: 0.5, y: 0.7, w: 7, h: 0.28, fontSize: 9, fontFace: 'Calibri', color: C.gray });
 
-      recommendations.forEach((r, i) => {
-        const y = 1.2 + i * 0.75;
-        if (y > 4.5) return;
-        s5.addShape(pres.shapes.RECTANGLE, { x: 0.5, y, w: 9, h: 0.6, fill: { color: C.white }, shadow: { type: 'outer', blur: 3, offset: 1, color: '000000', opacity: 0.08 } });
-        s5.addShape(pres.shapes.RECTANGLE, { x: 0.5, y, w: 0.06, h: 0.6, fill: { color: r.priority === 'Haute' ? C.red : C.orange } });
-        s5.addText(r.category, { x: 0.7, y, w: 2.5, h: 0.3, fontSize: 10, fontFace: 'Calibri', bold: true, color: C.text, valign: 'middle' });
-        s5.addText(r.priority, { x: 8.0, y: y + 0.02, w: 1.2, h: 0.25, fontSize: 8, fontFace: 'Calibri', bold: true, color: r.priority === 'Haute' ? C.red : C.orange, align: 'center', valign: 'middle', fill: { color: r.priority === 'Haute' ? 'FEE2E2' : 'FEF3C7' } });
-        s5.addText(r.text, { x: 0.7, y: y + 0.3, w: 8.5, h: 0.25, fontSize: 9, fontFace: 'Calibri', color: C.darkGray });
+      const rHdr = { bold: true, color: C.white, fontSize: 8, fill: { color: C.blue }, align: 'center', valign: 'middle' };
+      const recoTableRows = [
+        [
+          { text: 'Catégorie',                  options: { ...rHdr, align: 'left' } },
+          { text: 'Constat et recommandation',  options: { ...rHdr, align: 'left' } },
+          { text: 'Type / Statut',              options: rHdr },
+          { text: 'Priorité',                   options: rHdr },
+        ],
+      ];
+      recommendations.forEach(r => {
+        const priColor = r.priority === 'Haute' ? C.red : r.priority === 'Faible' ? C.green : C.orange;
+        recoTableRows.push([
+          { text: r.category || '', options: { bold: true, fontSize: 8, color: C.text, align: 'left', valign: 'middle' } },
+          { text: r.text    || '', options: { fontSize: 8, color: C.darkGray, align: 'left', valign: 'middle' } },
+          { text: r.type    || '—', options: { fontSize: 8, color: C.text, align: 'center', valign: 'middle' } },
+          { text: r.priority || '', options: { fontSize: 8, bold: true, color: priColor, align: 'center', valign: 'middle' } },
+        ]);
+      });
+      s5.addTable(recoTableRows, {
+        x: 0.3, y: 1.05, w: 9.4,
+        fontSize: 8, fontFace: 'Calibri', color: C.text,
+        border: { pt: 0.5, color: 'E2E8F0' },
+        colW: [1.9, 4.2, 1.8, 1.5],
+        autoPage: false, valign: 'middle',
       });
     }
 
