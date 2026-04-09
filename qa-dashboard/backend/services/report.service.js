@@ -52,9 +52,11 @@ class ReportService {
       const latestResults = resultsResp.result.filter(r => r.is_latest);
 
       // Map each result
-      // statusMap aligné sur Testmo : status1_count=Passed, status2_count=Failed, status7_count=WIP
+      // IDs Testmo pour résultats individuels (/results endpoint) :
+      // 2=Passed, 3=Failed, 4=Retest, 5=Blocked, 6=Skipped, 8=WIP
+      // NB: différents des statusN_count du run-summary (API distincte)
       const results = latestResults.map(r => {
-        const statusMap = { 1: 'PASSED', 2: 'FAILED', 3: 'Retest', 4: 'Blocked', 5: 'Skipped', 7: 'WIP' };
+        const statusMap = { 2: 'PASSED', 3: 'FAILED', 4: 'Retest', 5: 'Blocked', 6: 'Skipped', 8: 'WIP' };
         const correctionTickets = (r.issues || []).map(iid => issueMap[iid] || `?${iid}`);
         return {
           caseId: r.case_id,
