@@ -6,11 +6,31 @@ import {
 import apiService from '../services/api.service';
 import '../styles/ReportGeneratorModal.css';
 
+const RECO_TYPES = [
+  'Constat',
+  'Risque / Point de vigilance',
+  'Recommandation',
+  'Action proposée',
+  'Action décidée',
+  'Action mise en œuvre',
+  'Leçon apprise / Retex',
+];
+
+const RECO_STATUTS = [
+  'À analyser',
+  'À arbitrer',
+  'Non retenu',
+  'Planifié',
+  'En cours',
+  'Réalisé',
+  'À réévaluer',
+];
+
 const DEFAULT_RECOMMENDATIONS = [
-  { id: 1, category: 'Muda — Gaspillage', text: 'Revue de testabilité avant chaque campagne. Formaliser les critères d\'acceptation des cas de test.', type: 'Action corrective', priority: 'Haute' },
-  { id: 2, category: 'Mura — Irrégularité', text: 'Processus Change Management (CAB) pour les modifications de processus automatisés.', type: 'Action corrective', priority: 'Haute' },
-  { id: 3, category: 'Jidoka — Qualité intégrée', text: 'Renforcer les tests shift-left : revues de code et tests unitaires plus tôt dans le cycle.', type: 'Amélioration', priority: 'Moyenne' },
-  { id: 4, category: 'Heijunka — Lissage', text: 'Répartir la charge de test : max 30 tests par run pour un suivi plus granulaire.', type: 'Opportunité', priority: 'Moyenne' },
+  { id: 1, category: 'Muda — Gaspillage',      text: 'Revue de testabilité avant chaque campagne. Formaliser les critères d\'acceptation des cas de test.', type: 'Action proposée',   statut: 'Planifié',    priority: 'Haute' },
+  { id: 2, category: 'Mura — Irrégularité',    text: 'Processus Change Management (CAB) pour les modifications de processus automatisés.',                  type: 'Action proposée',   statut: 'À arbitrer',  priority: 'Haute' },
+  { id: 3, category: 'Jidoka — Qualité int.',  text: 'Renforcer les tests shift-left : revues de code et tests unitaires plus tôt dans le cycle.',          type: 'Recommandation',    statut: 'À analyser',  priority: 'Moyenne' },
+  { id: 4, category: 'Heijunka — Lissage',     text: 'Répartir la charge de test : max 30 tests par run pour un suivi plus granulaire.',                    type: 'Recommandation',    statut: 'À analyser',  priority: 'Moyenne' },
 ];
 
 const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => {
@@ -65,7 +85,8 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
       id: nextId,
       category: '',
       text: '',
-      type: 'Action corrective',
+      type: 'Recommandation',
+      statut: 'À analyser',
       priority: 'Moyenne',
     }]);
     setNextId(n => n + 1);
@@ -203,15 +224,19 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
                       />
                       <select
                         className="rgm-reco-priority"
-                        value={reco.type || 'Action corrective'}
+                        value={reco.type || 'Recommandation'}
                         onChange={(e) => updateReco(reco.id, 'type', e.target.value)}
-                        title="Type / Statut"
+                        title="Type"
                       >
-                        <option value="Opportunité">Opportunité</option>
-                        <option value="Action corrective">Action corrective</option>
-                        <option value="Amélioration">Amélioration</option>
-                        <option value="Risque">Risque</option>
-                        <option value="Information">Information</option>
+                        {RECO_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <select
+                        className="rgm-reco-priority"
+                        value={reco.statut || 'À analyser'}
+                        onChange={(e) => updateReco(reco.id, 'statut', e.target.value)}
+                        title="Statut"
+                      >
+                        {RECO_STATUTS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                       <select
                         className="rgm-reco-priority"

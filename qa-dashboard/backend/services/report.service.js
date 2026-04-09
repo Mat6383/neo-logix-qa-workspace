@@ -253,6 +253,7 @@ class ReportService {
         <td><strong>${this._esc(r.category)}</strong></td>
         <td>${this._esc(r.text)}</td>
         <td class="num">${this._esc(r.type || '—')}</td>
+        <td class="num">${this._esc(r.statut || '—')}</td>
         <td class="num"><span class="badge ${r.priority === 'Haute' ? 'badge-red' : r.priority === 'Faible' ? 'badge-green' : 'badge-orange'}">${this._esc(r.priority)}</span></td>
       </tr>`
     ).join('');
@@ -431,7 +432,7 @@ class ReportService {
     <h2 class="section-title">4. Recommandations <span style="font-size:9pt;color:#64748b;">(Lessons Learned — LEAN Kaizen / ITIL CSI)</span></h2>
     ${recommendations && recommendations.length > 0 ? `
     <table>
-      <tr><th style="width:20%;">Catégorie</th><th style="width:45%;">Constat et recommandation</th><th class="num" style="width:20%;">Type / Statut</th><th class="num" style="width:15%;">Priorité</th></tr>
+      <tr><th style="width:18%;">Catégorie</th><th style="width:40%;">Constat et recommandation</th><th class="num" style="width:17%;">Type</th><th class="num" style="width:13%;">Statut</th><th class="num" style="width:12%;">Priorité</th></tr>
       ${recoRows}
     </table>` : '<p>Aucune recommandation saisie.</p>'}
   </div>
@@ -559,26 +560,28 @@ ${complement ? `
       const rHdr = { bold: true, color: C.white, fontSize: 8, fill: { color: C.blue }, align: 'center', valign: 'middle' };
       const recoTableRows = [
         [
-          { text: 'Catégorie',                  options: { ...rHdr, align: 'left' } },
-          { text: 'Constat et recommandation',  options: { ...rHdr, align: 'left' } },
-          { text: 'Type / Statut',              options: rHdr },
-          { text: 'Priorité',                   options: rHdr },
+          { text: 'Catégorie',                 options: { ...rHdr, align: 'left' } },
+          { text: 'Constat et recommandation', options: { ...rHdr, align: 'left' } },
+          { text: 'Type',                      options: rHdr },
+          { text: 'Statut',                    options: rHdr },
+          { text: 'Priorité',                  options: rHdr },
         ],
       ];
       recommendations.forEach(r => {
         const priColor = r.priority === 'Haute' ? C.red : r.priority === 'Faible' ? C.green : C.orange;
         recoTableRows.push([
-          { text: r.category || '', options: { bold: true, fontSize: 8, color: C.text, align: 'left', valign: 'middle' } },
-          { text: r.text    || '', options: { fontSize: 8, color: C.darkGray, align: 'left', valign: 'middle' } },
-          { text: r.type    || '—', options: { fontSize: 8, color: C.text, align: 'center', valign: 'middle' } },
-          { text: r.priority || '', options: { fontSize: 8, bold: true, color: priColor, align: 'center', valign: 'middle' } },
+          { text: r.category || '', options: { bold: true, fontSize: 8, color: C.text,     align: 'left',   valign: 'middle' } },
+          { text: r.text     || '', options: { fontSize: 8,              color: C.darkGray, align: 'left',   valign: 'middle' } },
+          { text: r.type     || '—', options: { fontSize: 8,             color: C.text,     align: 'center', valign: 'middle' } },
+          { text: r.statut   || '—', options: { fontSize: 8,             color: C.gray,     align: 'center', valign: 'middle' } },
+          { text: r.priority || '', options: { fontSize: 8, bold: true,  color: priColor,   align: 'center', valign: 'middle' } },
         ]);
       });
       s5.addTable(recoTableRows, {
         x: 0.3, y: 1.05, w: 9.4,
         fontSize: 8, fontFace: 'Calibri', color: C.text,
         border: { pt: 0.5, color: 'E2E8F0' },
-        colW: [1.9, 4.2, 1.8, 1.5],
+        colW: [1.7, 3.8, 1.6, 1.2, 1.1],
         autoPage: false, valign: 'middle',
       });
     }
