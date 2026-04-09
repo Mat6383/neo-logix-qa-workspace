@@ -51,19 +51,35 @@ class ReportService {
       // Get latest results only
       const latestResults = resultsResp.result.filter(r => r.is_latest);
 
-      // Map each result
       // IDs Testmo pour résultats individuels (/results endpoint) :
       // 2=Passed, 3=Failed, 4=Retest, 5=Blocked, 6=Skipped, 8=WIP
-      // NB: différents des statusN_count du run-summary (API distincte)
-      const results = latestResults.map(r => {
-        const statusMap = { 2: 'PASSED', 3: 'FAILED', 4: 'Retest', 5: 'Blocked', 6: 'Skipped', 8: 'WIP' };
-        const correctionTickets = (r.issues || []).map(iid => issueMap[iid] || `?${iid}`);
-        return {
-          caseId: r.case_id,
-          status: statusMap[r.status_id] || `status_${r.status_id}`,
-          correctionTickets,
-        };
-      });
+      const statusMap = { 2: 'PASSED', 3: 'FAILED', 4: 'Retest', 5: 'Blocked', 6: 'Skipped', 8: 'WIP' };
+
+      // Priorité de statut pour dédupliquer les cas multi-étapes (Case (steps)) :
+      // FAILED > WIP > Blocked > Retest > Skipped > PASSED
+      // Si une étape est FAILED, le cas entier est FAILED même si d'autres étapes sont PASSED.
+      const statusPriority = { 'FAILED': 6, 'WIP': 5, 'Blocked': 4, 'Retest': 3, 'Skipped': 2, 'PASSED': 1 };
+
+      // Grouper par case_id — pour les "Case (steps)", plusieurs rows par case
+      const caseMap = new Map();
+      for (const r of latestResults) {
+        const status = statusMap[r.status_id] || `status_${r.status_id}`;
+        const tickets = (r.issues || []).map(iid => issueMap[iid] || `?${iid}`);
+        if (!caseMap.has(r.case_id)) {
+          caseMap.set(r.case_id, { caseId: r.case_id, status, correctionTickets: tickets });
+        } else {
+          const existing = caseMap.get(r.case_id);
+          // Garder le statut le plus grave
+          if ((statusPriority[status] || 0) > (statusPriority[existing.status] || 0)) {
+            existing.status = status;
+          }
+          // Fusionner les tickets
+          for (const t of tickets) {
+            if (!existing.correctionTickets.includes(t)) existing.correctionTickets.push(t);
+          }
+        }
+      }
+      const results = [...caseMap.values()];
 
       // Run-level gitlab issues
       const runGitlabIssues = (runDetail.result.issues || [])
