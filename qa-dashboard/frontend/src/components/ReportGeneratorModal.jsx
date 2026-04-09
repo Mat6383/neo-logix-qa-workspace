@@ -129,6 +129,15 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
 
   // Generate
   const handleGenerate = async () => {
+    // Garde : vérifier que des runs sont disponibles
+    if (!runIds || runIds.length === 0) {
+      setError('Aucun run de test disponible. Vérifiez la configuration des cycles dans le dashboard (les sessions exploratoires seules ne génèrent pas de rapport).');
+      return;
+    }
+    if (!projectId) {
+      setError('Projet non identifié. Rechargez la page et réessayez.');
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
@@ -164,11 +173,16 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
               Périmètre — {milestoneName}
             </div>
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>
-              <span><strong>{runs.length}</strong> runs</span>
+              <span><strong>{runIds.length}</strong> run{runIds.length > 1 ? 's' : ''} inclus dans le rapport</span>
               <span style={{ color: '#10b981' }}><strong>{totalPassed}</strong> réussis</span>
               <span style={{ color: '#ef4444' }}><strong>{totalFailed}</strong> échoués</span>
               <span><strong>{totalTests}</strong> tests au total</span>
             </div>
+            {runIds.length === 0 && (
+              <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 6, padding: '0.5rem 0.75rem', fontSize: '0.82rem', color: '#92400e', marginBottom: '0.5rem' }}>
+                ⚠️ Aucun run standard détecté. Les sessions exploratoires ne sont pas incluses dans le rapport HTML/PPTX. Vérifiez la configuration des cycles (Dashboard).
+              </div>
+            )}
             <div className="rgm-runs-grid">
               {runs.map((run, i) => {
                 const passed = run.success_count || run.passed || 0;
