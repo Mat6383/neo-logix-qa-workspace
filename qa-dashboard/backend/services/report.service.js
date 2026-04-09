@@ -61,33 +61,20 @@ class ReportService {
         issueMap[i.id] = i.display_id;
       }
 
-      // Get latest results only
+      // ── Résultats individuels (pour listes nominatives failed/tickets) ──
       const latestResults = allResults.filter(r => r.is_latest);
-
-      // IDs Testmo pour résultats individuels (/results endpoint) :
-      // 2=Passed, 3=Failed, 4=Retest, 5=Blocked, 6=Skipped, 8=WIP
       const statusMap = { 2: 'PASSED', 3: 'FAILED', 4: 'Retest', 5: 'Blocked', 6: 'Skipped', 8: 'WIP' };
 
-      // Pour les "Case (steps)", l'API retourne N résultats par case_id (un par step)
-      // + un résultat global (case_step_id = null) qui reflète le statut affiché dans Testmo.
-      // On garde uniquement le résultat global (case_step_id absent/null) quand il existe,
-      // sinon on garde le résultat unique du cas simple.
+      // Dédupliquer par case_id (un résultat par cas de test)
       const caseMap = new Map();
       for (const r of latestResults) {
         const status = statusMap[r.status_id] || `status_${r.status_id}`;
         const tickets = (r.issues || []).map(iid => issueMap[iid] || `?${iid}`);
-        const isStepResult = r.case_step_id != null;
-
         if (!caseMap.has(r.case_id)) {
-          caseMap.set(r.case_id, { caseId: r.case_id, status, correctionTickets: tickets, hasGlobal: !isStepResult });
+          caseMap.set(r.case_id, { caseId: r.case_id, status, correctionTickets: tickets });
         } else {
           const existing = caseMap.get(r.case_id);
-          if (!isStepResult) {
-            // Résultat global du cas → toujours prioritaire sur les steps
-            existing.status = status;
-            existing.hasGlobal = true;
-          }
-          // Fusionner les tickets dans tous les cas
+          // Fusionner les tickets
           for (const t of tickets) {
             if (!existing.correctionTickets.includes(t)) existing.correctionTickets.push(t);
           }
@@ -101,11 +88,15 @@ class ReportService {
         .filter(Boolean)
         .sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
 
-      const passed = results.filter(r => r.status === 'PASSED').length;
-      const failed = results.filter(r => r.status === 'FAILED').length;
-      const skipped = results.filter(r => r.status === 'Skipped').length;
-      const wip = results.filter(r => r.status === 'WIP').length;
-      const total = results.length;
+      // ── Stats agrégées : depuis les compteurs du run (source de vérité Testmo) ──
+      // Les compteurs statusN_count sont TOUJOURS synchronisés avec l'UI Testmo,
+      // contrairement aux résultats individuels qui peuvent être désynchronisés.
+      const rd = runDetail.result;
+      const passed  = rd.status1_count || 0;
+      const failed  = rd.status2_count || 0;
+      const skipped = (rd.status5_count || 0) + (rd.status6_count || 0);
+      const wip     = rd.status7_count || 0;
+      const total   = rd.total_count   || 0;
 
       runsData.push({
         id: runId,
