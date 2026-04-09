@@ -419,19 +419,37 @@ app.post('/api/cache/clear', (req, res) => {
  */
 app.post('/api/reports/generate', async (req, res) => {
   try {
-    const { projectId, runIds, formats, recommendations, complement } = req.body;
+    const { projectId, runIds, milestoneId, formats, recommendations, complement } = req.body;
 
-    if (!projectId || !runIds || !Array.isArray(runIds) || runIds.length === 0) {
-      return res.status(400).json({ success: false, error: 'projectId et runIds (tableau) requis' });
+    if (!projectId) {
+      return res.status(400).json({ success: false, error: 'projectId requis' });
     }
     if (!formats || (!formats.html && !formats.pptx)) {
       return res.status(400).json({ success: false, error: 'Au moins un format (html/pptx) requis' });
     }
 
-    logger.info(`Génération rapport: project=${projectId}, runIds=${JSON.stringify(runIds)}, formats=${JSON.stringify(formats)}`);
+    // Accepte runIds[] (nouveau format) OU milestoneId (ancien format)
+    let resolvedRunIds = runIds;
+    if (!resolvedRunIds || !Array.isArray(resolvedRunIds) || resolvedRunIds.length === 0) {
+      if (milestoneId) {
+        // Fallback : récupérer les runs du milestone depuis Testmo
+        logger.info(`runIds absent, fallback sur milestoneId=${milestoneId}`);
+        const allRuns = await testmoService.apiGet(`/projects/${projectId}/runs?limit=50`);
+        resolvedRunIds = (allRuns.result || [])
+          .filter(r => r.milestone_id === milestoneId)
+          .map(r => r.id);
+        if (resolvedRunIds.length === 0) {
+          return res.status(400).json({ success: false, error: `Aucun run trouvé pour le milestone ${milestoneId}` });
+        }
+      } else {
+        return res.status(400).json({ success: false, error: 'runIds (tableau) ou milestoneId requis' });
+      }
+    }
 
-    // 1. Collect data — fetch each run by ID (no milestone filter)
-    const data = await reportService.collectReportData(projectId, runIds);
+    logger.info(`Génération rapport: project=${projectId}, runIds=${JSON.stringify(resolvedRunIds)}, formats=${JSON.stringify(formats)}`);
+
+    // 1. Collect data — fetch each run by ID
+    const data = await reportService.collectReportData(projectId, resolvedRunIds);
 
     const result = { success: true, files: {} };
 
