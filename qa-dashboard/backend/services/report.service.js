@@ -191,7 +191,7 @@ class ReportService {
   // ================================================================
   // HTML GENERATION
   // ================================================================
-  generateHTML(data, recommendations) {
+  generateHTML(data, recommendations, complement) {
     const { milestoneName, stats, runs, functionalRuns, tnrRuns, failedTests, passedWithTickets, verdict } = data;
     const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
     const refDate = new Date().toISOString().split('T')[0].replace(/-/g, '-');
@@ -437,6 +437,16 @@ class ReportService {
   <div class="page-footer"><span>RC-${this._esc(milestoneName)}-${refDate}</span><span>Page 5</span></div>
 </div>
 
+${complement ? `
+<!-- PAGE 6: COMPLÉMENT D'INFORMATION -->
+<div class="page">
+  <div class="section-content">
+    <h2 class="section-title">5. Complément d'information</h2>
+    <div style="background:#f8fafc;border-left:4px solid #3b82f6;padding:18px 22px;border-radius:6px;font-size:10.5pt;line-height:1.8;white-space:pre-wrap;color:#1e293b;">${this._esc(complement)}</div>
+  </div>
+  <div class="page-footer"><span>RC-${this._esc(milestoneName)}-${refDate}</span><span>Page 6</span></div>
+</div>` : ''}
+
 </body>
 </html>`;
   }
@@ -444,7 +454,7 @@ class ReportService {
   // ================================================================
   // PPTX GENERATION
   // ================================================================
-  async generatePPTX(data, recommendations) {
+  async generatePPTX(data, recommendations, complement) {
     const { milestoneName, stats, functionalRuns, tnrRuns, failedTests, passedWithTickets, verdict } = data;
 
     const C = {
@@ -556,7 +566,21 @@ class ReportService {
       });
     }
 
-    // SLIDE 6: CONCLUSION
+    // SLIDE 6: COMPLÉMENT D'INFORMATION (optionnel)
+    if (complement && complement.trim()) {
+      const s6 = pres.addSlide();
+      s6.background = { color: C.light };
+      s6.addText('Complément d\'information', { x: 0.5, y: 0.3, w: 9, h: 0.5, fontSize: 28, fontFace: 'Calibri', bold: true, color: C.text });
+      s6.addShape(pres.shapes.RECTANGLE, { x: 0.4, y: 1.0, w: 9.2, h: 3.6, fill: { color: C.white }, shadow: { type: 'outer', blur: 4, offset: 2, color: '000000', opacity: 0.07 } });
+      s6.addShape(pres.shapes.RECTANGLE, { x: 0.4, y: 1.0, w: 0.08, h: 3.6, fill: { color: C.accent } });
+      s6.addText(complement.trim(), {
+        x: 0.65, y: 1.1, w: 8.8, h: 3.4,
+        fontSize: 11, fontFace: 'Calibri', color: C.text,
+        valign: 'top', wrap: true,
+      });
+    }
+
+    // SLIDE 7: CONCLUSION
     const sLast = pres.addSlide();
     sLast.background = { color: C.navy };
     sLast.addText('Conclusion', { x: 0.5, y: 0.5, w: 9, h: 0.7, fontSize: 36, fontFace: 'Calibri', bold: true, color: C.white, align: 'center' });

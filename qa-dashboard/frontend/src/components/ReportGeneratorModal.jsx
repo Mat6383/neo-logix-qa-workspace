@@ -16,6 +16,7 @@ const DEFAULT_RECOMMENDATIONS = [
 const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => {
   const [formats, setFormats] = useState({ html: true, pptx: true });
   const [recommendations, setRecommendations] = useState([...DEFAULT_RECOMMENDATIONS]);
+  const [complement, setComplement] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(null);
   const [error, setError] = useState(null);
@@ -98,6 +99,7 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
         milestoneId,
         formats,
         recommendations: recommendations.filter(r => r.text.trim()),
+        complement: complement.trim(),
       });
       setGenerated(response.data || response);
     } catch (err) {
@@ -230,6 +232,37 @@ const ReportGeneratorModal = ({ isOpen, onClose, metrics, project, isDark }) => 
               <button className="rgm-add-btn" onClick={addReco}>
                 <Plus size={16} /> Ajouter une recommandation
               </button>
+            </div>
+          </div>
+
+          {/* === STEP 4: Complément d'information === */}
+          <div className="rgm-step">
+            <div className="rgm-step-title">
+              <span className="rgm-step-num">4</span>
+              Complément d'information
+              <span style={{ fontWeight: 400, fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', marginLeft: '0.5rem' }}>(optionnel — section 5 du rapport)</span>
+            </div>
+            <textarea
+              value={complement}
+              onChange={(e) => setComplement(e.target.value)}
+              placeholder="Contexte supplémentaire, observations, notes de campagne, points d'attention particuliers…"
+              rows={5}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color, #e2e8f0)',
+                backgroundColor: 'var(--bg-color, #f8fafc)',
+                color: 'var(--text-color, #1e293b)',
+                fontSize: '0.9rem',
+                lineHeight: '1.6',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                outline: 'none',
+              }}
+            />
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94a3b8)', marginTop: '0.35rem' }}>
+              {complement.length > 0 ? `${complement.length} caractères` : 'Laissez vide pour ne pas inclure cette section dans le rapport.'}
             </div>
           </div>
 

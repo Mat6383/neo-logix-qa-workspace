@@ -419,7 +419,7 @@ app.post('/api/cache/clear', (req, res) => {
  */
 app.post('/api/reports/generate', async (req, res) => {
   try {
-    const { projectId, milestoneId, formats, recommendations } = req.body;
+    const { projectId, milestoneId, formats, recommendations, complement } = req.body;
 
     if (!projectId || !milestoneId) {
       return res.status(400).json({ success: false, error: 'projectId et milestoneId requis' });
@@ -437,14 +437,14 @@ app.post('/api/reports/generate', async (req, res) => {
 
     // 2. Generate HTML
     if (formats.html) {
-      const htmlContent = reportService.generateHTML(data, recommendations);
+      const htmlContent = reportService.generateHTML(data, recommendations, complement);
       result.files.html = Buffer.from(htmlContent, 'utf-8').toString('base64');
       result.files.htmlFilename = `${data.milestoneName}_Cloture_Tests.html`;
     }
 
     // 3. Generate PPTX
     if (formats.pptx) {
-      const pres = await reportService.generatePPTX(data, recommendations);
+      const pres = await reportService.generatePPTX(data, recommendations, complement);
       const pptxBuffer = await pres.write({ outputType: 'nodebuffer' });
       result.files.pptx = pptxBuffer.toString('base64');
       result.files.pptxFilename = `${data.milestoneName}_Cloture_Tests.pptx`;
