@@ -75,6 +75,36 @@ class GitLabService {
   }
 
   /**
+   * Retry avec backoff exponentiel (ITIL Resilience Management)
+   * Réessaie sur erreurs réseau ou 5xx GitLab.
+   *
+   * @param {Function} fn        - Fonction async à exécuter
+   * @param {string}   label     - Nom de l'opération (pour les logs)
+   * @param {number}   maxRetries - Nombre maximum de tentatives (défaut 3)
+   * @param {number}   baseDelay  - Délai de base en ms (défaut 600)
+   * @returns {Promise<*>}
+   * @private
+   */
+  async _withRetry(fn, label = 'unknown', maxRetries = 3, baseDelay = 600) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastError = err;
+        const status = err.response?.status;
+        const isRetryable = !status || status === 429 || status >= 500 ||
+          err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND';
+        if (!isRetryable || attempt === maxRetries) break;
+        const delay = baseDelay * Math.pow(2, attempt - 1); // 600ms, 1.2s, 2.4s
+        logger.warn(`[Retry] GitLab.${label} — tentative ${attempt}/${maxRetries} (${err.message}), nouvel essai dans ${delay}ms`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+    throw lastError;
+  }
+
+  /**
    * Récupère toutes les pages d'un endpoint paginé
    */
   async _getPaginated(url, params = {}) {
@@ -83,7 +113,7 @@ class GitLabService {
     params.page = 1;
 
     while (true) {
-      const resp = await this.client.get(url, { params });
+      const resp = await this._withRetry(() => this.client.get(url, { params }), `_getPaginated(${url})`);
       const data = resp.data;
       if (!data || data.length === 0) break;
       results.push(...data);

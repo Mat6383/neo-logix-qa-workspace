@@ -19,6 +19,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const testmoService = require('./services/testmo.service');
 const ReportService = require('./services/report.service');
 const logger = require('./services/logger.service');
@@ -30,11 +31,21 @@ const reportService = new ReportService(testmoService);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Validation des variables d'environnement critiques
-if (!process.env.TESTMO_URL || !process.env.TESTMO_TOKEN) {
-  logger.error('CONFIGURATION MANQUANTE: TESTMO_URL et TESTMO_TOKEN requis dans .env');
+// Validation des variables d'environnement critiques (ITIL Configuration Management)
+const REQUIRED_ENV = ['TESTMO_URL', 'TESTMO_TOKEN', 'GITLAB_URL', 'GITLAB_TOKEN'];
+const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missingEnv.length > 0) {
+  logger.error(`CONFIGURATION MANQUANTE: ${missingEnv.join(', ')} requis dans .env`);
   process.exit(1);
 }
+
+// Avertissements pour variables recommandées
+const RECOMMENDED_ENV = ['GITLAB_WRITE_TOKEN', 'FRONTEND_URL', 'SYNC_TIMEZONE'];
+RECOMMENDED_ENV.forEach(k => {
+  if (!process.env[k]) {
+    logger.warn(`[Config] Variable optionnelle non définie : ${k} (valeur par défaut utilisée)`);
+  }
+});
 
 // ==========================================
 // Middlewares de sécurité (ITIL Security)
@@ -44,12 +55,53 @@ app.use(compression()); // Compression GZIP (LEAN)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS configuration
+// CORS — support multi-origines via FRONTEND_URL (virgule-séparé)
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origin (ex: curl, Postman, health checks internes)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    logger.warn(`CORS: origine refusée — ${origin}`);
+    callback(new Error(`CORS: origine non autorisée — ${origin}`));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
+
+// Rate-limiting global (ITIL Availability Management — protection DoS)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // fenêtre d'1 minute
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Trop de requêtes — réessayez dans une minute (rate limit: 200 req/min)'
+  },
+  skip: (req) => req.path === '/api/health' // health check jamais limité
+});
+
+// Rate-limiter plus strict sur les routes coûteuses
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_HEAVY_MAX) || 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Trop de requêtes sur cet endpoint — réessayez dans une minute'
+  }
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/reports/generate', heavyLimiter);
+app.use('/api/sync/execute', heavyLimiter);
+app.use('/api/sync/status-to-gitlab', heavyLimiter);
 
 // Middleware de logging des requêtes (ITIL Event Management)
 app.use((req, res, next) => {
@@ -1029,6 +1081,8 @@ async function runAutoSync() {
 }
 
 // Cron toujours enregistré — c'est le flag `enabled` dans la config qui pilote
+const SYNC_TIMEZONE = process.env.SYNC_TIMEZONE || 'Europe/Paris';
+
 cron.schedule('*/5 8-17 * * 1-5', () => {
   const { enabled } = autoSyncConfig.getConfig();
   if (!enabled) {
@@ -1037,9 +1091,9 @@ cron.schedule('*/5 8-17 * * 1-5', () => {
   }
   logger.info('[AutoSync] Cron déclenché');
   runAutoSync();
-}, { timezone: 'Europe/Paris' });
+}, { timezone: SYNC_TIMEZONE });
 
-logger.info('[AutoSync] Cron enregistré — lun-ven 8h-18h toutes les 5 min (Europe/Paris)');
+logger.info(`[AutoSync] Cron enregistré — lun-ven 8h-18h toutes les 5 min (timezone: ${SYNC_TIMEZONE})`);
 logger.info(`[AutoSync] Config initiale: ${JSON.stringify(autoSyncConfig.getConfig())}`);
 
 // ==========================================

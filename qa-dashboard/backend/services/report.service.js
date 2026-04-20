@@ -178,7 +178,10 @@ class ReportService {
             correctionTickets: r.correctionTickets,
           });
         }
-        if (r.status === 'WIP') {
+        // WIP : on ne prend les WIP individuels QUE si le compteur du run
+        // (status7_count, source de vérité Testmo) confirme qu'il y a des WIP.
+        // L'API /results peut être désynchronisée avec l'UI Testmo.
+        if (r.status === 'WIP' && run.wip > 0) {
           wipTests.push({
             run: run.name,
             caseName: r.caseName,

@@ -76,17 +76,14 @@ class TestmoService {
     }
 
     try {
-      const response = await this.client.get('/projects', {
-        params: {
-          per_page: 100,
-          sort: 'projects:created_at',
-          order: 'desc'
-        }
-      });
-
+      const response = await this._withRetry(
+        () => this.client.get('/projects', {
+          params: { per_page: 100, sort: 'projects:created_at', order: 'desc' }
+        }),
+        'getProjects'
+      );
       this._setCache(cacheKey, response.data);
       return response.data;
-
     } catch (error) {
       throw this._handleError('getProjects', error);
     }
@@ -108,19 +105,20 @@ class TestmoService {
     }
 
     try {
-      const response = await this.client.get(`/projects/${projectId}/runs`, {
-        params: {
-          is_closed: activeOnly ? 0 : undefined,
-          per_page: 100,
-          sort: 'runs:created_at',
-          order: 'desc',
-          expands: 'users,milestones,configs'
-        }
-      });
-
+      const response = await this._withRetry(
+        () => this.client.get(`/projects/${projectId}/runs`, {
+          params: {
+            is_closed: activeOnly ? 0 : undefined,
+            per_page: 100,
+            sort: 'runs:created_at',
+            order: 'desc',
+            expands: 'users,milestones,configs'
+          }
+        }),
+        'getProjectRuns'
+      );
       this._setCache(cacheKey, response.data);
       return response.data;
-
     } catch (error) {
       throw this._handleError('getProjectRuns', error);
     }
@@ -1321,6 +1319,37 @@ class TestmoService {
   clearCache() {
     this.cache.clear();
     logger.info('Cache cleared');
+  }
+
+  /**
+   * Retry avec backoff exponentiel (ITIL Resilience Management)
+   * Réessaie automatiquement sur erreurs réseau ou 5xx Testmo.
+   *
+   * @param {Function} fn        - Fonction async à exécuter
+   * @param {string}   label     - Nom de l'opération (pour les logs)
+   * @param {number}   maxRetries - Nombre maximum de tentatives (défaut 3)
+   * @param {number}   baseDelay  - Délai de base en ms (défaut 500)
+   * @returns {Promise<*>}
+   * @private
+   */
+  async _withRetry(fn, label = 'unknown', maxRetries = 3, baseDelay = 500) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastError = err;
+        const status = err.response?.status;
+        // Ne pas réessayer sur les erreurs client 4xx (sauf 429 rate-limit)
+        const isRetryable = !status || status === 429 || status >= 500 ||
+          err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND';
+        if (!isRetryable || attempt === maxRetries) break;
+        const delay = baseDelay * Math.pow(2, attempt - 1); // 500ms, 1s, 2s
+        logger.warn(`[Retry] ${label} — tentative ${attempt}/${maxRetries} échouée (${err.message}), nouvel essai dans ${delay}ms`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+    throw lastError;
   }
 
   /**

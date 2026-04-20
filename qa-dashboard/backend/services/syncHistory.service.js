@@ -31,6 +31,12 @@ class SyncHistoryService {
       const Database = require('better-sqlite3');
       this.db = new Database(DB_PATH);
 
+      // WAL mode : meilleure durabilité et performance en lecture concurrente
+      // (ITIL Availability Management — résiste aux arrêts brutaux)
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('synchronous = NORMAL');
+      this.db.pragma('busy_timeout = 5000');
+
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS sync_runs (
           id             INTEGER PRIMARY KEY AUTOINCREMENT,
