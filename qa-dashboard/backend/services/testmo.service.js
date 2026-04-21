@@ -16,6 +16,49 @@
 const axios = require('axios');
 const logger = require('./logger.service');
 
+// ─── Standalone helpers (exportés pour tests) ───────────────────────────────
+
+function _calculatePercentage(value, total) {
+  if (!total || total === 0) return 0;
+  return parseFloat(((value / total) * 100).toFixed(2));
+}
+
+function aggregateSessions(sessions) {
+  const aggregated = {
+    total: 0, passed: 0, failed: 0,
+    completed: 0, success: 0, failure: 0, wip: 0,
+  };
+
+  sessions.forEach(session => {
+    const successCount = session.success_count || 0;
+    const failureCount = session.failure_count || 0;
+    const sessionTotal = successCount + failureCount;
+
+    if (sessionTotal > 0) {
+      aggregated.total     += sessionTotal;
+      aggregated.passed    += successCount;
+      aggregated.failed    += failureCount;
+      aggregated.completed += sessionTotal;
+      aggregated.success   += successCount;
+      aggregated.failure   += failureCount;
+    } else {
+      aggregated.total += 1;
+      aggregated.wip   += 1;
+    }
+  });
+
+  return aggregated;
+}
+
+function globalMetrics(aggregated) {
+  return {
+    completionRate:  _calculatePercentage(aggregated.completed, aggregated.total),
+    passRate:        _calculatePercentage(aggregated.passed, aggregated.completed),
+    failureRate:     _calculatePercentage(aggregated.failed, aggregated.completed),
+    testEfficiency:  _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
+  };
+}
+
 class TestmoService {
   constructor() {
     this.baseURL = process.env.TESTMO_URL;
@@ -358,25 +401,14 @@ class TestmoService {
       // Ajout des sessions exploratoires dans la répartition globale
       // Les sessions utilisent "state_id" (custom) et non "status_id" — on utilise
       // donc success_count/failure_count pour ajouter les vrais résultats de test.
-      sessions.forEach(session => {
-        const successCount = session.success_count || 0;
-        const failureCount = session.failure_count || 0;
-        const sessionTotal = successCount + failureCount;
-
-        if (sessionTotal > 0) {
-          // Session avec résultats : on ajoute les vrais compteurs
-          aggregated.total     += sessionTotal;
-          aggregated.passed    += successCount;
-          aggregated.failed    += failureCount;
-          aggregated.completed += sessionTotal;
-          aggregated.success   += successCount;
-          aggregated.failure   += failureCount;
-        } else {
-          // Session sans résultat encore → comptée comme 1 WIP
-          aggregated.total += 1;
-          aggregated.wip   += 1;
-        }
-      });
+      const sessionAggregated = aggregateSessions(sessions);
+      aggregated.total     += sessionAggregated.total;
+      aggregated.passed    += sessionAggregated.passed;
+      aggregated.failed    += sessionAggregated.failed;
+      aggregated.completed += sessionAggregated.completed;
+      aggregated.success   += sessionAggregated.success;
+      aggregated.failure   += sessionAggregated.failure;
+      aggregated.wip       += sessionAggregated.wip;
 
       // Dynamic ITIL-like calculations based on real run data
       const leadTime = Math.round(runs.reduce((acc, r) => acc + (Date.now() - new Date(r.created_at).getTime()) / (1000 * 3600), 0) / (runs.length || 1) * 10) / 10;
@@ -388,14 +420,14 @@ class TestmoService {
         raw: aggregated,
 
         // KPIs ISTQB
-        completionRate: this._calculatePercentage(aggregated.completed, aggregated.total),
-        passRate: this._calculatePercentage(aggregated.passed, aggregated.completed),
-        failureRate: this._calculatePercentage(aggregated.failed, aggregated.completed),
-        blockedRate: this._calculatePercentage(aggregated.blocked, aggregated.total),
-        skippedRate: this._calculatePercentage(aggregated.skipped, aggregated.total),
+        completionRate: _calculatePercentage(aggregated.completed, aggregated.total),
+        passRate: _calculatePercentage(aggregated.passed, aggregated.completed),
+        failureRate: _calculatePercentage(aggregated.failed, aggregated.completed),
+        blockedRate: _calculatePercentage(aggregated.blocked, aggregated.total),
+        skippedRate: _calculatePercentage(aggregated.skipped, aggregated.total),
 
         // Métriques dérivées
-        testEfficiency: this._calculatePercentage(
+        testEfficiency: _calculatePercentage(
           aggregated.passed,
           aggregated.passed + aggregated.failed
         ),
@@ -428,8 +460,8 @@ class TestmoService {
             blocked: run.status4_count || 0,
             wip: run.status7_count || 0,
             untested: run.untested_count || 0,
-            completionRate: this._calculatePercentage(run.completed_count, run.total_count),
-            passRate: this._calculatePercentage(run.status1_count, run.completed_count),
+            completionRate: _calculatePercentage(run.completed_count, run.total_count),
+            passRate: _calculatePercentage(run.status1_count, run.completed_count),
             created_at: run.created_at,
             milestone: run.milestone_id,
             isExploratory: false
@@ -450,14 +482,14 @@ class TestmoService {
             if (isTerminal || executed > 0) {
               completionRate = 100;
             } else if (total > 0) {
-              completionRate = this._calculatePercentage(executed, total);
+              completionRate = _calculatePercentage(executed, total);
             }
 
             // Pass rate: success_count / (success_count + failure_count)
             // Compteurs cumulatifs (retests inclus) — seule donnée fiable pour les sessions.
             const successCount = session.success_count || 0;
             const failureCount = session.failure_count || 0;
-            const sessionPassRate = this._calculatePercentage(successCount, successCount + failureCount);
+            const sessionPassRate = _calculatePercentage(successCount, successCount + failureCount);
 
             return {
               id: `session-${session.id}`,
@@ -489,7 +521,7 @@ class TestmoService {
           mttrTarget: 72,
           leadTime: leadTime,
           leadTimeTarget: 120,
-          changeFailRate: this._calculatePercentage(aggregated.failed, aggregated.completed),
+          changeFailRate: _calculatePercentage(aggregated.failed, aggregated.completed),
           changeFailRateTarget: 20
         },
         lean: {
@@ -499,11 +531,11 @@ class TestmoService {
           closedRuns: closedRunsCount
         },
         istqb: {
-          avgPassRate: this._calculatePercentage(aggregated.passed, aggregated.completed),
+          avgPassRate: _calculatePercentage(aggregated.passed, aggregated.completed),
           passRateTarget: 80,
           milestonesCompleted: milestonesCompleted,
           milestonesTotal: milestonesTotal,
-          blockRate: this._calculatePercentage(aggregated.blocked, aggregated.total),
+          blockRate: _calculatePercentage(aggregated.blocked, aggregated.total),
           blockRateTarget: 5
         }
       };
@@ -682,8 +714,8 @@ class TestmoService {
         }
 
         return {
-          escapeRate: totalBugs > 0 ? this._calculatePercentage(bugsInProd, totalBugs) : 0,
-          detectionRate: totalBugs > 0 ? this._calculatePercentage(bugsInTest, totalBugs) : 0,
+          escapeRate: totalBugs > 0 ? _calculatePercentage(bugsInProd, totalBugs) : 0,
+          detectionRate: totalBugs > 0 ? _calculatePercentage(bugsInTest, totalBugs) : 0,
           bugsInProd,
           bugsInTest,
           totalBugs,
@@ -804,8 +836,8 @@ class TestmoService {
 
       const totalBugs = bugsInTest + bugsInProd;
 
-      const escapeRate = totalBugs > 0 ? this._calculatePercentage(bugsInProd, totalBugs) : 0;
-      const detectionRate = totalBugs > 0 ? this._calculatePercentage(bugsInTest, totalBugs) : 0;
+      const escapeRate = totalBugs > 0 ? _calculatePercentage(bugsInProd, totalBugs) : 0;
+      const detectionRate = totalBugs > 0 ? _calculatePercentage(bugsInTest, totalBugs) : 0;
 
       return {
         escapeRate,
@@ -930,8 +962,8 @@ class TestmoService {
           milestoneId: m.id,
           version: m.name,
           date: m.created_at,
-          escapeRate: totalBugs > 0 ? this._calculatePercentage(bugsInProd, totalBugs) : 0,
-          detectionRate: totalBugs > 0 ? this._calculatePercentage(bugsInTest, totalBugs) : 0,
+          escapeRate: totalBugs > 0 ? _calculatePercentage(bugsInProd, totalBugs) : 0,
+          detectionRate: totalBugs > 0 ? _calculatePercentage(bugsInTest, totalBugs) : 0,
           bugsInProd,
           bugsInTest,
           totalBugs,
@@ -948,15 +980,6 @@ class TestmoService {
     } catch (error) {
       throw this._handleError('getAnnualQualityTrends', error);
     }
-  }
-
-  /**
-   * Calcule un pourcentage avec 2 décimales
-   * @private
-   */
-  _calculatePercentage(value, total) {
-    if (!total || total === 0) return 0;
-    return parseFloat(((value / total) * 100).toFixed(2));
   }
 
   /**
@@ -1381,4 +1404,10 @@ class TestmoService {
   }
 }
 
-module.exports = new TestmoService();
+const testmoService = new TestmoService();
+
+module.exports = testmoService;
+module.exports._calculatePercentage = _calculatePercentage;
+module.exports.aggregateSessions = aggregateSessions;
+module.exports.globalMetrics = globalMetrics;
+// isCaseEnriched est déjà accessible via TestmoService.prototype sur l'instance exportée
