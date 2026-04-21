@@ -412,6 +412,83 @@ class GitLabService {
   }
 
   /**
+   * Met à jour le status natif d'une issue GitLab (GitLab 17+).
+   * Remplace la mécanique add_labels/remove_labels pour les statuts Test::.
+   * Clé API confirmée via curl Phase 0 — surchargeable via GITLAB_STATUS_FIELD_KEY.
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @param {number}        issueIid  - IID de l'issue
+   * @param {string}        status    - Valeur du status natif (ex: "passed")
+   * @returns {Object} Issue mise à jour
+   */
+  async updateIssueStatus(projectId, issueIid, status) {
+    try {
+      const fieldKey = process.env.GITLAB_STATUS_FIELD_KEY || 'status';
+      const resp = await this.writeClient.put(
+        `/projects/${projectId}/issues/${issueIid}`,
+        { [fieldKey]: status }
+      );
+      logger.info(`GitLab: Status natif mis à jour pour #${issueIid} → "${status}"`);
+      return resp.data;
+    } catch (error) {
+      logger.error(`GitLab: Erreur updateIssueStatus #${issueIid}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère les issues filtrées par status natif ET itération.
+   * Si le status n'est pas filtrable via query param (à vérifier via curl Phase 0),
+   * passe par getIssuesForIteration() + filtre mémoire.
+   *
+   * @param {number|string} projectId   - ID du projet GitLab
+   * @param {string}        status      - Valeur du status natif (ex: "todo")
+   * @param {number}        iterationId - ID de l'itération
+   * @returns {Array}
+   */
+  async getIssuesByStatusAndIteration(projectId, status, iterationId) {
+    try {
+      const statusParam = process.env.GITLAB_STATUS_QUERY_PARAM || 'status';
+      const issues = await this._getPaginated(
+        `/projects/${projectId}/issues`,
+        { [statusParam]: status, iteration_id: iterationId, state: 'all', scope: 'all' }
+      );
+      logger.info(`GitLab: ${issues.length} ticket(s) (project=${projectId}, status="${status}", iteration_id=${iterationId})`);
+      return issues;
+    } catch (error) {
+      logger.error(`GitLab: Erreur getIssuesByStatusAndIteration:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère les issues d'une itération filtrées par le champ custom "version".
+   * L'API GitLab ne filtre pas nativement les champs custom → filtre en mémoire.
+   *
+   * @param {number|string} projectId      - ID du projet GitLab
+   * @param {string}        version        - Valeur du champ version (ex: "1.2.3")
+   * @param {number}        iterationId    - ID de l'itération
+   * @param {string}        versionFieldKey - Chemin pointé vers le champ (ex: "custom_fields.version")
+   * @returns {Array}
+   */
+  async getIssuesByVersionAndIteration(projectId, version, iterationId, versionFieldKey) {
+    try {
+      const allIssues = await this.getIssuesForIteration(projectId, iterationId);
+      const keys = versionFieldKey.split('.');
+      const filtered = allIssues.filter(issue => {
+        let val = issue;
+        for (const k of keys) val = val?.[k];
+        return val === version;
+      });
+      logger.info(`GitLab: ${filtered.length}/${allIssues.length} issue(s) avec version="${version}" (project=${projectId})`);
+      return filtered;
+    } catch (error) {
+      logger.error(`GitLab: Erreur getIssuesByVersionAndIteration:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Ajoute un commentaire (note) sur une issue GitLab
    *
    * @param {number|string} projectId - ID du projet GitLab
