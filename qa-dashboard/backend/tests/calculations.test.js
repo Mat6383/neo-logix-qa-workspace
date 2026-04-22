@@ -798,3 +798,117 @@ describe('computeLabelChanges — logique de mise à jour des labels GitLab', ()
     expect(removeLabels).not.toContain('Test::OK');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests GitLab Status Natif (GitLab 17+)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const {
+  STATUS_TO_GITLAB_STATUS,
+  GITLAB_STATUS_OK, GITLAB_STATUS_KO,
+  GITLAB_STATUS_WIP, GITLAB_STATUS_RETEST, GITLAB_STATUS_TODO,
+  computeStatusChange,
+  VERSION_FIELD_KEY
+} = require('../services/status-sync.service');
+
+describe('STATUS_TO_GITLAB_STATUS — mapping Testmo status_id → GitLab status natif', () => {
+  test('2 (Passed) → GITLAB_STATUS_OK', () => {
+    expect(STATUS_TO_GITLAB_STATUS[2]).toBe(GITLAB_STATUS_OK);
+  });
+  test('3 (Failed) → GITLAB_STATUS_KO', () => {
+    expect(STATUS_TO_GITLAB_STATUS[3]).toBe(GITLAB_STATUS_KO);
+  });
+  test('4 (Retest) → GITLAB_STATUS_RETEST', () => {
+    expect(STATUS_TO_GITLAB_STATUS[4]).toBe(GITLAB_STATUS_RETEST);
+  });
+  test('8 (WIP) → GITLAB_STATUS_WIP', () => {
+    expect(STATUS_TO_GITLAB_STATUS[8]).toBe(GITLAB_STATUS_WIP);
+  });
+  test('1 (Untested) → undefined (ignoré)', () => {
+    expect(STATUS_TO_GITLAB_STATUS[1]).toBeUndefined();
+  });
+  test('statuts inconnus (5, 6, 7) → undefined', () => {
+    [5, 6, 7].forEach(id => expect(STATUS_TO_GITLAB_STATUS[id]).toBeUndefined());
+  });
+  test('statuts mappés (2, 3, 4, 8) → valeur truthy', () => {
+    [2, 3, 4, 8].forEach(id => expect(STATUS_TO_GITLAB_STATUS[id]).toBeTruthy());
+  });
+});
+
+describe('computeStatusChange — logique de mise à jour du status natif', () => {
+  test('statuts différents → action=update', () => {
+    const { newStatus, action } = computeStatusChange(GITLAB_STATUS_TODO, GITLAB_STATUS_OK);
+    expect(newStatus).toBe(GITLAB_STATUS_OK);
+    expect(action).toBe('update');
+  });
+
+  test('status déjà correct → action=noop', () => {
+    const { newStatus, action } = computeStatusChange(GITLAB_STATUS_OK, GITLAB_STATUS_OK);
+    expect(newStatus).toBe(GITLAB_STATUS_OK);
+    expect(action).toBe('noop');
+  });
+
+  test('newStatus=undefined (Untested) → action=skip', () => {
+    const { action, newStatus } = computeStatusChange(GITLAB_STATUS_OK, undefined);
+    expect(action).toBe('skip');
+    expect(newStatus).toBeNull();
+  });
+
+  test('newStatus=null → action=skip', () => {
+    const { action } = computeStatusChange(GITLAB_STATUS_OK, null);
+    expect(action).toBe('skip');
+  });
+
+  test('currentStatus=null (issue sans status) + newStatus → action=update', () => {
+    const { action } = computeStatusChange(null, GITLAB_STATUS_KO);
+    expect(action).toBe('update');
+  });
+});
+
+describe('VERSION_FIELD_KEY — champ custom version GitLab', () => {
+  test('a une valeur par défaut non vide', () => {
+    expect(typeof VERSION_FIELD_KEY).toBe('string');
+    expect(VERSION_FIELD_KEY.length).toBeGreaterThan(0);
+  });
+
+  test('filtrage mémoire par chemin pointé fonctionne', () => {
+    const key = 'custom_fields.version';
+    const issues = [
+      { iid: 1, custom_fields: { version: '1.2.0' } },
+      { iid: 2, custom_fields: { version: '1.3.0' } },
+      { iid: 3, custom_fields: { version: '1.2.0' } },
+      { iid: 4 }
+    ];
+    const keys = key.split('.');
+    const filtered = issues.filter(issue => {
+      let val = issue;
+      for (const k of keys) val = val?.[k];
+      return val === '1.2.0';
+    });
+    expect(filtered.map(i => i.iid)).toEqual([1, 3]);
+  });
+
+  test('filtrage mémoire — version inexistante → 0 résultats', () => {
+    const key = 'custom_fields.version';
+    const issues = [{ iid: 1, custom_fields: { version: '1.2.0' } }];
+    const keys = key.split('.');
+    const filtered = issues.filter(issue => {
+      let val = issue;
+      for (const k of keys) val = val?.[k];
+      return val === '9.9.9';
+    });
+    expect(filtered).toHaveLength(0);
+  });
+
+  test('filtrage mémoire — issue sans champ version → exclue', () => {
+    const key = 'custom_fields.version';
+    const issues = [{ iid: 1 }, { iid: 2, custom_fields: {} }];
+    const keys = key.split('.');
+    const filtered = issues.filter(issue => {
+      let val = issue;
+      for (const k of keys) val = val?.[k];
+      return val === '1.0.0';
+    });
+    expect(filtered).toHaveLength(0);
+  });
+});

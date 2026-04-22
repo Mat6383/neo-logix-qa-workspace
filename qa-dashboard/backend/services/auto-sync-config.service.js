@@ -21,11 +21,12 @@ const CONFIG_FILE = path.join(__dirname, '..', 'data', 'auto-sync-config.json');
 // ─── Valeurs par défaut (lues depuis .env au démarrage) ───────────────────────
 function _defaultConfig() {
   return {
-    enabled:        process.env.SYNC_AUTO_ENABLED === 'true',
-    runId:          parseInt(process.env.SYNC_AUTO_RUN_ID)          || null,
-    iterationName:  process.env.SYNC_AUTO_ITERATION_NAME            || '',
-    gitlabProjectId: process.env.SYNC_AUTO_GITLAB_PROJECT_ID        || '',
-    updatedAt:      null
+    enabled:         process.env.SYNC_AUTO_ENABLED === 'true',
+    runId:           parseInt(process.env.SYNC_AUTO_RUN_ID)          || null,
+    iterationName:   process.env.SYNC_AUTO_ITERATION_NAME            || '',
+    gitlabProjectId: process.env.SYNC_AUTO_GITLAB_PROJECT_ID         || '',
+    version:         process.env.SYNC_AUTO_VERSION                   || '',
+    updatedAt:       null
   };
 }
 
@@ -80,7 +81,7 @@ function getConfig() {
  * @returns {Object} Config mise à jour
  */
 function updateConfig(patch) {
-  const allowed = ['enabled', 'runId', 'iterationName', 'gitlabProjectId'];
+  const allowed = ['enabled', 'runId', 'iterationName', 'gitlabProjectId', 'version'];
 
   for (const key of allowed) {
     if (patch[key] !== undefined) {

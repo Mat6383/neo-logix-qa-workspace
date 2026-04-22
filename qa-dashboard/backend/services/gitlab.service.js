@@ -412,6 +412,126 @@ class GitLabService {
   }
 
   /**
+   * Exécute une requête GraphQL sur l'API GitLab.
+   *
+   * @param {string}  query          - Requête ou mutation GraphQL
+   * @param {Object}  variables      - Variables GraphQL (optionnel)
+   * @param {boolean} useWriteToken  - Utilise GITLAB_WRITE_TOKEN si true
+   * @returns {Object} data de la réponse GraphQL
+   */
+  async executeGraphQL(query, variables = {}, useWriteToken = false) {
+    const token = useWriteToken ? this.writeToken : this.token;
+    const httpsAgent = this.verifySsl === false
+      ? new (require('https').Agent)({ rejectUnauthorized: false })
+      : undefined;
+
+    const resp = await this._withRetry(() => axios.post(
+      `${this.baseURL}/api/graphql`,
+      { query, variables },
+      {
+        timeout: this.timeout,
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        ...(httpsAgent && { httpsAgent })
+      }
+    ), 'executeGraphQL');
+
+    if (resp.data.errors?.length) {
+      throw new Error(`GraphQL: ${resp.data.errors[0].message}`);
+    }
+    return resp.data.data;
+  }
+
+  /**
+   * Met à jour le status natif d'un Work Item GitLab via GraphQL.
+   * Remplace updateIssueStatus() (REST ne supporte pas le status Work Item).
+   *
+   * @param {string} workItemGlobalId - GID du work item (ex: "gid://gitlab/WorkItem/19796")
+   * @param {string} statusGlobalId   - GID du status (ex: "gid://gitlab/WorkItems::Statuses::Custom::Status/18")
+   * @returns {Object} workItem mis à jour
+   */
+  async updateWorkItemStatus(workItemGlobalId, statusGlobalId) {
+    const mutation = `
+      mutation UpdateWorkItemStatus($id: WorkItemID!, $statusId: WorkItemsStatusesStatusID!) {
+        workItemUpdate(input: { id: $id statusWidget: { status: $statusId } }) {
+          workItem {
+            id
+            widgets { type ... on WorkItemWidgetStatus { status { id name } } }
+          }
+          errors
+        }
+      }`;
+
+    try {
+      const data = await this.executeGraphQL(mutation, { id: workItemGlobalId, statusId: statusGlobalId }, true);
+      const { workItem, errors } = data.workItemUpdate;
+      if (errors?.length) throw new Error(errors[0]);
+      const statusName = workItem.widgets.find(w => w.type === 'STATUS')?.status?.name;
+      logger.info(`GitLab: Work item ${workItemGlobalId} → status "${statusName}"`);
+      return workItem;
+    } catch (error) {
+      logger.error(`GitLab: Erreur updateWorkItemStatus ${workItemGlobalId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère les issues d'une itération filtrées par Version Prod (champ custom).
+   * Utilise GraphQL pour lire les custom fields (non exposés par l'API REST).
+   *
+   * @param {number|string} projectId      - ID du projet GitLab
+   * @param {string}        version        - Valeur du champ version (ex: "R06 - Pilot")
+   * @param {number}        iterationId    - ID de l'itération (REST numeric id)
+   * @returns {Array} Issues REST enrichies du filtre version
+   */
+  async getIssuesByVersionAndIteration(projectId, version, iterationId) {
+    try {
+      const allIssues = await this.getIssuesForIteration(projectId, iterationId);
+      if (!allIssues.length) return [];
+
+      // Requête GraphQL pour récupérer Version Prod de tous ces work items
+      const ids = allIssues.map(i => `gid://gitlab/WorkItem/${i.id}`);
+      const query = `
+        query GetVersions($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            ... on WorkItem {
+              id
+              widgets {
+                ... on WorkItemWidgetCustomFields {
+                  customFieldValues {
+                    customField { id name }
+                    ... on WorkItemSelectFieldValue { selectedOptions { value } }
+                  }
+                }
+              }
+            }
+          }
+        }`;
+
+      const data = await this.executeGraphQL(query, { ids });
+      const versionByGid = new Map();
+      for (const node of (data.nodes || [])) {
+        const cfWidget = node?.widgets?.find(w => Array.isArray(w.customFieldValues));
+        const versionProd = cfWidget?.customFieldValues?.find(cf =>
+          cf.customField?.name === 'Version Prod'
+        );
+        const val = versionProd?.selectedOptions?.[0]?.value || null;
+        versionByGid.set(node.id, val);
+      }
+
+      const filtered = allIssues.filter(issue => {
+        const gid = `gid://gitlab/WorkItem/${issue.id}`;
+        return versionByGid.get(gid) === version;
+      });
+
+      logger.info(`GitLab: ${filtered.length}/${allIssues.length} issue(s) avec Version Prod="${version}" (project=${projectId})`);
+      return filtered;
+    } catch (error) {
+      logger.error(`GitLab: Erreur getIssuesByVersionAndIteration:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Ajoute un commentaire (note) sur une issue GitLab
    *
    * @param {number|string} projectId - ID du projet GitLab

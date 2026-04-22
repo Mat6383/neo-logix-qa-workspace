@@ -47,9 +47,9 @@ function LogLine({ entry }) {
   let text = '';
   if (entry.message)  text = entry.message;
   else if (entry.type === 'updated')
-    text = `✓ #${entry.issueIid} "${entry.caseName}" → ${entry.label}`;
+    text = `✓ #${entry.issueIid} "${entry.caseName}" → status:${entry.newStatus}`;
   else if (entry.type === 'would-update')
-    text = `[DRY] #${entry.issueIid} "${entry.caseName}" : ${entry.current?.join(', ') || '∅'} → ${entry.label}`;
+    text = `[DRY] #${entry.issueIid} "${entry.caseName}" : ${entry.currentStatus || '∅'} → ${entry.newStatus}`;
   else if (entry.type === 'skip')
     text = `⊘ "${entry.caseName}" — ${entry.reason}`;
   else if (entry.type === 'error')
@@ -64,7 +64,7 @@ function LogLine({ entry }) {
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function Dashboard8({ isDark }) {
   const [config, setConfig]         = useState(null);
-  const [form, setForm]             = useState({ runId: '', iterationName: '', gitlabProjectId: '' });
+  const [form, setForm]             = useState({ runId: '', iterationName: '', gitlabProjectId: '', version: '' });
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'ok' | 'error'
   const [loadError, setLoadError]   = useState(null);
   const [logs, setLogs]             = useState([]);
@@ -83,6 +83,7 @@ export default function Dashboard8({ isDark }) {
         runId:           String(data.runId   ?? ''),
         iterationName:   data.iterationName  ?? '',
         gitlabProjectId: String(data.gitlabProjectId ?? ''),
+        version:         data.version ?? '',
       });
     } catch (err) {
       setLoadError('Impossible de charger la config : ' + err.message);
@@ -104,6 +105,7 @@ export default function Dashboard8({ isDark }) {
         runId:           parseInt(form.runId),
         iterationName:   form.iterationName.trim(),
         gitlabProjectId: form.gitlabProjectId.trim(),
+        version:         form.version.trim() || undefined,
       };
       if (!patch.runId || !patch.iterationName || !patch.gitlabProjectId) {
         setSaveStatus('error');
@@ -140,7 +142,7 @@ export default function Dashboard8({ isDark }) {
     const pushLog = (entry) => setLogs(prev => [...prev, entry]);
 
     // Utilise la config courante (déjà sauvegardée)
-    const { runId, iterationName, gitlabProjectId } = config;
+    const { runId, iterationName, gitlabProjectId, version } = config;
 
     if (!runId || !iterationName || !gitlabProjectId) {
       pushLog({ type: 'error', message: 'Config incomplète — sauvegardez d\'abord les paramètres.' });
@@ -155,7 +157,7 @@ export default function Dashboard8({ isDark }) {
       const res = await fetch(`${API_BASE}/sync/status-to-gitlab`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runId, iterationName, gitlabProjectId, dryRun }),
+        body: JSON.stringify({ runId, iterationName, gitlabProjectId, dryRun, version: version || undefined }),
         signal: controller.signal,
       });
 
@@ -241,7 +243,8 @@ export default function Dashboard8({ isDark }) {
   const formDirty =
     String(form.runId)           !== String(config.runId ?? '')           ||
     form.iterationName            !== (config.iterationName ?? '')         ||
-    String(form.gitlabProjectId)  !== String(config.gitlabProjectId ?? '');
+    String(form.gitlabProjectId)  !== String(config.gitlabProjectId ?? '') ||
+    form.version                  !== (config.version ?? '');
 
   return (
     <div className={`d8-root ${isDark ? 'dark' : ''}`}>
@@ -326,6 +329,17 @@ export default function Dashboard8({ isDark }) {
             />
           </div>
 
+          <div className="d8-form-group">
+            <label>Version (champ custom GitLab, optionnel)</label>
+            <input
+              type="text"
+              className="d8-input"
+              value={form.version}
+              placeholder="ex : 1.2.3"
+              onChange={e => setForm(f => ({ ...f, version: e.target.value }))}
+            />
+          </div>
+
           <div className="d8-form-actions">
             <button
               className={`d8-btn-primary ${!formDirty ? 'd8-btn--disabled' : ''}`}
@@ -345,6 +359,7 @@ export default function Dashboard8({ isDark }) {
                   runId:           String(config.runId ?? ''),
                   iterationName:   config.iterationName ?? '',
                   gitlabProjectId: String(config.gitlabProjectId ?? ''),
+                  version:         config.version ?? '',
                 })}
               >
                 Annuler
@@ -365,6 +380,10 @@ export default function Dashboard8({ isDark }) {
             <div className="d8-summary-row">
               <span>Projet GitLab</span>
               <strong>#{config.gitlabProjectId || '—'}</strong>
+            </div>
+            <div className="d8-summary-row">
+              <span>Version</span>
+              <strong>{config.version || '—'}</strong>
             </div>
           </div>
         </div>
