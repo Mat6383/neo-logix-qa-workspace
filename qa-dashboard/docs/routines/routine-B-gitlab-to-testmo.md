@@ -50,7 +50,14 @@ GET https://gitlab.neo-logix.fr/api/v4/projects/63/issues?iteration_id={iteratio
 ### Étape 3 — Notes (étapes de test) de chaque issue
 GET https://gitlab.neo-logix.fr/api/v4/projects/63/issues/{iid}/notes?sort=asc&order_by=created_at
 → Filtrer : garder uniquement les notes où system === false.
-→ Les notes non-système décrivent les étapes de test.
+→ Les notes sont déjà triées du plus ancien au plus récent.
+
+Extraction des steps depuis les notes (algorithme) :
+1. Filtrer les notes qui contiennent au moins un `[LABEL]` (ex: `[TEST]`, `[PRÉREQUIS]`, `[IMPACT]`) en excluant les liens markdown `[texte](url)`.
+2. **Sections non-TEST** ([PRÉREQUIS], [CONTEXTE], [IMPACT], etc.) : extraites depuis la note la plus longue (la plus complète), dans leur ordre d'apparition.
+3. **Sections [TEST] / [TESTS]** (insensible à la casse) : collectées depuis TOUTES les notes qui en contiennent, dans l'ordre chronologique (la plus ancienne en premier, la plus récente en dernier).
+4. Ordre final des steps : sections non-TEST d'abord, puis toutes les sections TEST chronologiquement.
+5. Si une note contient à la fois des sections non-TEST et [TEST], ses sections non-TEST contribuent au pool non-TEST (si c'est la plus complète), et son [TEST] contribue au pool TEST chronologique.
 
 ### Étape 4 — Cas existants dans Testmo
 GET https://neo-logix.testmo.net/api/v1/projects/1/cases?page=N
@@ -65,12 +72,12 @@ Header: Authorization: Bearer {TESTMO_TOKEN}, Content-Type: application/json
 Body: {
   "folder_id": 4514,
   "name": "{issue.title}",
-  "steps": [
-    { "step": "{contenu de chaque note}", "result": "" }
+  "custom_steps": [
+    { "text1": "<p><strong>[LABEL]</strong></p><p>contenu...</p>", "text3": "<p>Conforme aux specs fonctionnelles</p>", "display_order": 1 }
   ]
 }
-→ 1 note non-système = 1 step.
-→ Si aucune note : créer le cas sans steps.
+→ Appliquer l'algorithme d'extraction décrit à l'Étape 3 pour construire les steps.
+→ Si aucune note avec [LABEL] : créer le cas sans steps (custom_steps absent).
 
 ### Étape 5b — Mettre à jour un cas existant (si présent)
 PUT https://neo-logix.testmo.net/api/v1/projects/1/cases/{caseId}

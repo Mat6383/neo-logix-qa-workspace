@@ -192,29 +192,34 @@ function extractStepsFromNotes(notes, markedFn = fakeMarked) {
   const structured = notes.filter(n => n.body && /\[[^\]]+\](?!\()/.test(n.body));
   if (structured.length === 0) return [];
 
-  const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
-  const body = best.body;
-
-  const headers = [];
-  let m;
-  const re = new RegExp(SECTION_HEADER_RE.source, 'g');
-  while ((m = re.exec(body)) !== null) {
-    headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
+  // Extrait les sections { label, content } d'un body
+  function parseSections(body) {
+    const headers = [];
+    let m;
+    const re = new RegExp(SECTION_HEADER_RE.source, 'g');
+    while ((m = re.exec(body)) !== null) {
+      headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
+    }
+    return headers.map((h, i) => {
+      const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
+      return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
+    }).filter(s => s.content.length > 0);
   }
-  if (headers.length === 0) return [];
 
-  const sections = headers.map((h, i) => {
-    const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
-    return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
-  }).filter(s => s.content.length > 0);
+  // Sections non-TEST : depuis le commentaire le plus complet (le plus long)
+  const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
+  const otherSections = parseSections(best.body).filter(s => !TEST_RE.test(s.label));
 
-  if (sections.length === 0) return [];
+  // Sections [TEST]/[TESTS] : toutes les notes dans l'ordre chronologique (structured = ordre d'arrivée)
+  const allTestSections = structured.flatMap(note =>
+    parseSections(note.body).filter(s => TEST_RE.test(s.label))
+  );
 
-  const testSections  = sections.filter(s =>  TEST_RE.test(s.label));
-  const otherSections = sections.filter(s => !TEST_RE.test(s.label));
+  if (otherSections.length === 0 && allTestSections.length === 0) return [];
+
   const EXPECTED = '<p>Conforme aux specs fonctionnelles</p>';
 
-  return [...otherSections, ...testSections].map((s, i) => ({
+  return [...otherSections, ...allTestSections].map((s, i) => ({
     text1: markedFn(`**[${s.label}]**\n\n${s.content}`),
     text3: EXPECTED,
     display_order: i + 1
@@ -272,13 +277,17 @@ describe('extractStepsFromNotes — parsing commentaires GitLab → steps Testmo
     });
   });
 
-  test('prend le commentaire le plus long si plusieurs notes structurées', () => {
+  test('prend le commentaire le plus long pour les sections non-TEST, collecte tous les [TEST]', () => {
     const notes = [
       { body: '[TEST]\nCourt.' },
       { body: '[PRÉREQUIS]\nLong prérequis avec beaucoup de texte.\n[TEST]\nTest long avec beaucoup d\'étapes.' }
     ];
     const steps = extractStepsFromNotes(notes);
-    expect(steps).toHaveLength(2); // 2 sections dans le plus long
+    // [PRÉREQUIS] du plus long + [TEST Court] (note 1, chronologiquement 1ère) + [TEST Long] (note 2)
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('Court');
+    expect(steps[2].text1).toContain('Test long');
   });
 
   test('lien markdown [R14.sql](url) dans le contenu ne crée pas de faux step', () => {
@@ -318,6 +327,74 @@ Script R14.`;
     expect(steps[0].text1).toContain('[PRÉREQUIS]');
     expect(steps[1].text1).toContain('[IMPACT]');
     expect(steps[2].text1).toContain('[TEST]');
+  });
+
+  // ─── Nouveau comportement : collecte de TOUS les [TEST] chronologiquement ─────
+
+  test('deux notes avec [TEST] → les deux steps TEST collectés dans l\'ordre chronologique', () => {
+    const notes = [
+      { body: '[PRÉREQUIS]\nPré requis ici.\n[TEST]\nTest de la note 1.' },
+      { body: '[TEST]\nTest de la note 2.' }
+    ];
+    // plus complet = note 1 → non-TEST : [PRÉREQUIS]
+    // tous les [TEST] chrono : note1 puis note2
+    const steps = extractStepsFromNotes(notes);
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('Test de la note 1');
+    expect(steps[2].text1).toContain('Test de la note 2');
+  });
+
+  test('[TEST] dans une note plus ancienne que le plus complet → aussi inclus (option A)', () => {
+    const notes = [
+      { body: '[TEST]\nPremier test (ancien).' },
+      { body: '[PRÉREQUIS]\nPré.\n[IMPACT]\nImpact.\n[TEST]\nTest complet.' }
+    ];
+    // plus complet = note 2 → non-TEST : [PRÉREQUIS] + [IMPACT]
+    // tous les [TEST] chrono : note1 (ancien) puis note2
+    const steps = extractStepsFromNotes(notes);
+    expect(steps).toHaveLength(4);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('[IMPACT]');
+    expect(steps[2].text1).toContain('Premier test');
+    expect(steps[3].text1).toContain('Test complet');
+  });
+
+  test('trois notes avec [TEST] → 3 steps TEST dans l\'ordre chronologique', () => {
+    const notes = [
+      { body: '[TEST]\nTest A.' },
+      { body: '[TEST]\nTest B.' },
+      { body: '[TEST]\nTest C.' }
+    ];
+    const steps = extractStepsFromNotes(notes);
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text1).toContain('Test A');
+    expect(steps[1].text1).toContain('Test B');
+    expect(steps[2].text1).toContain('Test C');
+  });
+
+  test('note sans [TEST] + note avec [TEST] seul → [TEST] de la 2e note inclus', () => {
+    const notes = [
+      { body: '[PRÉREQUIS]\nPré.\n[IMPACT]\nImpact.' },
+      { body: '[TEST]\nTest récent.' }
+    ];
+    const steps = extractStepsFromNotes(notes);
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('[IMPACT]');
+    expect(steps[2].text1).toContain('Test récent');
+  });
+
+  test('[TESTS] pluriel dans une note secondaire → aussi collecté', () => {
+    const notes = [
+      { body: '[PRÉREQUIS]\nPré.\n[TEST]\nTest principal.' },
+      { body: '[TESTS]\nCorrection de test.' }
+    ];
+    const steps = extractStepsFromNotes(notes);
+    expect(steps).toHaveLength(3);
+    expect(steps[0].text1).toContain('[PRÉREQUIS]');
+    expect(steps[1].text1).toContain('Test principal');
+    expect(steps[2].text1).toContain('Correction de test');
   });
 });
 

@@ -132,42 +132,38 @@ class SyncService {
     const SECTION_HEADER_RE = /\[([^\]]+)\](?!\()/g;
     const TEST_RE = /^tests?$/i;
 
-    // Garder seulement les commentaires avec au moins un [LABEL] (pas un lien markdown)
     const structured = notes.filter(n => n.body && /\[[^\]]+\](?!\()/.test(n.body));
     if (structured.length === 0) return [];
 
-    // Prendre le commentaire le plus complet
+    // Extrait les sections { label, content } d'un body
+    const parseSections = (body) => {
+      const headers = [];
+      let m;
+      const re = new RegExp(SECTION_HEADER_RE.source, 'g');
+      while ((m = re.exec(body)) !== null) {
+        headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
+      }
+      return headers.map((h, i) => {
+        const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
+        return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
+      }).filter(s => s.content.length > 0);
+    };
+
+    // Sections non-TEST : depuis le commentaire le plus complet (le plus long)
     const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
-    const body = best.body;
+    const otherSections = parseSections(best.body).filter(s => !TEST_RE.test(s.label));
 
-    // Extraire les positions de chaque section
-    const headers = [];
-    let m;
-    const re = new RegExp(SECTION_HEADER_RE.source, 'g');
-    while ((m = re.exec(body)) !== null) {
-      headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
-    }
-    if (headers.length === 0) return [];
+    // Sections [TEST]/[TESTS] : collectées depuis TOUTES les notes dans l'ordre chronologique
+    // (structured conserve l'ordre d'arrivée = ordre chronologique de getIssueNotes sort:asc)
+    const allTestSections = structured.flatMap(note =>
+      parseSections(note.body).filter(s => TEST_RE.test(s.label))
+    );
 
-    // Construire { label, content } pour chaque section
-    const sections = headers.map((h, i) => {
-      const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
-      return {
-        label: h.label,
-        content: body.slice(h.end, contentEnd).trim()
-      };
-    }).filter(s => s.content.length > 0);
-
-    if (sections.length === 0) return [];
-
-    // Séparer sections TEST (last) des autres (ordre original)
-    const testSections  = sections.filter(s =>  TEST_RE.test(s.label));
-    const otherSections = sections.filter(s => !TEST_RE.test(s.label));
+    if (otherSections.length === 0 && allTestSections.length === 0) return [];
 
     const EXPECTED = '<p>Conforme aux specs fonctionnelles</p>';
 
-    // Format Testmo : text1 = contenu, text3 = expected, display_order = position
-    const steps = [...otherSections, ...testSections].map((s, i) => ({
+    const steps = [...otherSections, ...allTestSections].map((s, i) => ({
       text1: marked.parse(`**[${s.label}]**\n\n${s.content}`),
       text3: EXPECTED,
       display_order: i + 1
