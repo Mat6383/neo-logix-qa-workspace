@@ -40,3 +40,6 @@ Desktop.ini
 # Build
 dist/
 build/
+
+# Runtime databases (SQLite — generated at startup)
+backend/db/
