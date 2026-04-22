@@ -53,19 +53,16 @@ const ALL_TEST_LABELS = [
   'Test::TODO'
 ];
 
-// ─── Status natif GitLab 17+ ─────────────────────────────────────────────────
-// Valeurs à confirmer demain via curl GET /projects/:id/issues
-// Surchargeables via env vars sans redéploiement
-const GITLAB_STATUS_TODO   = process.env.GITLAB_STATUS_TODO   || 'todo';
-const GITLAB_STATUS_OK     = process.env.GITLAB_STATUS_OK     || 'passed';
-const GITLAB_STATUS_KO     = process.env.GITLAB_STATUS_KO     || 'failed';
-const GITLAB_STATUS_WIP    = process.env.GITLAB_STATUS_WIP    || 'in_progress';
-const GITLAB_STATUS_RETEST = process.env.GITLAB_STATUS_RETEST || 'needs_review';
+// ─── Status natif GitLab Work Items (GIDs confirmés Phase 0) ─────────────────
+// Projet neo-logix/legacy/neo-fugu-pilot — allowedStatuses sur type Issue
+const GITLAB_STATUS_TODO   = process.env.GITLAB_STATUS_TODO   || 'gid://gitlab/WorkItems::Statuses::Custom::Status/15';
+const GITLAB_STATUS_OK     = process.env.GITLAB_STATUS_OK     || 'gid://gitlab/WorkItems::Statuses::Custom::Status/18';
+const GITLAB_STATUS_KO     = process.env.GITLAB_STATUS_KO     || 'gid://gitlab/WorkItems::Statuses::Custom::Status/17';
+const GITLAB_STATUS_WIP    = process.env.GITLAB_STATUS_WIP    || 'gid://gitlab/WorkItems::Statuses::Custom::Status/21';
+const GITLAB_STATUS_RETEST = process.env.GITLAB_STATUS_RETEST || 'gid://gitlab/WorkItems::Statuses::Custom::Status/19';
 
-// Clé JSON du champ custom "version" dans l'objet issue GitLab
-// Ex: "custom_fields.version" si issue.custom_fields.version
-// À confirmer via curl — surchargeable via env var
-const VERSION_FIELD_KEY = process.env.GITLAB_VERSION_FIELD_KEY || 'custom_fields.version';
+// GID du champ custom "Version Prod" (CustomField/1) — confirmé Phase 0
+const VERSION_FIELD_KEY = process.env.GITLAB_VERSION_FIELD_ID || 'gid://gitlab/Issuables::CustomField/1';
 
 // Mapping Testmo status_id → GitLab status natif
 const STATUS_TO_GITLAB_STATUS = {
@@ -319,7 +316,7 @@ class StatusSyncService {
 
     onEvent('info', { message: `Récupération des issues GitLab pour l'itération ${iteration.id}${version ? ` (version=${version})` : ''}…` });
     const issues = version
-      ? await gitlabService.getIssuesByVersionAndIteration(gitlabProjectId, version, iteration.id, VERSION_FIELD_KEY)
+      ? await gitlabService.getIssuesByVersionAndIteration(gitlabProjectId, version, iteration.id)
       : await gitlabService.getIssuesForIteration(gitlabProjectId, iteration.id);
     if (issues.length === 0) {
       onEvent('warn', { message: 'Aucune issue GitLab trouvée pour cette itération.' });
@@ -334,12 +331,12 @@ class StatusSyncService {
     }
     onEvent('info', { message: `${issues.length} issue(s) GitLab indexée(s).` });
 
-    // 3. Appliquer les labels
+    // 3. Appliquer les statuts Work Item via GraphQL
     stats.total = results.length;
 
     for (const result of results) {
-      const statusId    = result.status_id;
-      const newStatus   = STATUS_TO_GITLAB_STATUS[statusId]; // undefined si Untested
+      const statusId  = result.status_id;
+      const newStatus = STATUS_TO_GITLAB_STATUS[statusId]; // undefined si Untested
 
       const caseName = result.case_name || caseNames.get(result.case_id);
       if (!caseName) {
@@ -354,38 +351,31 @@ class StatusSyncService {
         continue;
       }
 
-      const currentStatus = issue.status || null;
-      const statusChange  = computeStatusChange(currentStatus, newStatus);
-
-      if (statusChange.action === 'skip') {
+      if (!newStatus) {
         stats.skipped++;
         onEvent('skip', { caseName, reason: `statut Testmo ${statusId} non mappé` });
         continue;
       }
 
-      if (statusChange.action === 'noop') {
-        stats.skipped++;
-        onEvent('skip', { caseName, newStatus, reason: 'déjà à jour' });
-        continue;
-      }
+      // Construit le GID Work Item depuis l'id global retourné par l'API REST
+      const workItemGlobalId = `gid://gitlab/WorkItem/${issue.id}`;
 
       if (dryRun) {
         stats.updated++;
         onEvent('would-update', {
           caseName,
-          issueIid:      issue.iid,
-          currentStatus,
-          newStatus:     statusChange.newStatus,
-          version:       _resolveField(issue, VERSION_FIELD_KEY) || null
+          issueIid: issue.iid,
+          workItemGlobalId,
+          newStatus
         });
         continue;
       }
 
       try {
-        await gitlabService.updateIssueStatus(gitlabProjectId, issue.iid, statusChange.newStatus);
+        await gitlabService.updateWorkItemStatus(workItemGlobalId, newStatus);
         stats.updated++;
-        onEvent('updated', { caseName, issueIid: issue.iid, newStatus: statusChange.newStatus });
-        logger.info(`[StatusSync] #${issue.iid} "${caseName}" → status:${statusChange.newStatus}`);
+        onEvent('updated', { caseName, issueIid: issue.iid, newStatus });
+        logger.info(`[StatusSync] #${issue.iid} "${caseName}" → status:${newStatus}`);
 
         await this._postCommentIfNeeded(gitlabProjectId, issue.iid, caseName, runName, statusId);
       } catch (err) {
