@@ -307,19 +307,27 @@ class StatusSyncService {
     const caseNames = await this._getCaseNames(neededIds);
     onEvent('info', { message: `${caseNames.size}/${neededIds.length} noms de cases résolus.` });
 
-    // 2. Issues GitLab de l'itération
-    onEvent('info', { message: `Recherche itération GitLab "${iterationName}"…` });
-    const iteration = await gitlabService.findIterationForProject(gitlabProjectId, iterationName);
-    if (!iteration) {
-      throw new Error(`Itération GitLab "${iterationName}" non trouvée dans le projet ${gitlabProjectId}`);
+    // 2. Issues GitLab — mode itération ou mode version-seule
+    let issues;
+    if (iterationName) {
+      onEvent('info', { message: `Recherche itération GitLab "${iterationName}"…` });
+      const iteration = await gitlabService.findIterationForProject(gitlabProjectId, iterationName);
+      if (!iteration) {
+        throw new Error(`Itération GitLab "${iterationName}" non trouvée dans le projet ${gitlabProjectId}`);
+      }
+      onEvent('info', { message: `Récupération des issues GitLab pour l'itération ${iteration.id}${version ? ` (version=${version})` : ''}…` });
+      issues = version
+        ? await gitlabService.getIssuesByVersionAndIteration(gitlabProjectId, version, iteration.id)
+        : await gitlabService.getIssuesForIteration(gitlabProjectId, iteration.id);
+    } else if (version) {
+      onEvent('info', { message: `Mode version-seule : recherche des issues avec Version Prod="${version}" + status Test TODO…` });
+      issues = await gitlabService.getIssuesByVersionOnly(gitlabProjectId, version);
+    } else {
+      throw new Error('iterationName ou version requis');
     }
 
-    onEvent('info', { message: `Récupération des issues GitLab pour l'itération ${iteration.id}${version ? ` (version=${version})` : ''}…` });
-    const issues = version
-      ? await gitlabService.getIssuesByVersionAndIteration(gitlabProjectId, version, iteration.id)
-      : await gitlabService.getIssuesForIteration(gitlabProjectId, iteration.id);
     if (issues.length === 0) {
-      onEvent('warn', { message: 'Aucune issue GitLab trouvée pour cette itération.' });
+      onEvent('warn', { message: 'Aucune issue GitLab trouvée.' });
       return stats;
     }
 

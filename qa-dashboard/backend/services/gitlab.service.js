@@ -554,6 +554,71 @@ class GitLabService {
   }
 
   /**
+   * Récupère les issues d'un projet filtrées par Version Prod = version ET status Test TODO.
+   * Utilisé en mode "version seule" quand aucune itération GitLab n'est disponible.
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @param {string}        version   - Valeur du champ Version Prod (ex: "R06 - Pilot")
+   * @returns {Array} Issues dont Version Prod = version ET Work Item status = Test TODO
+   */
+  async getIssuesByVersionOnly(projectId, version) {
+    const todoStatusGid = process.env.GITLAB_STATUS_TODO || 'gid://gitlab/WorkItems::Statuses::Custom::Status/15';
+
+    try {
+      const allIssues = await this._getPaginated(
+        `/projects/${projectId}/issues`,
+        { state: 'opened', scope: 'all' }
+      );
+      if (!allIssues.length) return [];
+
+      const ids = allIssues.map(i => `gid://gitlab/WorkItem/${i.id}`);
+      const query = `
+        query GetVersionsAndStatus($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            ... on WorkItem {
+              id
+              widgets {
+                type
+                ... on WorkItemWidgetCustomFields {
+                  customFieldValues {
+                    customField { id name }
+                    ... on WorkItemSelectFieldValue { selectedOptions { value } }
+                  }
+                }
+                ... on WorkItemWidgetStatus {
+                  status { id name }
+                }
+              }
+            }
+          }
+        }`;
+
+      const data = await this.executeGraphQL(query, { ids });
+      const infoByGid = new Map();
+      for (const node of (data.nodes || [])) {
+        const cfWidget     = node?.widgets?.find(w => Array.isArray(w.customFieldValues));
+        const statusWidget = node?.widgets?.find(w => w.type === 'STATUS');
+        const versionProd  = cfWidget?.customFieldValues?.find(cf => cf.customField?.name === 'Version Prod');
+        const versionVal   = versionProd?.selectedOptions?.[0]?.value || null;
+        const statusGid    = statusWidget?.status?.id || null;
+        infoByGid.set(node.id, { version: versionVal, statusGid });
+      }
+
+      const filtered = allIssues.filter(issue => {
+        const gid  = `gid://gitlab/WorkItem/${issue.id}`;
+        const info = infoByGid.get(gid);
+        return info?.version === version && info?.statusGid === todoStatusGid;
+      });
+
+      logger.info(`GitLab: ${filtered.length}/${allIssues.length} issue(s) avec Version Prod="${version}" + status TODO (project=${projectId})`);
+      return filtered;
+    } catch (error) {
+      logger.error(`GitLab: Erreur getIssuesByVersionOnly:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Convertit time_estimate (secondes) en format Testmo
    * Ex: 1800 → "30m", 3600 → "1h", 5400 → "1h 30m"
    *
@@ -572,4 +637,6 @@ class GitLabService {
   }
 }
 
-module.exports = new GitLabService();
+const instance = new GitLabService();
+module.exports = instance;
+module.exports.GitLabService = GitLabService;

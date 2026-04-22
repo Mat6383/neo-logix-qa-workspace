@@ -37,11 +37,14 @@ const syncIterationBody = z.object({
 
 const syncStatusToGitlabBody = z.object({
   runId: z.number().int().positive('"runId" requis'),
-  iterationName: z.string().min(1, '"iterationName" requis'),
+  iterationName: z.string().optional(),
   gitlabProjectId: z.union([z.string(), z.number()], '"gitlabProjectId" requis'),
   dryRun: z.boolean().optional(),
   version: z.string().optional()
-});
+}).refine(
+  data => data.iterationName || data.version,
+  { message: 'iterationName ou version requis' }
+);
 
 const reportsGenerateBody = z.object({
   projectId: z.number().int().positive('"projectId" requis'),
