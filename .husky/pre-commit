@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+echo "▶ Lint backend (warnings tolérés pendant migration style)..."
+(cd qa-dashboard/backend && npm run lint --if-present) || true
+
+echo "▶ Tests backend..."
+(cd qa-dashboard/backend && npm test -- --passWithNoTests --forceExit) || echo "⚠️  Tests backend échoués — vérifier avant push"
+
+echo "▶ Lint frontend (warnings tolérés pendant migration style)..."
+(cd qa-dashboard/frontend && npm run lint --if-present) || true
+
+echo "✅ Pre-commit checks terminés"

@@ -1,0 +1,24 @@
+{
+  "name": "claude-workspace",
+  "version": "1.0.0",
+  "description": "Mono-repo consolidé contenant l'ensemble des outils QA Neo-Logix.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mat6383/neo-logix-qa-workspace.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mat6383/neo-logix-qa-workspace/issues"
+  },
+  "homepage": "https://github.com/Mat6383/neo-logix-qa-workspace#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
