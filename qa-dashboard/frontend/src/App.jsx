@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useTheme } from './hooks/useTheme';
 import apiService from './services/api.service';
 import MetricsCards from './components/MetricsCards';
 import StatusChart from './components/StatusChart';
@@ -50,7 +51,7 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [tvMode, setTvMode] = useState(() => localStorage.getItem('testmo_tvMode') !== 'false');
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('testmo_darkMode') === 'true');
+  const { isDark: darkMode, toggleTheme } = useTheme();
   const [dashboardView, setDashboardView] = useState(() => localStorage.getItem('testmo_dashboardView') || '1');
   const [useBusinessTerms, setUseBusinessTerms] = useState(() => localStorage.getItem('testmo_useBusinessTerms') !== 'false');
   const [backendStatus, setBackendStatus] = useState('checking');
@@ -81,10 +82,9 @@ function App() {
     localStorage.setItem('testmo_selectedProdMilestones', JSON.stringify(selectedProdMilestones));
     localStorage.setItem('testmo_dashboardView', dashboardView);
     localStorage.setItem('testmo_tvMode', tvMode);
-    localStorage.setItem('testmo_darkMode', darkMode);
     localStorage.setItem('testmo_useBusinessTerms', useBusinessTerms);
     localStorage.setItem('testmo_showProductionSection', showProductionSection);
-  }, [projectId, selectedPreprodMilestones, selectedProdMilestones, dashboardView, tvMode, darkMode, useBusinessTerms, showProductionSection]);
+  }, [projectId, selectedPreprodMilestones, selectedProdMilestones, dashboardView, tvMode, useBusinessTerms, showProductionSection]);
 
   /**
    * Vérifie la santé du backend
@@ -338,7 +338,7 @@ function App() {
               <input
                 type="checkbox"
                 checked={darkMode}
-                onChange={() => setDarkMode(!darkMode)}
+                onChange={toggleTheme}
               />
               <span className="slider round"></span>
             </label>
