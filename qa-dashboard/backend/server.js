@@ -34,6 +34,7 @@ const syncRouter = require('./routes/sync.routes');
 const reportsRouter = require('./routes/reports.routes');
 const crosstestRouter = require('./routes/crosstest.routes');
 const cacheRouter = require('./routes/cache.routes');
+const featureFlagsRouter = require('./routes/featureFlags.routes');
 
 // ==========================================
 // Configuration Application
@@ -133,6 +134,7 @@ app.use('/api/sync', syncRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/crosstest', crosstestRouter);
 app.use('/api/cache', cacheRouter);
+app.use('/api/feature-flags', featureFlagsRouter);
 
 // ==========================================
 // Gestion des erreurs 404
