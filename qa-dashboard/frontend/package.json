@@ -4,6 +4,7 @@
   "description": "Dashboard React pour monitoring Testmo - ISTQB compliant",
   "private": true,
   "dependencies": {
+    "@sentry/react": "^10.50.0",
     "axios": "^1.6.5",
     "chart.js": "^4.4.1",
     "docx": "^9.6.1",

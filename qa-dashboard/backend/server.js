@@ -23,6 +23,8 @@ const rateLimit = require('express-rate-limit');
 const testmoService = require('./services/testmo.service');
 const ReportService = require('./services/report.service');
 const logger = require('./services/logger.service');
+const sentry = require('./services/sentry.service');
+sentry.init();
 const reportService = new ReportService(testmoService);
 
 // Routeurs
