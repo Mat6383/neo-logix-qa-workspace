@@ -15,6 +15,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from './hooks/useTheme';
+import { useToast } from './hooks/useToast';
 import apiService from './services/api.service';
 import MetricsCards from './components/MetricsCards';
 import StatusChart from './components/StatusChart';
@@ -52,6 +53,7 @@ function App() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [tvMode, setTvMode] = useState(() => localStorage.getItem('testmo_tvMode') !== 'false');
   const { isDark: darkMode, toggleTheme } = useTheme();
+  const { addToast } = useToast();
   const [dashboardView, setDashboardView] = useState(() => localStorage.getItem('testmo_dashboardView') || '1');
   const [useBusinessTerms, setUseBusinessTerms] = useState(() => localStorage.getItem('testmo_useBusinessTerms') !== 'false');
   const [backendStatus, setBackendStatus] = useState('checking');
@@ -186,9 +188,9 @@ function App() {
     try {
       await apiService.clearCache();
       await loadDashboardMetrics();
-      alert('Cache nettoyé avec succès');
+      addToast({ message: 'Cache nettoyé avec succès', type: 'success' });
     } catch (err) {
-      alert(`Erreur: ${err.message}`);
+      addToast({ message: `Erreur: ${err.message}`, type: 'error' });
     }
   };
 
