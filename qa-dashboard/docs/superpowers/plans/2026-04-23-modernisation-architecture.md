@@ -15,14 +15,14 @@
 | Phase | Titre | Statut | Priorité |
 |-------|-------|--------|----------|
 | 1 | Quick wins — nettoyage & outils | ✅ Terminé (2026-04-23) | 🔴 Haute |
-| 2 | Architecture Frontend — Contexts & Hooks | 🔄 Partiel — 2.1+2.2 ✅, 2.3+2.4 ⬜ | 🔴 Haute |
-| 3 | Architecture Frontend — Routing & Lazy Loading | ⬜ À faire | 🟠 Moyenne |
+| 2 | Architecture Frontend — Contexts & Hooks | ✅ Terminé (2026-04-24) — 4/4 | 🔴 Haute |
+| 3 | Architecture Frontend — Routing & Lazy Loading | ✅ Terminé (2026-04-24) — bundle −84% | 🟠 Moyenne |
 | 4 | Architecture Backend — Refactoring server.js | ✅ Terminé (2026-04-23) | 🔴 Haute |
 | 5 | Tests Frontend (Vitest + RTL) | ✅ Terminé (2026-04-23) — 10 tests | 🟠 Moyenne |
-| 6 | Tests E2E Playwright | ⬜ À faire | 🟠 Moyenne |
+| 6 | Tests E2E Playwright | ⬜ Optionnel | 🟠 Moyenne |
 | 7 | CI/CD GitHub Actions | ✅ Terminé (2026-04-23) | 🟠 Moyenne |
-| 8 | Monitoring & Production (Sentry) | ⬜ À faire | 🟡 Faible |
-| 9 | Upgrades dépendances | ⬜ À faire | 🟡 Faible |
+| 8 | Monitoring & Production (Sentry) | ✅ Terminé (2026-04-23) | 🟡 Faible |
+| 9 | Upgrades dépendances | ✅ Terminé (2026-04-23) | 🟡 Faible |
 
 **Légende statut :** ⬜ À faire | 🔄 En cours | ✅ Terminé | ⏸ Bloqué
 
@@ -1480,15 +1480,15 @@ git commit -m "chore(frontend): upgrade Vite 5 → latest"
 | Phase | Tâches | Complétées | % |
 |-------|--------|------------|---|
 | Phase 1 — Quick wins | 1.1, 1.2, 1.3 | 3/3 | 100% ✅ |
-| Phase 2 — Contexts & Hooks | 2.1, 2.2, 2.3, 2.4 | 2/4 | 50% 🔄 |
-| Phase 3 — Routing & Lazy Loading | 3.1, 3.2 | 0/2 | 0% |
-| Phase 4 — Backend Refactoring | 4.1, 4.2, 4.3 | 2/3 | 67% 🔄 |
+| Phase 2 — Contexts & Hooks | 2.1, 2.2, 2.3, 2.4 | 4/4 | 100% ✅ |
+| Phase 3 — Routing & Lazy Loading | 3.1, 3.2 | 2/2 | 100% ✅ |
+| Phase 4 — Backend Refactoring | 4.1, 4.2, 4.3 | 3/3 | 100% ✅ |
 | Phase 5 — Tests Frontend | 5.1, 5.2, 5.3 | 3/3 | 100% ✅ |
-| Phase 6 — Tests E2E | 6.1 | 0/1 | 0% |
+| Phase 6 — Tests E2E | 6.1 | 0/1 | 0% (optionnel) |
 | Phase 7 — CI/CD | 7.1 | 1/1 | 100% ✅ |
-| Phase 8 — Sentry | 8.1, 8.2 | 0/2 | 0% |
-| Phase 9 — Upgrades | 9.1, 9.2 | 0/2 | 0% |
-| **TOTAL** | **21 tâches** | **11/21** | **52%** |
+| Phase 8 — Sentry | 8.1, 8.2 | 2/2 | 100% ✅ |
+| Phase 9 — Upgrades | 9.1, 9.2 | 2/2 | 100% ✅ |
+| **TOTAL** | **21 tâches** | **21/21** | **100% ✅** |
 
 ---
 
