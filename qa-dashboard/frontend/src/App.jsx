@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
 import { useDashboard } from './hooks/useDashboard';
+import { usePreferences } from './hooks/usePreferences';
 import apiService from './services/api.service';
 import MetricsCards from './components/MetricsCards';
 import StatusChart from './components/StatusChart';
@@ -38,23 +39,10 @@ function App() {
     selectedProdMilestones, setSelectedProdMilestones,
     loadDashboardMetrics,
   } = useDashboard();
+  const { prefs, updatePref } = usePreferences();
+  const { tvMode, dashboardView, useBusinessTerms, showProductionSection } = prefs;
 
-  const [tvMode, setTvMode] = useState(() => localStorage.getItem('testmo_tvMode') !== 'false');
-  const [dashboardView, setDashboardView] = useState(() => localStorage.getItem('testmo_dashboardView') || '1');
-  const [useBusinessTerms, setUseBusinessTerms] = useState(() => localStorage.getItem('testmo_useBusinessTerms') !== 'false');
-  const [showProductionSection, setShowProductionSection] = useState(() => {
-    const saved = localStorage.getItem('testmo_showProductionSection');
-    return saved !== null ? saved === 'true' : true;
-  });
   const [exportHandler, setExportHandler] = useState(null);
-
-  // Persist UI preferences
-  React.useEffect(() => {
-    localStorage.setItem('testmo_dashboardView', dashboardView);
-    localStorage.setItem('testmo_tvMode', tvMode);
-    localStorage.setItem('testmo_useBusinessTerms', useBusinessTerms);
-    localStorage.setItem('testmo_showProductionSection', showProductionSection);
-  }, [dashboardView, tvMode, useBusinessTerms, showProductionSection]);
 
   const handleClearCache = async () => {
     try {
@@ -64,10 +52,6 @@ function App() {
     } catch (err) {
       addToast({ message: `Erreur: ${err.message}`, type: 'error' });
     }
-  };
-
-  const handleProjectChange = (event) => {
-    setProjectId(parseInt(event.target.value));
   };
 
   const renderBackendStatus = () => {
@@ -117,7 +101,7 @@ function App() {
           {projects.length > 0 && (
             <select
               value={projectId}
-              onChange={handleProjectChange}
+              onChange={(e) => setProjectId(parseInt(e.target.value))}
               className="project-selector"
             >
               {projects.map(project => (
@@ -130,7 +114,7 @@ function App() {
 
           <button
             className={`btn-toggle ${tvMode ? 'active' : ''}`}
-            onClick={() => setTvMode(!tvMode)}
+            onClick={() => updatePref('tvMode', !tvMode)}
             title="Mode TV"
           >
             <Monitor size={16} />
@@ -152,7 +136,7 @@ function App() {
           <div style={{ marginLeft: '8px', marginRight: '8px' }}>
             <select
               value={dashboardView}
-              onChange={(e) => setDashboardView(e.target.value)}
+              onChange={(e) => updatePref('dashboardView', e.target.value)}
               className="project-selector"
               style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
             >
@@ -185,7 +169,7 @@ function App() {
               <input
                 type="checkbox"
                 checked={useBusinessTerms}
-                onChange={() => setUseBusinessTerms(!useBusinessTerms)}
+                onChange={() => updatePref('useBusinessTerms', !useBusinessTerms)}
               />
               <span className="slider round"></span>
             </label>
@@ -252,7 +236,7 @@ function App() {
             useBusiness={useBusinessTerms}
             setExportHandler={setExportHandler}
             showProductionSection={showProductionSection}
-            onToggleProductionSection={setShowProductionSection}
+            onToggleProductionSection={(val) => updatePref('showProductionSection', val)}
           />
         ) : dashboardView === '5' ? (
           <Dashboard5
@@ -281,7 +265,7 @@ function App() {
             onSaveSelection={(preprodMilestones, prodMilestones) => {
               setSelectedPreprodMilestones(preprodMilestones || []);
               setSelectedProdMilestones(prodMilestones || []);
-              setDashboardView('1');
+              updatePref('dashboardView', '1');
             }}
           />
         ) : (

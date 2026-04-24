@@ -14,6 +14,7 @@ import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { DashboardProvider } from './contexts/DashboardContext';
+import { PreferencesProvider } from './contexts/PreferencesContext';
 import './styles/Toast.css';
 
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -28,9 +29,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
       <ToastProvider>
-        <DashboardProvider>
-          <App />
-        </DashboardProvider>
+        <PreferencesProvider>
+          <DashboardProvider>
+            <App />
+          </DashboardProvider>
+        </PreferencesProvider>
       </ToastProvider>
     </ThemeProvider>
   </React.StrictMode>
