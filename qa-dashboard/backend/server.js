@@ -22,6 +22,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const testmoService = require('./services/testmo.service');
 const ReportService = require('./services/report.service');
+const statusSyncService = require('./services/status-sync.service');
 const logger = require('./services/logger.service');
 const sentry = require('./services/sentry.service');
 sentry.init();
