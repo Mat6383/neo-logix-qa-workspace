@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
@@ -236,6 +237,7 @@ function App() {
             <p>Chargement des métriques ISTQB...</p>
           </div>
         ) : (
+          <ErrorBoundary>
           <Suspense fallback={<div className="loading-container"><RefreshCw size={48} className="spinner" /><p>Chargement...</p></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -329,6 +331,7 @@ function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
           </Suspense>
+          </ErrorBoundary>
         )}
       </main>
 
