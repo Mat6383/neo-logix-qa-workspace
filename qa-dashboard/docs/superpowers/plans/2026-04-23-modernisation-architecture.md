@@ -1484,7 +1484,7 @@ git commit -m "chore(frontend): upgrade Vite 5 → latest"
 | Phase 3 — Routing & Lazy Loading | 3.1, 3.2 | 2/2 | 100% ✅ |
 | Phase 4 — Backend Refactoring | 4.1, 4.2, 4.3 | 3/3 | 100% ✅ |
 | Phase 5 — Tests Frontend | 5.1, 5.2, 5.3 | 3/3 | 100% ✅ |
-| Phase 6 — Tests E2E | 6.1 | 0/1 | 0% (optionnel) |
+| Phase 6 — Tests E2E | 6.1 | 1/1 | 100% ✅ |
 | Phase 7 — CI/CD | 7.1 | 1/1 | 100% ✅ |
 | Phase 8 — Sentry | 8.1, 8.2 | 2/2 | 100% ✅ |
 | Phase 9 — Upgrades | 9.1, 9.2 | 2/2 | 100% ✅ |
