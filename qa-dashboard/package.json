@@ -1,5 +1,21 @@
 {
   "dependencies": {
     "pptxgenjs": "^4.0.1"
+  },
+  "name": "qa-dashboard",
+  "version": "1.0.0",
+  "description": "> Dashboard professionnel de monitoring des tests Testmo   > **Standards**: ISTQB | LEAN | ITIL | DevOps   > **Auteur**: Matou - Neo-Logix QA Lead",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
   }
 }
