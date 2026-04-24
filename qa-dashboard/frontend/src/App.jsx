@@ -1,21 +1,7 @@
-/**
- * ================================================
- * TESTMO DASHBOARD - Main Application
- * ================================================
- * Dashboard principal de monitoring des tests
- * 
- * Standards:
- * - ISTQB: Test Monitoring & Control
- * - LEAN: Auto-refresh 5m
- * - ITIL: Service Level Management
- * 
- * @author Matou - Neo-Logix QA Lead
- * @version 1.0.0
- */
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
+import { useDashboard } from './hooks/useDashboard';
 import apiService from './services/api.service';
 import MetricsCards from './components/MetricsCards';
 import StatusChart from './components/StatusChart';
@@ -40,150 +26,36 @@ import {
 } from 'lucide-react';
 import './styles/App.css';
 
-const REFRESH_COOLDOWN = 5000; // 5s minimum entre deux rechargements
-
 function App() {
-  // État de l'application (avec persistance localStorage)
-  const [projectId, setProjectId] = useState(() => parseInt(localStorage.getItem('testmo_projectId')) || 1);
-  const [metrics, setMetrics] = useState(null);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastUpdate, setLastUpdate] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [tvMode, setTvMode] = useState(() => localStorage.getItem('testmo_tvMode') !== 'false');
   const { isDark: darkMode, toggleTheme } = useTheme();
   const { addToast } = useToast();
+  const {
+    projectId, setProjectId,
+    metrics, loading, error, lastUpdate,
+    projects, backendStatus,
+    autoRefresh, setAutoRefresh,
+    selectedPreprodMilestones, setSelectedPreprodMilestones,
+    selectedProdMilestones, setSelectedProdMilestones,
+    loadDashboardMetrics,
+  } = useDashboard();
+
+  const [tvMode, setTvMode] = useState(() => localStorage.getItem('testmo_tvMode') !== 'false');
   const [dashboardView, setDashboardView] = useState(() => localStorage.getItem('testmo_dashboardView') || '1');
   const [useBusinessTerms, setUseBusinessTerms] = useState(() => localStorage.getItem('testmo_useBusinessTerms') !== 'false');
-  const [backendStatus, setBackendStatus] = useState('checking');
-  const [exportHandler, setExportHandler] = useState(null);
-
-  // Configuration personnalisée des jalons (milestones) avec persistance
-  const [selectedPreprodMilestones, setSelectedPreprodMilestones] = useState(() => {
-    const saved = localStorage.getItem('testmo_selectedPreprodMilestones');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [selectedProdMilestones, setSelectedProdMilestones] = useState(() => {
-    const saved = localStorage.getItem('testmo_selectedProdMilestones');
-    return saved ? JSON.parse(saved) : [];
-  });
   const [showProductionSection, setShowProductionSection] = useState(() => {
     const saved = localStorage.getItem('testmo_showProductionSection');
     return saved !== null ? saved === 'true' : true;
   });
+  const [exportHandler, setExportHandler] = useState(null);
 
-  // Refs pour éviter les race conditions
-  const abortControllerRef = useRef(null);
-  const lastRefreshRef = useRef(Date.now()); // Initialisé à now pour bloquer les refreshs pendant le chargement initial
-  const isLoadingRef = useRef(false);
-  // Effet: Sauvegarde des préférences dans le localStorage
-  useEffect(() => {
-    localStorage.setItem('testmo_projectId', projectId);
-    localStorage.setItem('testmo_selectedPreprodMilestones', JSON.stringify(selectedPreprodMilestones));
-    localStorage.setItem('testmo_selectedProdMilestones', JSON.stringify(selectedProdMilestones));
+  // Persist UI preferences
+  React.useEffect(() => {
     localStorage.setItem('testmo_dashboardView', dashboardView);
     localStorage.setItem('testmo_tvMode', tvMode);
     localStorage.setItem('testmo_useBusinessTerms', useBusinessTerms);
     localStorage.setItem('testmo_showProductionSection', showProductionSection);
-  }, [projectId, selectedPreprodMilestones, selectedProdMilestones, dashboardView, tvMode, useBusinessTerms, showProductionSection]);
+  }, [dashboardView, tvMode, useBusinessTerms, showProductionSection]);
 
-  /**
-   * Vérifie la santé du backend
-   */
-  const checkBackendHealth = useCallback(async () => {
-    try {
-      await apiService.healthCheck();
-      setBackendStatus('ok');
-    } catch (err) {
-      setBackendStatus('error');
-      console.error('Backend health check failed:', err);
-    }
-  }, []);
-
-  /**
-   * Charge la liste des projets
-   */
-  const loadProjects = useCallback(async () => {
-    try {
-      const response = await apiService.getProjects();
-      if (response.success && response.data.result) {
-        setProjects(response.data.result);
-      }
-    } catch (err) {
-      console.error('Erreur chargement projets:', err);
-    }
-  }, []);
-
-  /**
-   * Charge les métriques du dashboard
-   * ISTQB: Test Monitoring
-   * Protection contre les race conditions via AbortController + cooldown
-   */
-  const loadDashboardMetrics = useCallback(async (force = false) => {
-    // Éviter les appels concurrents sauf si forcé (ex: changement de projet)
-    if (isLoadingRef.current && !force) {
-      console.log('[loadDashboardMetrics] Chargement déjà en cours, ignoré');
-      return;
-    }
-
-    // Annuler la requête précédente si elle est encore en cours
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    isLoadingRef.current = true;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [metricsResponse, qualityResponse] = await Promise.all([
-        apiService.getDashboardMetrics(
-          projectId,
-          selectedPreprodMilestones.length > 0 ? selectedPreprodMilestones : null,
-          selectedProdMilestones.length > 0 ? selectedProdMilestones : null,
-          controller.signal
-        ),
-        apiService.getQualityRates(
-          projectId,
-          selectedPreprodMilestones.length > 0 ? selectedPreprodMilestones : null,
-          selectedProdMilestones.length > 0 ? selectedProdMilestones : null,
-          controller.signal
-        )
-      ]);
-
-      // Ignorer si cette requête a été annulée entre-temps
-      if (controller.signal.aborted) return;
-
-      if (metricsResponse.success) {
-        setMetrics({
-          ...metricsResponse.data,
-          qualityRates: qualityResponse.success ? qualityResponse.data : null
-        });
-        setLastUpdate(new Date());
-        lastRefreshRef.current = Date.now();
-      } else {
-        throw new Error(metricsResponse.error || 'Erreur inconnue');
-      }
-
-    } catch (err) {
-      if (err.name === 'AbortError' || err.name === 'CanceledError' || controller.signal.aborted) return;
-      setError(err.message);
-      console.error('Erreur chargement métriques:', err);
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-      isLoadingRef.current = false;
-    }
-  }, [projectId, selectedPreprodMilestones, selectedProdMilestones]);
-
-  /**
-   * Nettoie le cache backend
-   * LEAN: Gestion optimisée
-   */
   const handleClearCache = async () => {
     try {
       await apiService.clearCache();
@@ -194,80 +66,18 @@ function App() {
     }
   };
 
-  /**
-   * Changement de projet
-   */
   const handleProjectChange = (event) => {
-    const newProjectId = parseInt(event.target.value);
-    setProjectId(newProjectId);
+    setProjectId(parseInt(event.target.value));
   };
 
-  // Effet initial: vérifier backend et charger données (une seule fois au mount)
-  useEffect(() => {
-    checkBackendHealth();
-    loadProjects();
-    loadDashboardMetrics(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Recharger quand le projet ou les milestones changent
-  useEffect(() => {
-    loadDashboardMetrics(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, selectedPreprodMilestones, selectedProdMilestones]);
-
-  // Effet: Auto-refresh toutes les minutes (LEAN)
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      console.log('[Auto-refresh] Rechargement des métriques (1m)...');
-      loadDashboardMetrics();
-    }, 60000); // 1 minute
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, loadDashboardMetrics]);
-
-  // Effet: Rafraichissement forcé au retour sur la page (ex: plein écran F11 après veille)
-  // Throttlé pour éviter les avalanches de requêtes (focus + visibilitychange + resize se déclenchent souvent ensemble)
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        if (isLoadingRef.current) return;
-        const now = Date.now();
-        if (now - lastRefreshRef.current < REFRESH_COOLDOWN) return;
-        console.log('[Auto-refresh] Retour focus/visibilité - Rechargement des métriques');
-        lastRefreshRef.current = now;
-        loadDashboardMetrics();
-      }
-    };
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
-    window.addEventListener('resize', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
-      window.removeEventListener('resize', handleVisibilityChange);
-    };
-  }, [autoRefresh, loadDashboardMetrics]);
-
-  /**
-   * Rendu du statut du backend
-   */
   const renderBackendStatus = () => {
     const statusConfig = {
       checking: { icon: Activity, color: '#F59E0B', text: 'Connexion...' },
       ok: { icon: CheckCircle2, color: '#10B981', text: 'Backend OK' },
       error: { icon: AlertCircle, color: '#EF4444', text: 'Backend Error' }
     };
-
     const config = statusConfig[backendStatus];
     const Icon = config.icon;
-
     return (
       <div className="backend-status" style={{ color: config.color }}>
         <Icon size={16} />
@@ -276,9 +86,6 @@ function App() {
     );
   };
 
-  /**
-   * Rendu de l'erreur
-   */
   if (error && !metrics) {
     return (
       <div className="app-error">
@@ -295,7 +102,6 @@ function App() {
 
   return (
     <div className={`app ${tvMode ? 'tv-mode' : ''} ${darkMode ? 'dark-theme' : ''} view-dash${dashboardView}`}>
-      {/* Header */}
       <header className="app-header">
         <div className="header-left">
           <Database size={32} color="#3B82F6" />
@@ -308,7 +114,6 @@ function App() {
         </div>
 
         <div className="header-right">
-          {/* Sélecteur de projet */}
           {projects.length > 0 && (
             <select
               value={projectId}
@@ -323,7 +128,6 @@ function App() {
             </select>
           )}
 
-          {/* Toggle TV Mode */}
           <button
             className={`btn-toggle ${tvMode ? 'active' : ''}`}
             onClick={() => setTvMode(!tvMode)}
@@ -333,7 +137,6 @@ function App() {
             {tvMode ? 'Mode TV' : 'Mode Standard'}
           </button>
 
-          {/* Toggle Dark Theme Switch */}
           <div className="switch-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px', marginRight: '8px' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-color)' }}>Dark thème</span>
             <label className="theme-switch">
@@ -346,7 +149,6 @@ function App() {
             </label>
           </div>
 
-          {/* Sélecteur de Dashboard */}
           <div style={{ marginLeft: '8px', marginRight: '8px' }}>
             <select
               value={dashboardView}
@@ -366,7 +168,6 @@ function App() {
             </select>
           </div>
 
-          {/* Export PDF Dashboard 4 */}
           {dashboardView === '4' && exportHandler && (
             <button
               className="btn-icon"
@@ -378,7 +179,6 @@ function App() {
             </button>
           )}
 
-          {/* Toggle Vocabulaire Métier Switch */}
           <div className="switch-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px', marginRight: '8px' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-color)' }}>Vocabulaire Métier</span>
             <label className="theme-switch">
@@ -391,7 +191,6 @@ function App() {
             </label>
           </div>
 
-          {/* Toggle auto-refresh */}
           <button
             className={`btn-toggle ${autoRefresh ? 'active' : ''}`}
             onClick={() => setAutoRefresh(!autoRefresh)}
@@ -401,7 +200,6 @@ function App() {
             {autoRefresh ? 'Auto ON' : 'Auto OFF'}
           </button>
 
-          {/* Refresh manuel */}
           <button
             className="btn-icon"
             onClick={loadDashboardMetrics}
@@ -411,7 +209,6 @@ function App() {
             <RefreshCw size={16} className={loading ? 'spinning' : ''} />
           </button>
 
-          {/* Clear cache */}
           <button
             className="btn-icon"
             onClick={handleClearCache}
@@ -420,12 +217,10 @@ function App() {
             <Settings size={16} />
           </button>
 
-          {/* Statut backend */}
           {renderBackendStatus()}
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="app-main">
         {loading && !metrics ? (
           <div className="loading-container">
@@ -486,18 +281,15 @@ function App() {
             onSaveSelection={(preprodMilestones, prodMilestones) => {
               setSelectedPreprodMilestones(preprodMilestones || []);
               setSelectedProdMilestones(prodMilestones || []);
-              // Retourner au dashboard global par défaut après validation
               setDashboardView('1');
             }}
           />
         ) : (
           <>
-            {/* Métriques ISTQB */}
             <section className="section">
               <MetricsCards metrics={metrics} useBusiness={useBusinessTerms} />
             </section>
 
-            {/* Graphiques */}
             <section className="section charts-section">
               <div className="chart-container">
                 <StatusChart metrics={metrics} chartType="doughnut" useBusiness={useBusinessTerms} isDark={darkMode} />
@@ -507,7 +299,6 @@ function App() {
               </div>
             </section>
 
-            {/* Liste des runs */}
             <section className="section">
               <RunsList metrics={metrics} useBusiness={useBusinessTerms} />
             </section>
@@ -515,7 +306,6 @@ function App() {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="app-footer">
         <div className="footer-content">
           <span>© 2026 Neo-Logix | QA Dashboard by Matou</span>
