@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
@@ -8,14 +8,15 @@ import apiService from './services/api.service';
 import MetricsCards from './components/MetricsCards';
 import StatusChart from './components/StatusChart';
 import RunsList from './components/RunsList';
-import TvDashboard from './components/TvDashboard';
-import Dashboard3 from './components/Dashboard3';
-import Dashboard4 from './components/Dashboard4';
-import Dashboard5 from './components/Dashboard5';
-import Dashboard6 from './components/Dashboard6';
-import Dashboard7 from './components/Dashboard7';
-import Dashboard8 from './components/Dashboard8';
-import ConfigurationScreen from './components/ConfigurationScreen';
+
+const TvDashboard = lazy(() => import('./components/TvDashboard'));
+const Dashboard3 = lazy(() => import('./components/Dashboard3'));
+const Dashboard4 = lazy(() => import('./components/Dashboard4'));
+const Dashboard5 = lazy(() => import('./components/Dashboard5'));
+const Dashboard6 = lazy(() => import('./components/Dashboard6'));
+const Dashboard7 = lazy(() => import('./components/Dashboard7'));
+const Dashboard8 = lazy(() => import('./components/Dashboard8'));
+const ConfigurationScreen = lazy(() => import('./components/ConfigurationScreen'));
 import {
   RefreshCw,
   AlertCircle,
@@ -235,6 +236,7 @@ function App() {
             <p>Chargement des métriques ISTQB...</p>
           </div>
         ) : (
+          <Suspense fallback={<div className="loading-container"><RefreshCw size={48} className="spinner" /><p>Chargement...</p></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -326,6 +328,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          </Suspense>
         )}
       </main>
 
