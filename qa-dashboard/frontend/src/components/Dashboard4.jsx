@@ -472,7 +472,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                                         <span style={{ fontWeight: 700, color: 'var(--text-color)' }}>{run.completionRate}%</span>
                                     </div>
                                     <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${run.completionRate}%`, height: '100%', backgroundColor: run.isExploratory ? '#8B5CF6' : (run.completionRate >= 90 ? '#10B981' : run.completionRate >= 80 ? '#F59E0B' : '#3B82F6') }}></div>
+                                        <div style={{ width: `${run.completionRate}%`, height: '100%', backgroundColor: run.isExploratory ? '#8B5CF6' : (run.completionRate >= 90 ? '#10B981' : run.completionRate >= 80 ? '#F59E0B' : '#EF4444') }}></div>
                                     </div>
  
                                     {/* Taux de succès */}

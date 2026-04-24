@@ -299,7 +299,7 @@ export const generateQuickClosureDoc = async ({
             ['Taux de Succès',          `${passRate}%`,   passRate  >= SLA.passRate       ? COLORS.green : COLORS.red],
             ['Taux d\'Échec',           `${failRate}%`,   failRate  <= SLA.failureRate    ? COLORS.green : COLORS.red],
             ['Taux de Blocage',         `${blockRate}%`,  blockRate <= SLA.blockedRate    ? COLORS.green : COLORS.red],
-            ['Taux de Détection (DDP)',    `${rates.detectionRate || 0}%`, (rates.detectionRate || 0) >= 80 ? COLORS.green : COLORS.orange],
+            ['Taux de Détection (DDP)',    `${rates.detectionRate || 0}%`, (rates.detectionRate || 0) > 95 ? COLORS.green : COLORS.red],
             ['Taux d\'Échappement (ER)',   `${rates.escapeRate    || 0}%`, (rates.escapeRate    || 0) < 5 ? COLORS.green : COLORS.red],
             ['Bugs détectés en test',      `${rates.bugsInTest    || 0}`],
             ['Bugs détectés en production',`${rates.bugsInProd    || 0}`, (rates.bugsInProd || 0) === 0 ? COLORS.green : COLORS.red],
@@ -430,7 +430,7 @@ export const generateQuickClosureDoc = async ({
             ['Bugs détectés en test (DDP)',          `${rates.bugsInTest || 0}`],
             ['Bugs détectés en production (ER)',     `${rates.bugsInProd || 0}`, (rates.bugsInProd || 0) === 0 ? COLORS.green : COLORS.red],
             ['Total bugs',                           `${rates.totalBugs  || 0}`],
-            ['Taux de Détection (DDP)',              `${rates.detectionRate || 0}%`, (rates.detectionRate || 0) >= 80 ? COLORS.green : COLORS.orange],
+            ['Taux de Détection (DDP)',              `${rates.detectionRate || 0}%`, (rates.detectionRate || 0) > 95 ? COLORS.green : COLORS.red],
             ['Taux d\'Échappement (ER)',             `${rates.escapeRate    || 0}%`, (rates.escapeRate    || 0) < 5 ? COLORS.green : COLORS.red],
         ])
     );
