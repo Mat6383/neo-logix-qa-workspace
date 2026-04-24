@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
 import { useDashboard } from './hooks/useDashboard';
@@ -27,6 +28,24 @@ import {
 } from 'lucide-react';
 import './styles/App.css';
 
+// Maps select option value → URL path
+const VIEW_TO_ROUTE = {
+  '1': '/dashboard',
+  '2': '/tv',
+  '3': '/quality',
+  '4': '/global',
+  '5': '/trends',
+  '6': '/config',
+  '7': '/sync/gitlab',
+  '8': '/crosstest',
+  '9': '/autosync',
+};
+
+// Maps URL path → select option value (for controlled select)
+const ROUTE_TO_VIEW = Object.fromEntries(
+  Object.entries(VIEW_TO_ROUTE).map(([v, r]) => [r, v])
+);
+
 function App() {
   const { isDark: darkMode, toggleTheme } = useTheme();
   const { addToast } = useToast();
@@ -40,7 +59,11 @@ function App() {
     loadDashboardMetrics,
   } = useDashboard();
   const { prefs, updatePref } = usePreferences();
-  const { tvMode, dashboardView, useBusinessTerms, showProductionSection } = prefs;
+  const { tvMode, useBusinessTerms, showProductionSection } = prefs;
+
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const dashboardView = ROUTE_TO_VIEW[pathname] || '1';
 
   const [exportHandler, setExportHandler] = useState(null);
 
@@ -136,7 +159,7 @@ function App() {
           <div style={{ marginLeft: '8px', marginRight: '8px' }}>
             <select
               value={dashboardView}
-              onChange={(e) => updatePref('dashboardView', e.target.value)}
+              onChange={(e) => navigate(VIEW_TO_ROUTE[e.target.value] || '/dashboard')}
               className="project-selector"
               style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
             >
@@ -152,7 +175,7 @@ function App() {
             </select>
           </div>
 
-          {dashboardView === '4' && exportHandler && (
+          {pathname === '/global' && exportHandler && (
             <button
               className="btn-icon"
               style={{ backgroundColor: '#3B82F6', color: 'white', marginRight: '8px', border: 'none' }}
@@ -211,82 +234,98 @@ function App() {
             <RefreshCw size={48} className="spinner" />
             <p>Chargement des métriques ISTQB...</p>
           </div>
-        ) : dashboardView === '2' ? (
-          <TvDashboard
-            metrics={metrics}
-            project={projects.find(p => p.id === projectId)}
-            isDark={darkMode}
-            useBusiness={useBusinessTerms}
-          />
-        ) : dashboardView === '3' ? (
-          <Dashboard3
-            metrics={metrics}
-            project={projects.find(p => p.id === projectId)}
-            isDark={darkMode}
-            useBusiness={useBusinessTerms}
-          />
-        ) : dashboardView === '4' ? (
-          <Dashboard4
-            metrics={metrics}
-            project={projects.find(p => p.id === projectId)}
-            projects={projects}
-            projectId={projectId}
-            onProjectChange={(id) => setProjectId(id)}
-            isDark={darkMode}
-            useBusiness={useBusinessTerms}
-            setExportHandler={setExportHandler}
-            showProductionSection={showProductionSection}
-            onToggleProductionSection={(val) => updatePref('showProductionSection', val)}
-          />
-        ) : dashboardView === '5' ? (
-          <Dashboard5
-            projectId={projectId}
-            isDark={darkMode}
-            useBusiness={useBusinessTerms}
-          />
-        ) : dashboardView === '7' ? (
-          <Dashboard6
-            isDark={darkMode}
-          />
-        ) : dashboardView === '8' ? (
-          <Dashboard7
-            isDark={darkMode}
-          />
-        ) : dashboardView === '9' ? (
-          <Dashboard8
-            isDark={darkMode}
-          />
-        ) : dashboardView === '6' ? (
-          <ConfigurationScreen
-            projectId={projectId}
-            isDark={darkMode}
-            initialPreprodMilestones={selectedPreprodMilestones}
-            initialProdMilestones={selectedProdMilestones}
-            onSaveSelection={(preprodMilestones, prodMilestones) => {
-              setSelectedPreprodMilestones(preprodMilestones || []);
-              setSelectedProdMilestones(prodMilestones || []);
-              updatePref('dashboardView', '1');
-            }}
-          />
         ) : (
-          <>
-            <section className="section">
-              <MetricsCards metrics={metrics} useBusiness={useBusinessTerms} />
-            </section>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-            <section className="section charts-section">
-              <div className="chart-container">
-                <StatusChart metrics={metrics} chartType="doughnut" useBusiness={useBusinessTerms} isDark={darkMode} />
-              </div>
-              <div className="chart-container">
-                <StatusChart metrics={metrics} chartType="bar" useBusiness={useBusinessTerms} isDark={darkMode} />
-              </div>
-            </section>
+            <Route path="/dashboard" element={
+              <>
+                <section className="section">
+                  <MetricsCards metrics={metrics} useBusiness={useBusinessTerms} />
+                </section>
+                <section className="section charts-section">
+                  <div className="chart-container">
+                    <StatusChart metrics={metrics} chartType="doughnut" useBusiness={useBusinessTerms} isDark={darkMode} />
+                  </div>
+                  <div className="chart-container">
+                    <StatusChart metrics={metrics} chartType="bar" useBusiness={useBusinessTerms} isDark={darkMode} />
+                  </div>
+                </section>
+                <section className="section">
+                  <RunsList metrics={metrics} useBusiness={useBusinessTerms} />
+                </section>
+              </>
+            } />
 
-            <section className="section">
-              <RunsList metrics={metrics} useBusiness={useBusinessTerms} />
-            </section>
-          </>
+            <Route path="/tv" element={
+              <TvDashboard
+                metrics={metrics}
+                project={projects.find(p => p.id === projectId)}
+                isDark={darkMode}
+                useBusiness={useBusinessTerms}
+              />
+            } />
+
+            <Route path="/quality" element={
+              <Dashboard3
+                metrics={metrics}
+                project={projects.find(p => p.id === projectId)}
+                isDark={darkMode}
+                useBusiness={useBusinessTerms}
+              />
+            } />
+
+            <Route path="/global" element={
+              <Dashboard4
+                metrics={metrics}
+                project={projects.find(p => p.id === projectId)}
+                projects={projects}
+                projectId={projectId}
+                onProjectChange={(id) => setProjectId(id)}
+                isDark={darkMode}
+                useBusiness={useBusinessTerms}
+                setExportHandler={setExportHandler}
+                showProductionSection={showProductionSection}
+                onToggleProductionSection={(val) => updatePref('showProductionSection', val)}
+              />
+            } />
+
+            <Route path="/trends" element={
+              <Dashboard5
+                projectId={projectId}
+                isDark={darkMode}
+                useBusiness={useBusinessTerms}
+              />
+            } />
+
+            <Route path="/sync/gitlab" element={
+              <Dashboard6 isDark={darkMode} />
+            } />
+
+            <Route path="/config" element={
+              <ConfigurationScreen
+                projectId={projectId}
+                isDark={darkMode}
+                initialPreprodMilestones={selectedPreprodMilestones}
+                initialProdMilestones={selectedProdMilestones}
+                onSaveSelection={(preprodMilestones, prodMilestones) => {
+                  setSelectedPreprodMilestones(preprodMilestones || []);
+                  setSelectedProdMilestones(prodMilestones || []);
+                  navigate('/dashboard');
+                }}
+              />
+            } />
+
+            <Route path="/crosstest" element={
+              <Dashboard7 isDark={darkMode} />
+            } />
+
+            <Route path="/autosync" element={
+              <Dashboard8 isDark={darkMode} />
+            } />
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         )}
       </main>
 
