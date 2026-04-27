@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useToast } from '../hooks/useToast';
 import apiService from '../services/api.service';
 import {
   Link2,
@@ -31,6 +32,7 @@ import '../styles/Dashboard7.css';
    Sous-composant: cellule Commentaires
    ========================================= */
 function CommentCell({ issue, comment, milestoneTitle, onSaved, onDeleted }) {
+  const { addToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -60,7 +62,7 @@ function CommentCell({ issue, comment, milestoneTitle, onSaved, onDeleted }) {
       setDraft('');
     } catch (err) {
       console.error('Erreur sauvegarde commentaire:', err);
-      alert(`Erreur: ${err.message}`);
+      addToast({ message: `Erreur: ${err.message}`, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -74,7 +76,7 @@ function CommentCell({ issue, comment, milestoneTitle, onSaved, onDeleted }) {
       onDeleted(issue.iid);
     } catch (err) {
       console.error('Erreur suppression commentaire:', err);
-      alert(`Erreur: ${err.message}`);
+      addToast({ message: `Erreur: ${err.message}`, type: 'error' });
     } finally {
       setSaving(false);
     }

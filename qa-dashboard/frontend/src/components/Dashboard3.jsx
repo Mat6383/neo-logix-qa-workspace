@@ -163,7 +163,7 @@ const Dashboard3 = ({ metrics, project, isDark = false, useBusiness = true }) =>
                             <div style={{ flex: 1, margin: '0 1rem', height: '8px', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{ width: `${rates.totalBugs > 0 ? (rates.bugsInTest / rates.totalBugs) * 100 : 0}%`, height: '100%', backgroundColor: '#10B981' }}></div>
                             </div>
-                            <span style={{ fontWeight: 600, width: '4rem', textAlign: 'right', color: 'var(--text-color)' }}>{rates.totalBugs > 0 ? Math.round((rates.bugsInTest / rates.totalBugs) * 100) : 0}%</span>
+                            <span style={{ fontWeight: 600, width: '4rem', textAlign: 'right', color: 'var(--text-color)' }}>{rates.detectionRate}%</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -174,7 +174,7 @@ const Dashboard3 = ({ metrics, project, isDark = false, useBusiness = true }) =>
                             <div style={{ flex: 1, margin: '0 1rem', height: '8px', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{ width: `${rates.totalBugs > 0 ? (rates.bugsInProd / rates.totalBugs) * 100 : 0}%`, height: '100%', backgroundColor: '#EF4444' }}></div>
                             </div>
-                            <span style={{ fontWeight: 600, width: '4rem', textAlign: 'right', color: 'var(--text-color)' }}>{rates.totalBugs > 0 ? Math.round((rates.bugsInProd / rates.totalBugs) * 100) : 0}%</span>
+                            <span style={{ fontWeight: 600, width: '4rem', textAlign: 'right', color: 'var(--text-color)' }}>{rates.escapeRate}%</span>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useToast } from '../hooks/useToast';
 import {
     ShieldAlert, ShieldCheck, Activity, Database, CheckCircle, Bug,
     Download, Layers, CheckSquare, XCircle, BarChart3, TrendingUp, AlertTriangle, Search
@@ -11,6 +12,7 @@ import ReportGeneratorModal from './ReportGeneratorModal';
 
 const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, showProductionSection = true, onToggleProductionSection }) => {
     const dashboardRef = useRef(null);
+    const { addToast } = useToast();
     const [showAllRuns, setShowAllRuns] = React.useState(false);
     const [showClosureModal, setShowClosureModal] = React.useState(false);
     const [showQuickClosureModal, setShowQuickClosureModal] = React.useState(false);
@@ -108,7 +110,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
             pdf.save(`QA_Dashboard_${project.name}_${new Date().toLocaleDateString('fr-FR')}.pdf`);
         } catch (error) {
             console.error('Erreur lors de l\'export PDF:', error);
-            alert('Erreur lors de la génération du PDF');
+            addToast({ message: 'Erreur lors de la génération du PDF', type: 'error' });
         }
     };
 
@@ -470,7 +472,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                                         <span style={{ fontWeight: 700, color: 'var(--text-color)' }}>{run.completionRate}%</span>
                                     </div>
                                     <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${run.completionRate}%`, height: '100%', backgroundColor: run.isExploratory ? '#8B5CF6' : (run.completionRate >= 90 ? '#10B981' : run.completionRate >= 80 ? '#F59E0B' : '#3B82F6') }}></div>
+                                        <div style={{ width: `${run.completionRate}%`, height: '100%', backgroundColor: run.isExploratory ? '#8B5CF6' : (run.completionRate >= 90 ? '#10B981' : run.completionRate >= 80 ? '#F59E0B' : '#EF4444') }}></div>
                                     </div>
  
                                     {/* Taux de succès */}

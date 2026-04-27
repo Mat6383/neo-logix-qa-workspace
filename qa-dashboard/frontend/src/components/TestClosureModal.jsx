@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   X, AlertTriangle, CheckCircle, Bug, FileText, Download,
   Calendar, Layers, ShieldCheck, Activity, Plus, Trash2
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import '../styles/MetricsCards.css';
+import { useToast } from '../hooks/useToast';
 
 const TestClosureModal = ({ isOpen, onClose, metrics, project, useBusiness, isDark }) => {
+  const { addToast } = useToast();
   // === Form States ===
   const [version, setVersion] = useState('');
   const [environment, setEnvironment] = useState('Préprod');
@@ -100,7 +102,7 @@ const TestClosureModal = ({ isOpen, onClose, metrics, project, useBusiness, isDa
       onClose(); // Fermer après l'export
     } catch (error) {
       console.error("Erreur lors de l'export PDF:", error);
-      alert("Erreur lors de la génération des PDF");
+      addToast({ message: 'Erreur lors de la génération des PDF', type: 'error' });
     } finally {
       setIsExporting(false);
     }
