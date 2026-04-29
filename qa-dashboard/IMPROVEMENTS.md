@@ -20,9 +20,9 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Fichier(s) |
 |---|--------|-------------|-----------|
-| H1 | ⬜ todo | **Zéro tests pour sync.service** (625 LOC) — flux principal GitLab → Testmo sans couverture | `backend/tests/` |
-| H2 | ⬜ todo | **Zéro tests pour status-sync.service** (170+ LOC) — flux Testmo → GitLab | `backend/tests/` |
-| H3 | ⬜ todo | **Zéro tests pour gitlab.service** (695 LOC) — client API GitLab entier | `backend/tests/` |
+| H1 | ✅ done | **Zéro tests pour sync.service** — parseIterationName (5 cas), syncIteration dryRun + error path | `backend/tests/sync.service.test.js` · commit `5b7aa7f` |
+| H2 | ✅ done | **Zéro tests pour status-sync.service** — 16 cas purs : buildCommentText, isCommentDuplicate, computeLabelChanges, computeStatusChange, mapping | `backend/tests/status-sync.service.test.js` · commit `3fb3054` |
+| H3 | ✅ done | **Zéro tests pour gitlab.service** — 20 cas : formatEstimate, getIssueNotes, findIterationForProject, searchIterations, executeGraphQL | `backend/tests/gitlab.service.test.js` · commit `c1cf8b5` |
 | H4 | ⬜ todo | **Tokens dans les logs** — headers d'autorisation loggés sans redaction (fuite potentielle vers Sentry) | `backend/services/testmo.service.js:85`, `backend/services/gitlab.service.js:57` |
 | H5 | ⬜ todo | **Erreurs avalées inconsistamment** — `api.service.js` retourne `{ success: false }` au lieu de throw ; les composants qui attendent une exception ne reçoivent rien | `frontend/src/services/api.service.js` |
 
@@ -63,3 +63,4 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 | Date | Items traités | Branche |
 |------|--------------|---------|
 | 2026-04-29 | C1, C2, C3 | `feat/modernisation-architecture` |
+| 2026-04-29 | H1, H2, H3 | `feat/modernisation-architecture` |
