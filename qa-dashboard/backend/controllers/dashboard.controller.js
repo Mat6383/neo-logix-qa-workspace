@@ -1,4 +1,4 @@
-const testmoService = require('../services/testmo.service');
+const { getIstqbMetricsService } = require('../services/istqb-metrics.service');
 const logger = require('../services/logger.service');
 
 function parseMilestones(query) {
@@ -16,7 +16,7 @@ async function getMetrics(req, res) {
     const prod = parseMilestones(req.query.prodMilestones);
 
     logger.info(`Récupération métriques pour projet ${projectId}`);
-    const metrics = await testmoService.getProjectMetrics(projectId, preprod, prod);
+    const metrics = await getIstqbMetricsService().getProjectMetrics(projectId, preprod, prod);
 
     if (!metrics.slaStatus.ok) {
       logger.warn('Alertes SLA détectées:', { projectId, alerts: metrics.slaStatus.alerts });
@@ -36,7 +36,7 @@ async function getQualityRates(req, res) {
     const prod = parseMilestones(req.query.prodMilestones);
 
     logger.info(`Récupération Quality Rates pour projet ${projectId}`);
-    const rates = await testmoService.getEscapeAndDetectionRates(projectId, preprod, prod);
+    const rates = await getIstqbMetricsService().getEscapeAndDetectionRates(projectId, preprod, prod);
 
     res.json({ success: true, data: rates, timestamp: new Date().toISOString() });
   } catch (error) {
@@ -50,7 +50,7 @@ async function getAnnualTrends(req, res) {
     const projectId = parseInt(req.params.projectId);
 
     logger.info(`Récupération Annual Trends pour projet ${projectId}`);
-    const trends = await testmoService.getAnnualQualityTrends(projectId);
+    const trends = await getIstqbMetricsService().getAnnualQualityTrends(projectId);
 
     res.json({ success: true, data: trends, timestamp: new Date().toISOString() });
   } catch (error) {
