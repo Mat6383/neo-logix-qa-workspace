@@ -30,14 +30,14 @@ describe('_scrubEvent — redaction Sentry', () => {
 
   test('Authorization dans extra.config.headers (objet axios error) → [REDACTED]', () => {
     const event = {
-      extra: { config: { headers: { Authorization: 'Bearer token-from-axios-error' } } }
+      extra: { config: { headers: { Authorization: 'Bearer token-from-axios-error' } } },
     };
     expect(_scrubEvent(event).extra.config.headers.Authorization).toBe('[REDACTED]');
   });
 
   test('PRIVATE-TOKEN dans extra.config.headers → [REDACTED]', () => {
     const event = {
-      extra: { config: { headers: { 'PRIVATE-TOKEN': 'glpat-writetoken' } } }
+      extra: { config: { headers: { 'PRIVATE-TOKEN': 'glpat-writetoken' } } },
     };
     expect(_scrubEvent(event).extra.config.headers['PRIVATE-TOKEN']).toBe('[REDACTED]');
   });
@@ -48,9 +48,9 @@ describe('_scrubEvent — redaction Sentry', () => {
         headers: {
           'content-type': 'application/json',
           accept: '*/*',
-          authorization: 'Bearer secret'
-        }
-      }
+          authorization: 'Bearer secret',
+        },
+      },
     };
     const result = _scrubEvent(event);
     expect(result.request.headers['content-type']).toBe('application/json');
@@ -91,7 +91,7 @@ describe('testmo.service — logger.error sans objet axios (pas de fuite de toke
     // Simuler une erreur axios avec Authorization dans config.headers
     const axiosError = Object.assign(new Error('Timeout'), {
       response: { status: 503 },
-      config:   { headers: { Authorization: 'Bearer SUPER_SECRET_TOKEN' }, url: '/api/v1/runs' }
+      config: { headers: { Authorization: 'Bearer SUPER_SECRET_TOKEN' }, url: '/api/v1/runs' },
     });
 
     // Déclencher les catch blocks de testmo.service en mockant les appels internes
@@ -104,7 +104,9 @@ describe('testmo.service — logger.error sans objet axios (pas de fuite de toke
       // Appel qui déclenche un des catch blocks (getProjectMetrics avec milestone pour atteindre la ligne 343)
       try {
         await testmoService.getProjectMetrics(1, [999], null);
-      } catch (_) { /* erreur attendue */ }
+      } catch (_) {
+        /* erreur attendue */
+      }
 
       if (originalGet) testmoService.client.get = originalGet;
     }

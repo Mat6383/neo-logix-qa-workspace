@@ -3,9 +3,10 @@ const logger = require('../services/logger.service');
 
 function parseMilestones(query) {
   if (!query) return null;
-  const ids = query.split(',')
-    .map(s => parseInt(s.trim(), 10))
-    .filter(n => Number.isInteger(n) && n > 0);
+  const ids = query
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => Number.isInteger(n) && n > 0);
   return ids.length > 0 ? ids : null;
 }
 
@@ -25,7 +26,9 @@ async function getMetrics(req, res) {
     res.json({ success: true, data: metrics, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error(`Erreur GET /api/dashboard/${req.params.projectId}:`, error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
@@ -36,12 +39,18 @@ async function getQualityRates(req, res) {
     const prod = parseMilestones(req.query.prodMilestones);
 
     logger.info(`Récupération Quality Rates pour projet ${projectId}`);
-    const rates = await getIstqbMetricsService().getEscapeAndDetectionRates(projectId, preprod, prod);
+    const rates = await getIstqbMetricsService().getEscapeAndDetectionRates(
+      projectId,
+      preprod,
+      prod
+    );
 
     res.json({ success: true, data: rates, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error(`Erreur GET /api/dashboard/${req.params.projectId}/quality-rates:`, error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
@@ -55,7 +64,9 @@ async function getAnnualTrends(req, res) {
     res.json({ success: true, data: trends, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error(`Erreur GET /api/dashboard/${req.params.projectId}/annual-trends:`, error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 

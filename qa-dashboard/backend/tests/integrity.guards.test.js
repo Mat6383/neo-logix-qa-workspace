@@ -13,7 +13,7 @@
 
 function getAlertForMetric(metrics, metricName) {
   if (!metrics.slaStatus || metrics.slaStatus.ok || !metrics.slaStatus.alerts) return null;
-  return metrics.slaStatus.alerts.find(a => a.metric === metricName) || null;
+  return metrics.slaStatus.alerts.find((a) => a.metric === metricName) || null;
 }
 
 // ─── Logique extraite de TvDashboard.jsx ────────────────────────────────────
@@ -27,13 +27,15 @@ function milestonePercent(istqb) {
 
 function stabiliteVersions(trends) {
   if (!trends || !trends.length) return 0;
-  return Math.round((trends.filter(t => t.escapeRate < 5).length / trends.length) * 100);
+  return Math.round((trends.filter((t) => t.escapeRate < 5).length / trends.length) * 100);
 }
 
 // ─── Null guards pour metrics.raw et metrics.runs ───────────────────────────
 
 function safeRaw(metrics) {
-  return metrics.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 };
+  return (
+    metrics.raw || { completed: 0, total: 0, passed: 0, failed: 0, wip: 0, blocked: 0, untested: 0 }
+  );
 }
 
 function safeRuns(metrics) {
@@ -47,7 +49,7 @@ describe('getAlertForMetric — slaStatus.alerts guard', () => {
     expect(getAlertForMetric({}, 'Pass Rate')).toBeNull();
   });
 
-  test('retourne null si slaStatus.ok est true (pas d\'alerte)', () => {
+  test("retourne null si slaStatus.ok est true (pas d'alerte)", () => {
     const metrics = { slaStatus: { ok: true, alerts: [{ metric: 'Pass Rate' }] } };
     expect(getAlertForMetric(metrics, 'Pass Rate')).toBeNull();
   });
@@ -62,7 +64,7 @@ describe('getAlertForMetric — slaStatus.alerts guard', () => {
     expect(getAlertForMetric(metrics, 'Pass Rate')).toBeNull();
   });
 
-  test('retourne l\'alerte correspondante si elle existe', () => {
+  test("retourne l'alerte correspondante si elle existe", () => {
     const alert = { metric: 'Pass Rate', severity: 'critical', message: 'Pass rate critique: 60%' };
     const metrics = { slaStatus: { ok: false, alerts: [alert] } };
     expect(getAlertForMetric(metrics, 'Pass Rate')).toEqual(alert);
@@ -127,7 +129,7 @@ describe('stabiliteVersions — division par zéro sur trends.length', () => {
     expect(stabiliteVersions(trends)).toBe(100);
   });
 
-  test('retourne 0% si aucune version n\'a escapeRate < 5', () => {
+  test("retourne 0% si aucune version n'a escapeRate < 5", () => {
     const trends = [{ escapeRate: 10 }, { escapeRate: 8 }];
     expect(stabiliteVersions(trends)).toBe(0);
   });
@@ -167,7 +169,10 @@ describe('safeRaw — null guard sur metrics.raw', () => {
 
 describe('safeRuns — null guard sur metrics.runs', () => {
   test('retourne metrics.runs si présent', () => {
-    const runs = [{ id: 1, name: 'Run A' }, { id: 2, name: 'Run B' }];
+    const runs = [
+      { id: 1, name: 'Run A' },
+      { id: 2, name: 'Run B' },
+    ];
     expect(safeRuns({ runs })).toEqual(runs);
   });
 

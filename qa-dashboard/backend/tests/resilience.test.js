@@ -28,11 +28,16 @@ async function _withRetry(fn, label = 'test', maxRetries = 3, baseDelay = 10) {
     } catch (err) {
       lastError = err;
       const status = err.response?.status;
-      const isRetryable = !status || status === 429 || status >= 500 ||
-        err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND';
+      const isRetryable =
+        !status ||
+        status === 429 ||
+        status >= 500 ||
+        err.code === 'ECONNRESET' ||
+        err.code === 'ETIMEDOUT' ||
+        err.code === 'ENOTFOUND';
       if (!isRetryable || attempt === maxRetries) break;
       const delay = baseDelay * Math.pow(2, attempt - 1);
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
   throw lastError;
@@ -41,18 +46,26 @@ async function _withRetry(fn, label = 'test', maxRetries = 3, baseDelay = 10) {
 describe('_withRetry — comportement de base', () => {
   test('succès immédiat — retourne le résultat sans retry', async () => {
     let calls = 0;
-    const result = await _withRetry(async () => { calls++; return 'ok'; }, 'test');
+    const result = await _withRetry(async () => {
+      calls++;
+      return 'ok';
+    }, 'test');
     expect(result).toBe('ok');
     expect(calls).toBe(1);
   });
 
   test('1 échec puis succès — retourne le résultat au 2ème essai', async () => {
     let calls = 0;
-    const result = await _withRetry(async () => {
-      calls++;
-      if (calls === 1) throw Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' });
-      return 'ok';
-    }, 'test', 3, 5);
+    const result = await _withRetry(
+      async () => {
+        calls++;
+        if (calls === 1) throw Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' });
+        return 'ok';
+      },
+      'test',
+      3,
+      5
+    );
     expect(result).toBe('ok');
     expect(calls).toBe(2);
   });
@@ -60,12 +73,17 @@ describe('_withRetry — comportement de base', () => {
   test('3 échecs consécutifs — lève la dernière erreur', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('server error');
-        err.response = { status: 503 };
-        throw err;
-      }, 'test', 3, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('server error');
+          err.response = { status: 503 };
+          throw err;
+        },
+        'test',
+        3,
+        5
+      )
     ).rejects.toThrow('server error');
     expect(calls).toBe(3);
   });
@@ -75,12 +93,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 500 (Internal Server Error) → retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('500');
-        err.response = { status: 500 };
-        throw err;
-      }, 'test', 2, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('500');
+          err.response = { status: 500 };
+          throw err;
+        },
+        'test',
+        2,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(2); // a bien retenté
   });
@@ -88,12 +111,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 503 (Service Unavailable) → retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('503');
-        err.response = { status: 503 };
-        throw err;
-      }, 'test', 2, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('503');
+          err.response = { status: 503 };
+          throw err;
+        },
+        'test',
+        2,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(2);
   });
@@ -101,12 +129,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 429 (Rate Limit) → retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('429');
-        err.response = { status: 429 };
-        throw err;
-      }, 'test', 2, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('429');
+          err.response = { status: 429 };
+          throw err;
+        },
+        'test',
+        2,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(2);
   });
@@ -114,10 +147,15 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('ECONNRESET (connexion réinitialisée) → retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        throw Object.assign(new Error('connection reset'), { code: 'ECONNRESET' });
-      }, 'test', 2, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          throw Object.assign(new Error('connection reset'), { code: 'ECONNRESET' });
+        },
+        'test',
+        2,
+        5
+      )
     ).rejects.toThrow('connection reset');
     expect(calls).toBe(2);
   });
@@ -125,10 +163,15 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('ENOTFOUND (DNS failure) → retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        throw Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
-      }, 'test', 2, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          throw Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
+        },
+        'test',
+        2,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(2);
   });
@@ -136,12 +179,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 400 (Bad Request) → NON retryable, 1 seul appel', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('400');
-        err.response = { status: 400 };
-        throw err;
-      }, 'test', 3, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('400');
+          err.response = { status: 400 };
+          throw err;
+        },
+        'test',
+        3,
+        5
+      )
     ).rejects.toThrow('400');
     expect(calls).toBe(1); // pas de retry sur 4xx
   });
@@ -149,12 +197,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 401 (Unauthorized) → NON retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('401');
-        err.response = { status: 401 };
-        throw err;
-      }, 'test', 3, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('401');
+          err.response = { status: 401 };
+          throw err;
+        },
+        'test',
+        3,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(1);
   });
@@ -162,12 +215,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 403 (Forbidden) → NON retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('403');
-        err.response = { status: 403 };
-        throw err;
-      }, 'test', 3, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('403');
+          err.response = { status: 403 };
+          throw err;
+        },
+        'test',
+        3,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(1);
   });
@@ -175,12 +233,17 @@ describe('_withRetry — classification des erreurs retryables', () => {
   test('erreur 404 (Not Found) → NON retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('404');
-        err.response = { status: 404 };
-        throw err;
-      }, 'test', 3, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('404');
+          err.response = { status: 404 };
+          throw err;
+        },
+        'test',
+        3,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(1);
   });
@@ -194,18 +257,23 @@ describe('_withRetry — backoff exponentiel', () => {
 
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        if (calls > 1) {
-          delays.push(Date.now() - timestamps[timestamps.length - 1]);
-          timestamps.push(Date.now());
-        } else {
-          timestamps.push(Date.now());
-        }
-        const err = new Error('server error');
-        err.response = { status: 503 };
-        throw err;
-      }, 'backoff-test', 3, 10)
+      _withRetry(
+        async () => {
+          calls++;
+          if (calls > 1) {
+            delays.push(Date.now() - timestamps[timestamps.length - 1]);
+            timestamps.push(Date.now());
+          } else {
+            timestamps.push(Date.now());
+          }
+          const err = new Error('server error');
+          err.response = { status: 503 };
+          throw err;
+        },
+        'backoff-test',
+        3,
+        10
+      )
     ).rejects.toThrow();
 
     // Les délais doivent croître (2ème > 1er)
@@ -217,25 +285,37 @@ describe('_withRetry — backoff exponentiel', () => {
   test('maxRetries=1 → 1 seul appel même sur erreur retryable', async () => {
     let calls = 0;
     await expect(
-      _withRetry(async () => {
-        calls++;
-        const err = new Error('503'); err.response = { status: 503 };
-        throw err;
-      }, 'test', 1, 5)
+      _withRetry(
+        async () => {
+          calls++;
+          const err = new Error('503');
+          err.response = { status: 503 };
+          throw err;
+        },
+        'test',
+        1,
+        5
+      )
     ).rejects.toThrow();
     expect(calls).toBe(1);
   });
 
   test('succès au 3ème essai (maxRetries=3) — résultat correct retourné', async () => {
     let calls = 0;
-    const result = await _withRetry(async () => {
-      calls++;
-      if (calls < 3) {
-        const err = new Error('transient'); err.response = { status: 503 };
-        throw err;
-      }
-      return { data: 'final' };
-    }, 'test', 3, 5);
+    const result = await _withRetry(
+      async () => {
+        calls++;
+        if (calls < 3) {
+          const err = new Error('transient');
+          err.response = { status: 503 };
+          throw err;
+        }
+        return { data: 'final' };
+      },
+      'test',
+      3,
+      5
+    );
     expect(result).toEqual({ data: 'final' });
     expect(calls).toBe(3);
   });
@@ -249,7 +329,7 @@ describe('_withRetry — backoff exponentiel', () => {
 function buildCorsValidator(frontendUrlEnv) {
   const allowedOrigins = (frontendUrlEnv || 'http://localhost:3000')
     .split(',')
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
   return (origin) => {
@@ -316,27 +396,27 @@ describe('CORS — validation multi-origines', () => {
  * Logique extraite de server.js
  */
 function validateEnv(env, required) {
-  return required.filter(k => !env[k]);
+  return required.filter((k) => !env[k]);
 }
 
-describe('validateEnv — variables d\'environnement requises', () => {
+describe("validateEnv — variables d'environnement requises", () => {
   const REQUIRED = ['TESTMO_URL', 'TESTMO_TOKEN', 'GITLAB_URL', 'GITLAB_TOKEN'];
 
-  test('toutes les variables présentes → tableau vide (pas d\'erreur)', () => {
+  test("toutes les variables présentes → tableau vide (pas d'erreur)", () => {
     const env = {
       TESTMO_URL: 'https://testmo.exemple.fr',
       TESTMO_TOKEN: 'tok_123',
       GITLAB_URL: 'https://gitlab.exemple.fr',
-      GITLAB_TOKEN: 'glpat-xyz'
+      GITLAB_TOKEN: 'glpat-xyz',
     };
     expect(validateEnv(env, REQUIRED)).toEqual([]);
   });
 
-  test('TESTMO_TOKEN manquant → retourne [\'TESTMO_TOKEN\']', () => {
+  test("TESTMO_TOKEN manquant → retourne ['TESTMO_TOKEN']", () => {
     const env = {
       TESTMO_URL: 'https://testmo.exemple.fr',
       GITLAB_URL: 'https://gitlab.exemple.fr',
-      GITLAB_TOKEN: 'glpat-xyz'
+      GITLAB_TOKEN: 'glpat-xyz',
     };
     expect(validateEnv(env, REQUIRED)).toEqual(['TESTMO_TOKEN']);
   });
@@ -344,7 +424,7 @@ describe('validateEnv — variables d\'environnement requises', () => {
   test('GITLAB_URL et GITLAB_TOKEN manquants → retourne les deux', () => {
     const env = {
       TESTMO_URL: 'https://testmo.exemple.fr',
-      TESTMO_TOKEN: 'tok_123'
+      TESTMO_TOKEN: 'tok_123',
     };
     const missing = validateEnv(env, REQUIRED);
     expect(missing).toContain('GITLAB_URL');
@@ -361,13 +441,13 @@ describe('validateEnv — variables d\'environnement requises', () => {
       TESTMO_URL: '',
       TESTMO_TOKEN: 'tok',
       GITLAB_URL: 'https://gitlab.fr',
-      GITLAB_TOKEN: 'glpat'
+      GITLAB_TOKEN: 'glpat',
     };
     // '' est falsy → sera retournée dans les manquantes
     expect(validateEnv(env, REQUIRED)).toContain('TESTMO_URL');
   });
 
-  test('ordre des variables manquantes respecte l\'ordre du tableau REQUIRED', () => {
+  test("ordre des variables manquantes respecte l'ordre du tableau REQUIRED", () => {
     const env = { GITLAB_TOKEN: 'glpat' }; // seul GITLAB_TOKEN présent
     const missing = validateEnv(env, REQUIRED);
     expect(missing.indexOf('TESTMO_URL')).toBeLessThan(missing.indexOf('GITLAB_URL'));

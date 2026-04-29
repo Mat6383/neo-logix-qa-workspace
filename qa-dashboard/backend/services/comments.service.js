@@ -55,9 +55,11 @@ class CommentsService {
    */
   getAll() {
     try {
-      const rows = this.db.prepare(
-        'SELECT * FROM crosstest_comments WHERE gitlab_project_id = 63 ORDER BY updated_at DESC'
-      ).all();
+      const rows = this.db
+        .prepare(
+          'SELECT * FROM crosstest_comments WHERE gitlab_project_id = 63 ORDER BY updated_at DESC'
+        )
+        .all();
 
       const result = {};
       for (const row of rows) {
@@ -90,9 +92,9 @@ class CommentsService {
       `);
       stmt.run({ iid, milestoneContext, comment, now });
 
-      const row = this.db.prepare(
-        'SELECT * FROM crosstest_comments WHERE issue_iid = ? AND gitlab_project_id = 63'
-      ).get(iid);
+      const row = this.db
+        .prepare('SELECT * FROM crosstest_comments WHERE issue_iid = ? AND gitlab_project_id = 63')
+        .get(iid);
       return row;
     } catch (error) {
       logger.error(`CommentsService: Erreur upsert iid=${iid}:`, error);
@@ -107,9 +109,9 @@ class CommentsService {
    */
   delete(iid) {
     try {
-      const result = this.db.prepare(
-        'DELETE FROM crosstest_comments WHERE issue_iid = ? AND gitlab_project_id = 63'
-      ).run(iid);
+      const result = this.db
+        .prepare('DELETE FROM crosstest_comments WHERE issue_iid = ? AND gitlab_project_id = 63')
+        .run(iid);
       return result.changes > 0;
     } catch (error) {
       logger.error(`CommentsService: Erreur delete iid=${iid}:`, error);

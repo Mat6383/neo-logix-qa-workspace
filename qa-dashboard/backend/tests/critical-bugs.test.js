@@ -82,7 +82,7 @@ describe('XSS sanitisation — _extractStepsFromNotes', () => {
     const notes = [{ body: '[PRÉREQUIS]\nVérifier la connexion\n[TEST]\nCliquer sur le bouton' }];
     const steps = syncService._extractStepsFromNotes(notes);
     expect(steps.length).toBeGreaterThanOrEqual(1);
-    const allText = steps.map(s => s.text1).join(' ');
+    const allText = steps.map((s) => s.text1).join(' ');
     expect(allText).toMatch(/Vérifier|Cliquer/);
   });
 
@@ -106,7 +106,7 @@ describe('StatusSync — pré-chargement notes (pas de N+1)', () => {
       findIterationForProject: async () => ({ id: 42 }),
       getIssuesForIteration: async () => [
         { id: 1000, iid: 1, title: 'Case A' },
-        { id: 1001, iid: 2, title: 'Case B' }
+        { id: 1001, iid: 2, title: 'Case B' },
       ],
       getIssueNotes: async (_pid, iid) => {
         callOrder.push(`notes:${iid}`);
@@ -115,17 +115,21 @@ describe('StatusSync — pré-chargement notes (pas de N+1)', () => {
       updateWorkItemStatus: async (gid) => {
         callOrder.push(`update:${gid}`);
       },
-      addIssueComment: async () => {}
+      addIssueComment: async () => {},
     };
 
     const service = new StatusSyncService();
     // Surcharger les méthodes internes
-    service._getRunInfo    = async () => ({ name: 'Run 1' });
+    service._getRunInfo = async () => ({ name: 'Run 1' });
     service._getRunResults = async () => [
       { case_id: 1, case_name: 'Case A', status_id: 2, is_latest: true },
-      { case_id: 2, case_name: 'Case B', status_id: 3, is_latest: true }
+      { case_id: 2, case_name: 'Case B', status_id: 3, is_latest: true },
     ];
-    service._getCaseNames  = async () => new Map([[1, 'Case A'], [2, 'Case B']]);
+    service._getCaseNames = async () =>
+      new Map([
+        [1, 'Case A'],
+        [2, 'Case B'],
+      ]);
 
     // Injecter le mock GitLab dans le module
     const gitlabModule = require('../services/gitlab.service');
@@ -134,8 +138,12 @@ describe('StatusSync — pré-chargement notes (pas de N+1)', () => {
     await service.syncRunStatusToGitLab(99, 'R01 - run 1', '123', () => {}, false);
 
     // Vérifier que tous les appels notes: précèdent tous les appels update:
-    const noteIndices   = callOrder.map((c, i) => c.startsWith('notes:')  ? i : -1).filter(i => i >= 0);
-    const updateIndices = callOrder.map((c, i) => c.startsWith('update:') ? i : -1).filter(i => i >= 0);
+    const noteIndices = callOrder
+      .map((c, i) => (c.startsWith('notes:') ? i : -1))
+      .filter((i) => i >= 0);
+    const updateIndices = callOrder
+      .map((c, i) => (c.startsWith('update:') ? i : -1))
+      .filter((i) => i >= 0);
 
     expect(noteIndices.length).toBeGreaterThan(0);
     expect(updateIndices.length).toBeGreaterThan(0);

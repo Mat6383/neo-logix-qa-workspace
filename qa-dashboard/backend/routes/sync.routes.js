@@ -27,7 +27,12 @@ const {
 } = require('../controllers/sync.controller');
 
 router.get('/projects', getProjects);
-router.get('/:projectId/iterations', validateParams(syncProjectIdParam), validateQuery(iterationSearchQuery), getIterations);
+router.get(
+  '/:projectId/iterations',
+  validateParams(syncProjectIdParam),
+  validateQuery(iterationSearchQuery),
+  getIterations
+);
 router.post('/preview', validateBody(syncPreviewBody), previewSync);
 router.post('/execute', validateBody(syncExecuteBody), executeSync);
 router.get('/history', getHistory);

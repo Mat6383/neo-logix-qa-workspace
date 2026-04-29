@@ -1,0 +1,51 @@
+# QA Dashboard — Roadmap post-audit
+
+Créée le 2026-04-29 après completion des 15 items d'audit.
+Branche de référence : `master` (401 tests verts).
+
+Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
+
+---
+
+## Phase 1 — Qualité code (quick wins)
+
+| # | Statut | Description | Effort |
+|---|--------|-------------|--------|
+| Q1 | ⬜ todo | **Prettier warnings backend** — 1284 warnings sur 36 fichiers ; `prettier --write` + commit | ~1h |
+| Q2 | ⬜ todo | **Tests routes API (supertest)** — les controllers/validators ne sont pas testés ; couvrir les 400/500 et cas limites HTTP | ~1 jour |
+
+---
+
+## Phase 2 — Fonctionnalité en cours
+
+| # | Statut | Description | Effort |
+|---|--------|-------------|--------|
+| F1 | ⬜ todo | **Brancher `getIssuesByStatusAndIteration`** — méthode GitLab créée mais non reliée à une route/controller ; à intégrer dans le flux sync GitLab → Testmo | ~2h |
+
+---
+
+## Phase 3 — Production readiness
+
+| # | Statut | Description | Effort |
+|---|--------|-------------|--------|
+| P1 | ⬜ todo | **Dockerfile + docker-compose** — conteneurisation backend + frontend pour déploiement reproductible | ~1 jour |
+| P2 | ⬜ todo | **Validation env au démarrage** — compléter le check des variables requises, ajouter des valeurs par défaut sûres | ~2h |
+| P3 | ⬜ todo | **Procédure de déploiement** — documenter les étapes (variables d'env, migration SQLite, reverse proxy) | ~2h |
+
+---
+
+## Phase 4 — Nouvelles fonctionnalités
+
+| # | Statut | Description | Effort |
+|---|--------|-------------|--------|
+| N1 | ⬜ todo | **Historique métriques SQLite** — stocker les snapshots ISTQB quotidiens pour voir les tendances dans le temps | ~2 jours |
+| N2 | ⬜ todo | **Alertes Slack/email** — notifier quand pass rate < seuil critique ou escape rate > seuil | ~1 jour |
+| N3 | ⬜ todo | **Dashboard comparaison inter-milestones** — vue côte-à-côte de 2 jalons pour mesurer la progression | ~2 jours |
+
+---
+
+## Sessions de travail
+
+| Date | Items traités | Branche |
+|------|--------------|---------|
+| 2026-04-29 | Audit + C1-C3 + H1-H5 + M1-M5 + P1-P3 + S1 (15 items) | `feat/modernisation-architecture` → merge master |

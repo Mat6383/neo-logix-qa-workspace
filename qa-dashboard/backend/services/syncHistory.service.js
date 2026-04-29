@@ -56,7 +56,7 @@ class SyncHistoryService {
       this._initialized = true;
       logger.info('SyncHistory: Base SQLite initialisée → ' + DB_PATH);
     } catch (err) {
-      logger.error('SyncHistory: Impossible d\'initialiser SQLite:', err.message);
+      logger.error("SyncHistory: Impossible d'initialiser SQLite:", err.message);
     }
   }
 
@@ -82,19 +82,21 @@ class SyncHistoryService {
       `);
 
       const info = stmt.run({
-        project_name:   projectName,
+        project_name: projectName,
         iteration_name: iterationName,
         mode,
-        created:        results.created   || 0,
-        updated:        results.updated   || 0,
-        skipped:        results.skipped   || 0,
-        enriched:       results.enriched  || 0,
-        errors:         results.errors    || 0,
-        total_issues:   results.total     || 0,
-        executed_at:    new Date().toISOString()
+        created: results.created || 0,
+        updated: results.updated || 0,
+        skipped: results.skipped || 0,
+        enriched: results.enriched || 0,
+        errors: results.errors || 0,
+        total_issues: results.total || 0,
+        executed_at: new Date().toISOString(),
       });
 
-      logger.info(`SyncHistory: run ${info.lastInsertRowid} enregistré (${projectName} / ${iterationName} / ${mode})`);
+      logger.info(
+        `SyncHistory: run ${info.lastInsertRowid} enregistré (${projectName} / ${iterationName} / ${mode})`
+      );
       return info.lastInsertRowid;
     } catch (err) {
       logger.error('SyncHistory: Erreur insertion:', err.message);
@@ -113,9 +115,7 @@ class SyncHistoryService {
     if (!this.db) return [];
 
     try {
-      const rows = this.db
-        .prepare('SELECT * FROM sync_runs ORDER BY id DESC LIMIT ?')
-        .all(limit);
+      const rows = this.db.prepare('SELECT * FROM sync_runs ORDER BY id DESC LIMIT ?').all(limit);
       return rows;
     } catch (err) {
       logger.error('SyncHistory: Erreur lecture historique:', err.message);

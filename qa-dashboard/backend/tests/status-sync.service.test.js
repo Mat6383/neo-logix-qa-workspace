@@ -10,7 +10,7 @@ const {
   computeLabelChanges,
   computeStatusChange,
   STATUS_TO_LABEL,
-  ALL_TEST_LABELS
+  ALL_TEST_LABELS,
 } = require('../services/status-sync.service');
 
 // ─── buildCommentText ────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ describe('isCommentDuplicate', () => {
   test('commentaire identique présent → true', () => {
     const notes = [
       { body: 'commentaire existant', system: false },
-      { body: 'texte cible', system: false }
+      { body: 'texte cible', system: false },
     ];
     expect(isCommentDuplicate(notes, 'texte cible')).toBe(true);
   });
@@ -110,8 +110,8 @@ describe('computeStatusChange', () => {
 
   test('statut différent → action update', () => {
     const current = 'gid://gitlab/WorkItems::Statuses::Custom::Status/17';
-    const next    = 'gid://gitlab/WorkItems::Statuses::Custom::Status/18';
-    const result  = computeStatusChange(current, next);
+    const next = 'gid://gitlab/WorkItems::Statuses::Custom::Status/18';
+    const result = computeStatusChange(current, next);
     expect(result.action).toBe('update');
     expect(result.newStatus).toBe(next);
   });

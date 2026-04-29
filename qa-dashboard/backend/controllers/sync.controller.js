@@ -17,19 +17,36 @@ async function getIterations(req, res) {
     const search = req.query.search || '';
 
     const project = PROJECTS.find((p) => p.id === projectId);
-    if (!project) return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
-    if (!project.configured) return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
-    if (!project.gitlab.projectId) return res.status(400).json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
+    if (!project)
+      return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+    if (!project.configured)
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" non configuré` });
+    if (!project.gitlab.projectId)
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
 
-    const iterations = await gitlabServiceInstance.searchIterations(project.gitlab.projectId, search);
+    const iterations = await gitlabServiceInstance.searchIterations(
+      project.gitlab.projectId,
+      search
+    );
     res.json({
       success: true,
-      data: iterations.map((it) => ({ id: it.id, title: it.title, state: it.state, web_url: it.web_url })),
+      data: iterations.map((it) => ({
+        id: it.id,
+        title: it.title,
+        state: it.state,
+        web_url: it.web_url,
+      })),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error(`Erreur GET /api/sync/${req.params.projectId}/iterations:`, error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
@@ -37,8 +54,12 @@ async function previewSync(req, res) {
   try {
     const { projectId, iterationName } = req.body;
     const project = PROJECTS.find((p) => p.id === projectId);
-    if (!project) return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
-    if (!project.configured) return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
+    if (!project)
+      return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+    if (!project.configured)
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" non configuré` });
 
     logger.info(`Preview: ${project.label} / "${iterationName}"`);
     const preview = await syncService.previewIteration(iterationName, project);
@@ -51,15 +72,21 @@ async function previewSync(req, res) {
     res.json({ success: true, data: preview, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur POST /api/sync/preview:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
 async function executeSync(req, res) {
   const { projectId, iterationName } = req.body;
   const project = PROJECTS.find((p) => p.id === projectId);
-  if (!project) return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
-  if (!project.configured) return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
+  if (!project)
+    return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+  if (!project.configured)
+    return res
+      .status(400)
+      .json({ success: false, error: `Projet "${project.label}" non configuré` });
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -76,7 +103,11 @@ async function executeSync(req, res) {
 
   try {
     logger.info(`Execute: ${project.label} / "${iterationName}"`);
-    const stats = await syncService.syncIteration(iterationName, { projectConfig: project }, (type, data) => send(type, data));
+    const stats = await syncService.syncIteration(
+      iterationName,
+      { projectConfig: project },
+      (type, data) => send(type, data)
+    );
     syncHistoryService.addRun(project.label, iterationName, 'execute', stats);
   } catch (error) {
     logger.error('Execute SSE error:', error);
@@ -93,7 +124,9 @@ function getHistory(_req, res) {
     res.json({ success: true, data: rows, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur GET /api/sync/history:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
@@ -104,7 +137,9 @@ async function testApi(_req, res) {
     res.json({ success: result.success, data: result, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur POST /api/sync/test-api:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
@@ -116,7 +151,9 @@ async function syncIteration(req, res) {
     res.json({ success: true, data: result, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur POST /api/sync/iteration:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
@@ -137,8 +174,17 @@ async function statusToGitlab(req, res) {
   const heartbeat = setInterval(() => res.write(': ping\n\n'), 15000);
 
   try {
-    logger.info(`StatusSync: run=${runId} iteration="${iterationName}" glProject=${gitlabProjectId}`);
-    await statusSyncService.syncRunStatusToGitLab(runId, iterationName, gitlabProjectId, (type, data) => send(type, data), Boolean(dryRun), version || null);
+    logger.info(
+      `StatusSync: run=${runId} iteration="${iterationName}" glProject=${gitlabProjectId}`
+    );
+    await statusSyncService.syncRunStatusToGitLab(
+      runId,
+      iterationName,
+      gitlabProjectId,
+      (type, data) => send(type, data),
+      Boolean(dryRun),
+      version || null
+    );
   } catch (error) {
     logger.error('Erreur POST /api/sync/status-to-gitlab:', error);
     send('error', { message: error.message });
@@ -154,12 +200,18 @@ async function testCleanup(_req, res) {
     res.json({ success: result.success, data: result, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur DELETE /api/sync/test-cleanup:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 }
 
 function getAutoConfig(_req, res) {
-  res.json({ success: true, data: autoSyncConfig.getConfig(), timestamp: new Date().toISOString() });
+  res.json({
+    success: true,
+    data: autoSyncConfig.getConfig(),
+    timestamp: new Date().toISOString(),
+  });
 }
 
 function updateAutoConfig(req, res) {
@@ -176,7 +228,9 @@ function updateAutoConfig(req, res) {
     res.json({ success: true, data: updated, timestamp: new Date().toISOString() });
   } catch (err) {
     logger.error('Erreur PUT /api/sync/auto-config:', err);
-    res.status(500).json({ success: false, error: err.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: err.message, timestamp: new Date().toISOString() });
   }
 }
 

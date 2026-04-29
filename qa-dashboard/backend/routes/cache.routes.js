@@ -15,14 +15,13 @@ router.post('/clear', (req, res) => {
     res.json({
       success: true,
       message: 'Cache cleared successfully',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Erreur POST /api/cache/clear:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });

@@ -26,7 +26,8 @@ class SyncService {
     this.apiDelay = 300;
     // Testmo GitLab integration IDs (discovered via API probing)
     this.gitlabIntegrationId = parseInt(process.env.TESTMO_GITLAB_INTEGRATION_ID) || 1;
-    this.gitlabConnectionProjectId = parseInt(process.env.TESTMO_GITLAB_CONNECTION_PROJECT_ID) || 10684795;
+    this.gitlabConnectionProjectId =
+      parseInt(process.env.TESTMO_GITLAB_CONNECTION_PROJECT_ID) || 10684795;
   }
 
   /**
@@ -43,22 +44,28 @@ class SyncService {
 
     return {
       // Bind toutes les méthodes utiles sur ce contexte étendu
-      projectId:                testmo.projectId   || this.projectId,
-      rootGroupId:              testmo.rootFolderId !== undefined ? testmo.rootFolderId : this.rootGroupId,
-      gitlabLabel:              gitlab.label       || this.gitlabLabel,
-      gitlabIntegrationId:      testmo.gitlabIntegrationId           || this.gitlabIntegrationId,
-      gitlabConnectionProjectId: testmo.gitlabConnectionProjectId    || this.gitlabConnectionProjectId,
-      apiDelay:                 this.apiDelay,
-      _delay:                   this._delay.bind(this),
-      parseIterationName:       this.parseIterationName.bind(this),
-      buildCasePayload:         (issue, folderId, iterationName) =>
+      projectId: testmo.projectId || this.projectId,
+      rootGroupId: testmo.rootFolderId !== undefined ? testmo.rootFolderId : this.rootGroupId,
+      gitlabLabel: gitlab.label || this.gitlabLabel,
+      gitlabIntegrationId: testmo.gitlabIntegrationId || this.gitlabIntegrationId,
+      gitlabConnectionProjectId: testmo.gitlabConnectionProjectId || this.gitlabConnectionProjectId,
+      apiDelay: this.apiDelay,
+      _delay: this._delay.bind(this),
+      parseIterationName: this.parseIterationName.bind(this),
+      buildCasePayload: (issue, folderId, iterationName) =>
         this._buildCasePayloadWith(issue, folderId, iterationName, {
           gitlabIntegrationId: testmo.gitlabIntegrationId || this.gitlabIntegrationId,
-          gitlabConnectionProjectId: testmo.gitlabConnectionProjectId || this.gitlabConnectionProjectId
+          gitlabConnectionProjectId:
+            testmo.gitlabConnectionProjectId || this.gitlabConnectionProjectId,
         }),
-      ensureFolderHierarchy:    (iterationName, isTest) =>
-        this._ensureFolderHierarchyWith(iterationName, isTest, testmo.projectId || this.projectId, testmo.rootFolderId !== undefined ? testmo.rootFolderId : this.rootGroupId),
-      gitlabProjectId:          gitlab.projectId
+      ensureFolderHierarchy: (iterationName, isTest) =>
+        this._ensureFolderHierarchyWith(
+          iterationName,
+          isTest,
+          testmo.projectId || this.projectId,
+          testmo.rootFolderId !== undefined ? testmo.rootFolderId : this.rootGroupId
+        ),
+      gitlabProjectId: gitlab.projectId,
     };
   }
 
@@ -77,12 +84,16 @@ class SyncService {
       name: title,
       folder_id: folderId,
       tags,
-      custom_description: description ? sanitizeHtml(marked.parse(description.substring(0, 4000))) : '',
-      issues: [{
-        display_id: String(iid),
-        integration_id: integrationConfig.gitlabIntegrationId,
-        connection_project_id: integrationConfig.gitlabConnectionProjectId
-      }]
+      custom_description: description
+        ? sanitizeHtml(marked.parse(description.substring(0, 4000)))
+        : '',
+      issues: [
+        {
+          display_id: String(iid),
+          integration_id: integrationConfig.gitlabIntegrationId,
+          connection_project_id: integrationConfig.gitlabConnectionProjectId,
+        },
+      ],
     };
 
     if (estimate) {
@@ -99,7 +110,9 @@ class SyncService {
     const { parent, child } = this.parseIterationName(iterationName);
     const parentName = isTest ? `[TEST-API] ${parent}` : parent;
 
-    logger.info(`Sync: Création arborescence — "${parentName}" > "${child}" (project=${projectId}, root=${rootGroupId})`);
+    logger.info(
+      `Sync: Création arborescence — "${parentName}" > "${child}" (project=${projectId}, root=${rootGroupId})`
+    );
 
     const parentFolder = await testmoService.getOrCreateFolder(projectId, parentName, rootGroupId);
     await this._delay();
@@ -113,7 +126,7 @@ class SyncService {
    * Pause entre requêtes API
    */
   _delay() {
-    return new Promise(resolve => setTimeout(resolve, this.apiDelay));
+    return new Promise((resolve) => setTimeout(resolve, this.apiDelay));
   }
 
   /**
@@ -133,7 +146,7 @@ class SyncService {
     const SECTION_HEADER_RE = /\[([^\]]+)\](?!\()/g;
     const TEST_RE = /^tests?$/i;
 
-    const structured = notes.filter(n => n.body && /\[[^\]]+\](?!\()/.test(n.body));
+    const structured = notes.filter((n) => n.body && /\[[^\]]+\](?!\()/.test(n.body));
     if (structured.length === 0) return [];
 
     // Extrait les sections { label, content } d'un body
@@ -144,20 +157,22 @@ class SyncService {
       while ((m = re.exec(body)) !== null) {
         headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
       }
-      return headers.map((h, i) => {
-        const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
-        return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
-      }).filter(s => s.content.length > 0);
+      return headers
+        .map((h, i) => {
+          const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
+          return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
+        })
+        .filter((s) => s.content.length > 0);
     };
 
     // Sections non-TEST : depuis le commentaire le plus complet (le plus long)
-    const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
-    const otherSections = parseSections(best.body).filter(s => !TEST_RE.test(s.label));
+    const best = structured.reduce((a, b) => (b.body.length > a.body.length ? b : a));
+    const otherSections = parseSections(best.body).filter((s) => !TEST_RE.test(s.label));
 
     // Sections [TEST]/[TESTS] : collectées depuis TOUTES les notes dans l'ordre chronologique
     // (structured conserve l'ordre d'arrivée = ordre chronologique de getIssueNotes sort:asc)
-    const allTestSections = structured.flatMap(note =>
-      parseSections(note.body).filter(s => TEST_RE.test(s.label))
+    const allTestSections = structured.flatMap((note) =>
+      parseSections(note.body).filter((s) => TEST_RE.test(s.label))
     );
 
     if (otherSections.length === 0 && allTestSections.length === 0) return [];
@@ -167,10 +182,12 @@ class SyncService {
     const steps = [...otherSections, ...allTestSections].map((s, i) => ({
       text1: sanitizeHtml(marked.parse(`**[${s.label}]**\n\n${s.content}`)),
       text3: EXPECTED,
-      display_order: i + 1
+      display_order: i + 1,
     }));
 
-    logger.info(`Sync: _extractStepsFromNotes → ${steps.length} step(s). Aperçu step[0].text1: ${steps[0]?.text1?.substring(0, 200)}`);
+    logger.info(
+      `Sync: _extractStepsFromNotes → ${steps.length} step(s). Aperçu step[0].text1: ${steps[0]?.text1?.substring(0, 200)}`
+    );
     return steps;
   }
 
@@ -183,12 +200,15 @@ class SyncService {
    */
   parseIterationName(iterationName) {
     // Cas cadences auto GitLab : "Itération #N (date → date)"
-    const generatedMatch = iterationName.match(/#(\d+)/) && /it.ration/i.test(iterationName) ? iterationName.match(/#(\d+)/) : null;
+    const generatedMatch =
+      iterationName.match(/#(\d+)/) && /it.ration/i.test(iterationName)
+        ? iterationName.match(/#(\d+)/)
+        : null;
     if (generatedMatch) {
       const label = `Iteration-${generatedMatch[1]}`;
       return {
-        parent: label,   // ex: "Iteration-1"
-        child:  label    // même valeur — pas de sous-niveau
+        parent: label, // ex: "Iteration-1"
+        child: label, // même valeur — pas de sous-niveau
       };
     }
 
@@ -199,7 +219,7 @@ class SyncService {
 
     return {
       parent,
-      child: normalized // "R06 - run 1"
+      child: normalized, // "R06 - run 1"
     };
   }
 
@@ -226,7 +246,7 @@ class SyncService {
   buildCasePayload(issue, folderId, iterationName) {
     return this._buildCasePayloadWith(issue, folderId, iterationName, {
       gitlabIntegrationId: this.gitlabIntegrationId,
-      gitlabConnectionProjectId: this.gitlabConnectionProjectId
+      gitlabConnectionProjectId: this.gitlabConnectionProjectId,
     });
   }
 
@@ -247,16 +267,18 @@ class SyncService {
     const stats = { created: 0, updated: 0, skipped: 0, enriched: 0, errors: 0, total: 0 };
 
     // Résoudre la config effective
-    const cfg = projectConfig ? this._withProjectConfig(projectConfig) : {
-      projectId: this.projectId,
-      rootGroupId: this.rootGroupId,
-      gitlabLabel: this.gitlabLabel,
-      gitlabIntegrationId: this.gitlabIntegrationId,
-      gitlabConnectionProjectId: this.gitlabConnectionProjectId,
-      gitlabProjectId: null,
-      buildCasePayload: this.buildCasePayload.bind(this),
-      ensureFolderHierarchy: this.ensureFolderHierarchy.bind(this)
-    };
+    const cfg = projectConfig
+      ? this._withProjectConfig(projectConfig)
+      : {
+          projectId: this.projectId,
+          rootGroupId: this.rootGroupId,
+          gitlabLabel: this.gitlabLabel,
+          gitlabIntegrationId: this.gitlabIntegrationId,
+          gitlabConnectionProjectId: this.gitlabConnectionProjectId,
+          gitlabProjectId: null,
+          buildCasePayload: this.buildCasePayload.bind(this),
+          ensureFolderHierarchy: this.ensureFolderHierarchy.bind(this),
+        };
 
     const emit = (type, data = {}) => {
       if (typeof onEvent === 'function') {
@@ -266,7 +288,9 @@ class SyncService {
 
     logger.info('='.repeat(60));
     logger.info(`Sync: Démarrage synchronisation GitLab → Testmo`);
-    logger.info(`Sync: Itération="${iterationName}" | Filtre=Status:Test::TODO | Test=${isTest} | DryRun=${dryRun}`);
+    logger.info(
+      `Sync: Itération="${iterationName}" | Filtre=Status:Test::TODO | Test=${isTest} | DryRun=${dryRun}`
+    );
     logger.info('='.repeat(60));
 
     emit('start', { iterationName, dryRun });
@@ -306,13 +330,16 @@ class SyncService {
       // 3. Créer l'arborescence Testmo
       logger.info('Sync: [3/4] Création arborescence Testmo...');
       const { parentFolder, childFolder } = await this._ensureFolderHierarchyWith(
-        iterationName, isTest, cfg.projectId, cfg.rootGroupId
+        iterationName,
+        isTest,
+        cfg.projectId,
+        cfg.rootGroupId
       );
       emit('folder', {
         parent: parentFolder.name,
         child: childFolder.name,
         parentId: parentFolder.id,
-        childId: childFolder.id
+        childId: childFolder.id,
       });
       await this._delay();
 
@@ -342,7 +369,7 @@ class SyncService {
             }
 
             // Mettre à jour (case sans data manuelle) + enrichir depuis commentaires GitLab
-            let updatedCase = existingCase;
+            let _updatedCase = existingCase;
             if (!dryRun) {
               const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
               const gitlabPid = cfg.gitlabProjectId || issue.project_id;
@@ -352,7 +379,7 @@ class SyncService {
                 if (steps.length > 0) payload.custom_steps = steps;
                 await this._delay();
               }
-              updatedCase = await testmoService.updateCase(cfg.projectId, existingCase.id, payload);
+              await testmoService.updateCase(cfg.projectId, existingCase.id, payload);
             }
             logger.info(`Sync: Case #${iid} "${issue.title}" — MIS À JOUR`);
             stats.updated++;
@@ -360,7 +387,7 @@ class SyncService {
               name: issue.title,
               gitlabIid: iid,
               gitlabUrl: issue.web_url,
-              testmoUrl: this._buildTestmoUrl(cfg.projectId, existingCase.id)
+              testmoUrl: this._buildTestmoUrl(cfg.projectId, existingCase.id),
             });
           } else {
             // Créer + enrichir depuis commentaires GitLab
@@ -373,7 +400,9 @@ class SyncService {
                 const steps = this._extractStepsFromNotes(notes);
                 if (steps.length > 0) {
                   payload.custom_steps = steps;
-                  logger.info(`Sync: Case #${iid} — ${steps.length} step(s) extrait(s) des commentaires GitLab`);
+                  logger.info(
+                    `Sync: Case #${iid} — ${steps.length} step(s) extrait(s) des commentaires GitLab`
+                  );
                 }
                 await this._delay();
               }
@@ -385,7 +414,7 @@ class SyncService {
               name: issue.title,
               gitlabIid: iid,
               gitlabUrl: issue.web_url,
-              testmoUrl: createdCase ? this._buildTestmoUrl(cfg.projectId, createdCase.id) : null
+              testmoUrl: createdCase ? this._buildTestmoUrl(cfg.projectId, createdCase.id) : null,
             });
           }
 
@@ -409,7 +438,6 @@ class SyncService {
 
       emit('done', { ...stats });
       return stats;
-
     } catch (error) {
       logger.error('Sync: Erreur fatale:', error.message);
       emit('error', { message: error.message });
@@ -478,7 +506,9 @@ class SyncService {
 
     // 4. Analyser chaque ticket
     const issueAnalysis = [];
-    let toCreate = 0, toUpdate = 0, toSkip = 0;
+    let toCreate = 0,
+      toUpdate = 0,
+      toSkip = 0;
 
     for (const issue of issues) {
       let status = 'create';
@@ -502,31 +532,31 @@ class SyncService {
       else toSkip++;
 
       issueAnalysis.push({
-        iid:    issue.iid,
-        title:  issue.title,
-        url:    issue.web_url,
-        status
+        iid: issue.iid,
+        title: issue.title,
+        url: issue.web_url,
+        status,
       });
     }
 
     return {
       iteration: {
-        id:        iteration.id,
-        name:      iteration.title,
-        gitlabUrl: iteration.web_url || null
+        id: iteration.id,
+        name: iteration.title,
+        gitlabUrl: iteration.web_url || null,
       },
       folder: {
         parent,
         child,
-        exists: folderExists
+        exists: folderExists,
       },
       issues: issueAnalysis,
       summary: {
         toCreate,
         toUpdate,
         toSkip,
-        total: issues.length
-      }
+        total: issues.length,
+      },
     };
   }
 
@@ -547,7 +577,7 @@ class SyncService {
       logger.info('[1/5] Listage des folders sous group_id=' + this.rootGroupId);
       const existingFolders = await testmoService.getFolders(this.projectId, this.rootGroupId);
       logger.info(`  → ${existingFolders.length} folder(s) trouvé(s)`);
-      results.folders = { existing: existingFolders.map(f => ({ id: f.id, name: f.name })) };
+      results.folders = { existing: existingFolders.map((f) => ({ id: f.id, name: f.name })) };
       await this._delay();
 
       // 2. Créer un folder de test
@@ -577,15 +607,23 @@ class SyncService {
         folder_id: testChild.id,
         tags: ['gitlab-9999', 'iteration-r06-run-1', 'sync-auto'],
         custom_description: '<p>Test automatique via API — à supprimer</p>',
-        estimate: '15m'
+        estimate: '15m',
       });
-      results.cases = { created: { id: testCase.id, name: testCase.name || '[TEST-API] Cas de test automatique' } };
+      results.cases = {
+        created: { id: testCase.id, name: testCase.name || '[TEST-API] Cas de test automatique' },
+      };
       await this._delay();
 
       // 5. Vérifier l'idempotence (recherche par nom)
       logger.info('[5/5] Vérification idempotence (recherche par nom)');
-      const found = await testmoService.findCaseByName(this.projectId, '[TEST-API] Cas de test automatique', testChild.id);
-      results.cases.idempotenceCheck = found ? `OK — case retrouvé par nom (id=${found.id})` : 'FAIL — case non retrouvé';
+      const found = await testmoService.findCaseByName(
+        this.projectId,
+        '[TEST-API] Cas de test automatique',
+        testChild.id
+      );
+      results.cases.idempotenceCheck = found
+        ? `OK — case retrouvé par nom (id=${found.id})`
+        : 'FAIL — case non retrouvé';
 
       logger.info('='.repeat(60));
       logger.info('TEST API TESTMO — TERMINÉ');
@@ -593,7 +631,6 @@ class SyncService {
       logger.info('='.repeat(60));
 
       return { success: true, results };
-
     } catch (error) {
       logger.error('TEST API TESTMO — ERREUR:', error.message);
       return { success: false, error: error.message, results };

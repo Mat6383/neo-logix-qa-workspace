@@ -20,25 +20,30 @@ function _calculatePercentage(value, total) {
 
 function aggregateSessions(sessions) {
   const aggregated = {
-    total: 0, passed: 0, failed: 0,
-    completed: 0, success: 0, failure: 0, wip: 0,
+    total: 0,
+    passed: 0,
+    failed: 0,
+    completed: 0,
+    success: 0,
+    failure: 0,
+    wip: 0,
   };
 
-  sessions.forEach(session => {
+  sessions.forEach((session) => {
     const successCount = session.success_count || 0;
     const failureCount = session.failure_count || 0;
     const sessionTotal = successCount + failureCount;
 
     if (sessionTotal > 0) {
-      aggregated.total     += sessionTotal;
-      aggregated.passed    += successCount;
-      aggregated.failed    += failureCount;
+      aggregated.total += sessionTotal;
+      aggregated.passed += successCount;
+      aggregated.failed += failureCount;
       aggregated.completed += sessionTotal;
-      aggregated.success   += successCount;
-      aggregated.failure   += failureCount;
+      aggregated.success += successCount;
+      aggregated.failure += failureCount;
     } else {
       aggregated.total += 1;
-      aggregated.wip   += 1;
+      aggregated.wip += 1;
     }
   });
 
@@ -47,10 +52,10 @@ function aggregateSessions(sessions) {
 
 function globalMetrics(aggregated) {
   return {
-    completionRate:  _calculatePercentage(aggregated.completed, aggregated.total),
-    passRate:        _calculatePercentage(aggregated.passed, aggregated.completed),
-    failureRate:     _calculatePercentage(aggregated.failed, aggregated.completed),
-    testEfficiency:  _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
+    completionRate: _calculatePercentage(aggregated.completed, aggregated.total),
+    passRate: _calculatePercentage(aggregated.passed, aggregated.completed),
+    failureRate: _calculatePercentage(aggregated.failed, aggregated.completed),
+    testEfficiency: _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
   };
 }
 
@@ -73,7 +78,7 @@ class IstqbMetricsService {
    * @param {Array|null} prodMilestones
    * @returns {Object} Métriques ISTQB complètes
    */
-  async getProjectMetrics(projectId, preprodMilestones = null, prodMilestones = null) {
+  async getProjectMetrics(projectId, preprodMilestones = null, _prodMilestones = null) {
     const client = this.testmo.client;
 
     try {
@@ -86,20 +91,43 @@ class IstqbMetricsService {
         try {
           const runPromises = [];
           for (const mId of preprodMilestones) {
-            runPromises.push(client.get(`/projects/${projectId}/runs`, { params: { milestone_id: mId, is_closed: 0, per_page: 100, expands: 'users,milestones,configs' } }));
-            runPromises.push(client.get(`/projects/${projectId}/runs`, { params: { milestone_id: mId, is_closed: 1, per_page: 100, expands: 'users,milestones,configs' } }));
+            runPromises.push(
+              client.get(`/projects/${projectId}/runs`, {
+                params: {
+                  milestone_id: mId,
+                  is_closed: 0,
+                  per_page: 100,
+                  expands: 'users,milestones,configs',
+                },
+              })
+            );
+            runPromises.push(
+              client.get(`/projects/${projectId}/runs`, {
+                params: {
+                  milestone_id: mId,
+                  is_closed: 1,
+                  per_page: 100,
+                  expands: 'users,milestones,configs',
+                },
+              })
+            );
           }
           const allRunsData = await Promise.all(runPromises);
 
           runs = [];
-          allRunsData.forEach(resp => {
+          allRunsData.forEach((resp) => {
             if (resp.data.result) {
               runs = runs.concat(resp.data.result);
             }
           });
-          logger.info(`[getProjectMetrics] Récupération de ${runs.length} runs pour les jalons ${preprodMilestones.join(', ')}`);
+          logger.info(
+            `[getProjectMetrics] Récupération de ${runs.length} runs pour les jalons ${preprodMilestones.join(', ')}`
+          );
         } catch (e) {
-          logger.error(`Erreur lors de la récupération des runs filtrés par jalon:`, { status: e.response?.status, message: e.message });
+          logger.error(`Erreur lors de la récupération des runs filtrés par jalon:`, {
+            status: e.response?.status,
+            message: e.message,
+          });
         }
       }
 
@@ -110,26 +138,35 @@ class IstqbMetricsService {
         sessions = sessionsData.result || [];
 
         if (preprodMilestones && preprodMilestones.length > 0) {
-          sessions = sessions.filter(s => preprodMilestones.includes(s.milestone_id));
+          sessions = sessions.filter((s) => preprodMilestones.includes(s.milestone_id));
         } else {
-          sessions = sessions.filter(s => !s.is_closed);
+          sessions = sessions.filter((s) => !s.is_closed);
         }
 
-        logger.info(`[getProjectMetrics] Récupération de ${sessions.length} sessions exploratoires`);
+        logger.info(
+          `[getProjectMetrics] Récupération de ${sessions.length} sessions exploratoires`
+        );
       } catch (e) {
-        logger.error(`Erreur lors de la récupération des sessions exploratoires:`, { status: e.response?.status, message: e.message });
+        logger.error(`Erreur lors de la récupération des sessions exploratoires:`, {
+          status: e.response?.status,
+          message: e.message,
+        });
       }
 
       // Fetch dynamic TV metrics (Closed Runs & Milestones)
       const [closedRunsResponse, milestonesResponse] = await Promise.all([
-        client.get(`/projects/${projectId}/runs`, { params: { is_closed: 1, per_page: 100 } }).catch(() => ({ data: { total: 0 } })),
-        client.get(`/projects/${projectId}/milestones`, { params: { per_page: 100 } }).catch(() => ({ data: { result: [] } }))
+        client
+          .get(`/projects/${projectId}/runs`, { params: { is_closed: 1, per_page: 100 } })
+          .catch(() => ({ data: { total: 0 } })),
+        client
+          .get(`/projects/${projectId}/milestones`, { params: { per_page: 100 } })
+          .catch(() => ({ data: { result: [] } })),
       ]);
 
       const closedRunsCount = closedRunsResponse.data.total || 0;
       const milestones = milestonesResponse.data.result || [];
       const milestonesTotal = milestones.length || 1;
-      const milestonesCompleted = milestones.filter(m => m.is_completed).length;
+      const milestonesCompleted = milestones.filter((m) => m.is_completed).length;
 
       if (runs.length === 0 && sessions.length === 0) {
         logger.warn(`No active runs or sessions found for project ${projectId}`);
@@ -137,35 +174,54 @@ class IstqbMetricsService {
       }
 
       // Agrégation des métriques (runs + sessions)
-      const aggregated = runs.reduce((acc, run) => ({
-        total: acc.total + (run.total_count || 0),
-        untested: acc.untested + (run.untested_count || 0),
-        passed: acc.passed + (run.status1_count || 0),
-        failed: acc.failed + (run.status2_count || 0),
-        retest: acc.retest + (run.status3_count || 0),
-        blocked: acc.blocked + (run.status4_count || 0),
-        skipped: acc.skipped + (run.status5_count || 0),
-        wip: acc.wip + (run.status7_count || 0),
-        completed: acc.completed + (run.completed_count || 0),
-        success: acc.success + (run.success_count || 0),
-        failure: acc.failure + (run.failure_count || 0)
-      }), {
-        total: 0, untested: 0, passed: 0, failed: 0,
-        retest: 0, blocked: 0, skipped: 0, wip: 0,
-        completed: 0, success: 0, failure: 0
-      });
+      const aggregated = runs.reduce(
+        (acc, run) => ({
+          total: acc.total + (run.total_count || 0),
+          untested: acc.untested + (run.untested_count || 0),
+          passed: acc.passed + (run.status1_count || 0),
+          failed: acc.failed + (run.status2_count || 0),
+          retest: acc.retest + (run.status3_count || 0),
+          blocked: acc.blocked + (run.status4_count || 0),
+          skipped: acc.skipped + (run.status5_count || 0),
+          wip: acc.wip + (run.status7_count || 0),
+          completed: acc.completed + (run.completed_count || 0),
+          success: acc.success + (run.success_count || 0),
+          failure: acc.failure + (run.failure_count || 0),
+        }),
+        {
+          total: 0,
+          untested: 0,
+          passed: 0,
+          failed: 0,
+          retest: 0,
+          blocked: 0,
+          skipped: 0,
+          wip: 0,
+          completed: 0,
+          success: 0,
+          failure: 0,
+        }
+      );
 
       // Ajout des sessions exploratoires dans la répartition globale
       const sessionAggregated = aggregateSessions(sessions);
-      aggregated.total     += sessionAggregated.total;
-      aggregated.passed    += sessionAggregated.passed;
-      aggregated.failed    += sessionAggregated.failed;
+      aggregated.total += sessionAggregated.total;
+      aggregated.passed += sessionAggregated.passed;
+      aggregated.failed += sessionAggregated.failed;
       aggregated.completed += sessionAggregated.completed;
-      aggregated.success   += sessionAggregated.success;
-      aggregated.failure   += sessionAggregated.failure;
-      aggregated.wip       += sessionAggregated.wip;
+      aggregated.success += sessionAggregated.success;
+      aggregated.failure += sessionAggregated.failure;
+      aggregated.wip += sessionAggregated.wip;
 
-      const leadTime = Math.round(runs.reduce((acc, r) => acc + (Date.now() - new Date(r.created_at).getTime()) / (1000 * 3600), 0) / (runs.length || 1) * 10) / 10;
+      const leadTime =
+        Math.round(
+          (runs.reduce(
+            (acc, r) => acc + (Date.now() - new Date(r.created_at).getTime()) / (1000 * 3600),
+            0
+          ) /
+            (runs.length || 1)) *
+            10
+        ) / 10;
       const mttr = Math.round(leadTime * (aggregated.failed / (aggregated.passed || 1)) * 10) / 10;
 
       // Calculs ISTQB
@@ -189,13 +245,13 @@ class IstqbMetricsService {
             aggregated.blocked,
             aggregated.skipped,
             aggregated.untested,
-            aggregated.wip
+            aggregated.wip,
           ],
-          colors: ['#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#6B7280', '#9CA3AF', '#3B82F6']
+          colors: ['#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#6B7280', '#9CA3AF', '#3B82F6'],
         },
         runsCount: runs.length + sessions.length,
         runs: [
-          ...runs.map(run => ({
+          ...runs.map((run) => ({
             id: run.id,
             name: run.name,
             total: run.total_count || 0,
@@ -209,12 +265,16 @@ class IstqbMetricsService {
             passRate: _calculatePercentage(run.status1_count, run.completed_count),
             created_at: run.created_at,
             milestone: run.milestone_id,
-            isExploratory: false
+            isExploratory: false,
           })),
-          ...sessions.map(session => {
+          ...sessions.map((session) => {
             const isTerminal = !!session.is_closed;
             const total = session.total_count || 0;
-            const executed = (session.status1_count || 0) + (session.status2_count || 0) + (session.status4_count || 0) + (session.status5_count || 0);
+            const executed =
+              (session.status1_count || 0) +
+              (session.status2_count || 0) +
+              (session.status4_count || 0) +
+              (session.status5_count || 0);
 
             let completionRate = 0;
             if (isTerminal || executed > 0) {
@@ -243,9 +303,9 @@ class IstqbMetricsService {
               created_at: session.created_at,
               milestone: session.milestone_id,
               isExploratory: true,
-              isClosed: !!session.is_closed
+              isClosed: !!session.is_closed,
             };
-          })
+          }),
         ],
         timestamp: new Date().toISOString(),
         itil: {
@@ -254,13 +314,13 @@ class IstqbMetricsService {
           leadTime: leadTime,
           leadTimeTarget: 120,
           changeFailRate: _calculatePercentage(aggregated.failed, aggregated.completed),
-          changeFailRateTarget: 20
+          changeFailRateTarget: 20,
         },
         lean: {
           wipTotal: aggregated.wip,
           wipTarget: 20,
           activeRuns: runs.length,
-          closedRuns: closedRunsCount
+          closedRuns: closedRunsCount,
         },
         istqb: {
           avgPassRate: _calculatePercentage(aggregated.passed, aggregated.completed),
@@ -268,15 +328,14 @@ class IstqbMetricsService {
           milestonesCompleted: milestonesCompleted,
           milestonesTotal: milestonesTotal,
           blockRate: _calculatePercentage(aggregated.blocked, aggregated.total),
-          blockRateTarget: 5
-        }
+          blockRateTarget: 5,
+        },
       };
 
       resultMetrics.runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       resultMetrics.slaStatus = this._checkSLA(resultMetrics);
 
       return resultMetrics;
-
     } catch (error) {
       throw this.testmo._handleError('getProjectMetrics', error);
     }
@@ -290,79 +349,127 @@ class IstqbMetricsService {
     const client = this.testmo.client;
 
     try {
-      if ((preprodMilestones && preprodMilestones.length > 0) || (prodMilestones && prodMilestones.length > 0)) {
-
+      if (
+        (preprodMilestones && preprodMilestones.length > 0) ||
+        (prodMilestones && prodMilestones.length > 0)
+      ) {
         let allRuns = [];
         try {
-          const requiredMilestones = [...new Set([
-            ...(preprodMilestones || []),
-            ...(prodMilestones || [])
-          ])];
+          const requiredMilestones = [
+            ...new Set([...(preprodMilestones || []), ...(prodMilestones || [])]),
+          ];
 
           const runPromises = [];
           const sessionPromises = [];
           for (const mId of requiredMilestones) {
-            runPromises.push(client.get(`/projects/${projectId}/runs`, { params: { milestone_id: mId, is_closed: 0, per_page: 100, expands: 'users,milestones,configs' } }));
-            runPromises.push(client.get(`/projects/${projectId}/runs`, { params: { milestone_id: mId, is_closed: 1, per_page: 100, expands: 'users,milestones,configs' } }));
-            sessionPromises.push(client.get(`/projects/${projectId}/sessions`, { params: { milestone_id: mId, is_closed: 0, per_page: 100 } }));
-            sessionPromises.push(client.get(`/projects/${projectId}/sessions`, { params: { milestone_id: mId, is_closed: 1, per_page: 100 } }));
+            runPromises.push(
+              client.get(`/projects/${projectId}/runs`, {
+                params: {
+                  milestone_id: mId,
+                  is_closed: 0,
+                  per_page: 100,
+                  expands: 'users,milestones,configs',
+                },
+              })
+            );
+            runPromises.push(
+              client.get(`/projects/${projectId}/runs`, {
+                params: {
+                  milestone_id: mId,
+                  is_closed: 1,
+                  per_page: 100,
+                  expands: 'users,milestones,configs',
+                },
+              })
+            );
+            sessionPromises.push(
+              client.get(`/projects/${projectId}/sessions`, {
+                params: { milestone_id: mId, is_closed: 0, per_page: 100 },
+              })
+            );
+            sessionPromises.push(
+              client.get(`/projects/${projectId}/sessions`, {
+                params: { milestone_id: mId, is_closed: 1, per_page: 100 },
+              })
+            );
           }
           const [allRunsData, allSessionsData] = await Promise.all([
             Promise.all(runPromises),
-            Promise.all(sessionPromises)
+            Promise.all(sessionPromises),
           ]);
 
-          allRunsData.forEach(resp => {
+          allRunsData.forEach((resp) => {
             if (resp.data.result) {
               allRuns = allRuns.concat(resp.data.result);
             }
           });
 
           let allSessions = [];
-          allSessionsData.forEach(resp => {
+          allSessionsData.forEach((resp) => {
             if (resp.data.result) {
               allSessions = allSessions.concat(resp.data.result);
             }
           });
 
-          allRuns = Array.from(new Map(allRuns.map(item => [item.id, item])).values());
-          allSessions = Array.from(new Map(allSessions.map(item => [item.id, item])).values());
+          allRuns = Array.from(new Map(allRuns.map((item) => [item.id, item])).values());
+          allSessions = Array.from(new Map(allSessions.map((item) => [item.id, item])).values());
 
-          logger.info(`[getEscapeAndDetectionRates] Récupération unique de ${allRuns.length} runs et ${allSessions.length} sessions pour les jalons ${requiredMilestones.join(', ')}`);
+          logger.info(
+            `[getEscapeAndDetectionRates] Récupération unique de ${allRuns.length} runs et ${allSessions.length} sessions pour les jalons ${requiredMilestones.join(', ')}`
+          );
 
           this._tempSessions = allSessions;
         } catch (e) {
-          logger.error(`Erreur récupération Quality Rates runs/sessions spécifiques:`, { status: e.response?.status, message: e.message });
+          logger.error(`Erreur récupération Quality Rates runs/sessions spécifiques:`, {
+            status: e.response?.status,
+            message: e.message,
+          });
         }
 
         let preprodRuns = [];
         let prodRuns = [];
 
         if (preprodMilestones && preprodMilestones.length > 0) {
-          preprodRuns = allRuns.filter(r => preprodMilestones.includes(r.milestone_id));
+          preprodRuns = allRuns.filter((r) => preprodMilestones.includes(r.milestone_id));
         } else {
-          const latestMiles = [...new Set(allRuns.filter(r => r.milestone_id).map(r => r.milestone_id))].slice(0, 3);
+          const latestMiles = [
+            ...new Set(allRuns.filter((r) => r.milestone_id).map((r) => r.milestone_id)),
+          ].slice(0, 3);
           if (latestMiles.length > 0) {
-            preprodRuns = allRuns.filter(r => r.milestone_id === latestMiles[0]);
+            preprodRuns = allRuns.filter((r) => r.milestone_id === latestMiles[0]);
           }
         }
 
         if (prodMilestones && prodMilestones.length > 0) {
           const isProdRunFn = (runName) => {
             const name = runName.toLowerCase();
-            return name.includes('patch') || name.includes('retour de prod') || name.includes('retour') || name.includes('prod');
+            return (
+              name.includes('patch') ||
+              name.includes('retour de prod') ||
+              name.includes('retour') ||
+              name.includes('prod')
+            );
           };
-          prodRuns = allRuns.filter(r => prodMilestones.includes(r.milestone_id) && isProdRunFn(r.name));
+          prodRuns = allRuns.filter(
+            (r) => prodMilestones.includes(r.milestone_id) && isProdRunFn(r.name)
+          );
         } else {
           const isProdRunFn = (runName) => {
             const name = runName.toLowerCase();
-            return name.includes('patch') || name.includes('retour de prod') || name.includes('retour') || name.includes('prod');
+            return (
+              name.includes('patch') ||
+              name.includes('retour de prod') ||
+              name.includes('retour') ||
+              name.includes('prod')
+            );
           };
-          const latestMiles = [...new Set(allRuns.filter(r => r.milestone_id).map(r => r.milestone_id))];
+          const latestMiles = [
+            ...new Set(allRuns.filter((r) => r.milestone_id).map((r) => r.milestone_id)),
+          ];
 
           for (let i = 0; i < latestMiles.length; i++) {
-            const milestoneRuns = allRuns.filter(r => r.milestone_id === latestMiles[i]);
-            const prodInMilestone = milestoneRuns.filter(r => isProdRunFn(r.name));
+            const milestoneRuns = allRuns.filter((r) => r.milestone_id === latestMiles[i]);
+            const prodInMilestone = milestoneRuns.filter((r) => isProdRunFn(r.name));
             if (prodInMilestone.length > 0) {
               prodRuns = prodInMilestone;
               break;
@@ -372,21 +479,28 @@ class IstqbMetricsService {
 
         if (preprodRuns.length === 0 || prodRuns.length === 0) {
           return {
-            escapeRate: 0, detectionRate: 0, bugsInProd: 0, bugsInTest: 0, totalBugs: 0,
-            preprodMilestone: 'Sélection incomplète', prodMilestone: 'Sélection incomplète',
-            message: 'Impossible de trouver des runs pour l\'un des environnements.'
+            escapeRate: 0,
+            detectionRate: 0,
+            bugsInProd: 0,
+            bugsInTest: 0,
+            totalBugs: 0,
+            preprodMilestone: 'Sélection incomplète',
+            prodMilestone: 'Sélection incomplète',
+            message: "Impossible de trouver des runs pour l'un des environnements.",
           };
         }
 
         let bugsInTest = 0;
         for (const run of preprodRuns) {
-          bugsInTest += (run.status2_count || 0);
+          bugsInTest += run.status2_count || 0;
         }
 
         if (this._tempSessions && preprodMilestones) {
-          const preprodSessions = this._tempSessions.filter(s => preprodMilestones.includes(s.milestone_id));
+          const preprodSessions = this._tempSessions.filter((s) =>
+            preprodMilestones.includes(s.milestone_id)
+          );
           for (const session of preprodSessions) {
-            bugsInTest += (session.status2_count || 0);
+            bugsInTest += session.status2_count || 0;
           }
         }
         delete this._tempSessions;
@@ -398,23 +512,39 @@ class IstqbMetricsService {
             if (runDetails.issues && runDetails.issues.length > 0) {
               bugsInProd += runDetails.issues.length;
             } else {
-              const results = await client.get(`/runs/${run.id}/results`, { params: { expands: 'issues' } });
-              const failedResultsWithIssues = (results.data.result || []).filter(res => res.issues && res.issues.length > 0);
+              const results = await client.get(`/runs/${run.id}/results`, {
+                params: { expands: 'issues' },
+              });
+              const failedResultsWithIssues = (results.data.result || []).filter(
+                (res) => res.issues && res.issues.length > 0
+              );
               if (failedResultsWithIssues.length > 0) {
                 bugsInProd += failedResultsWithIssues.length;
               }
             }
           } catch (e) {
-            logger.error("Erreur details run production:", { status: e.response?.status, message: e.message });
+            logger.error('Erreur details run production:', {
+              status: e.response?.status,
+              message: e.message,
+            });
           }
         }
 
         const totalBugs = bugsInTest + bugsInProd;
 
         let preprodMilestoneName = 'Sélection manuelle';
-        if (preprodRuns.length > 0 && preprodRuns[0].milestones && preprodRuns[0].milestones.length > 0) {
+        if (
+          preprodRuns.length > 0 &&
+          preprodRuns[0].milestones &&
+          preprodRuns[0].milestones.length > 0
+        ) {
           preprodMilestoneName = preprodRuns[0].milestones[0].name;
-          if (preprodRuns.length > 1 && preprodRuns[1].milestones && preprodRuns[1].milestones.length > 0 && preprodRuns[0].milestones[0].id !== preprodRuns[1].milestones[0].id) {
+          if (
+            preprodRuns.length > 1 &&
+            preprodRuns[1].milestones &&
+            preprodRuns[1].milestones.length > 0 &&
+            preprodRuns[0].milestones[0].id !== preprodRuns[1].milestones[0].id
+          ) {
             preprodMilestoneName += ' & ' + preprodRuns[1].milestones[0].name;
           }
         } else if (preprodRuns[0] && preprodRuns[0].milestone) {
@@ -424,7 +554,12 @@ class IstqbMetricsService {
         let prodMilestoneName = 'Sélection manuelle';
         if (prodRuns.length > 0 && prodRuns[0].milestones && prodRuns[0].milestones.length > 0) {
           prodMilestoneName = prodRuns[0].milestones[0].name;
-          if (prodRuns.length > 1 && prodRuns[1].milestones && prodRuns[1].milestones.length > 0 && prodRuns[0].milestones[0].id !== prodRuns[1].milestones[0].id) {
+          if (
+            prodRuns.length > 1 &&
+            prodRuns[1].milestones &&
+            prodRuns[1].milestones.length > 0 &&
+            prodRuns[0].milestones[0].id !== prodRuns[1].milestones[0].id
+          ) {
             prodMilestoneName += ' & ' + prodRuns[1].milestones[0].name;
           }
         } else if (prodRuns[0] && prodRuns[0].milestone) {
@@ -438,13 +573,13 @@ class IstqbMetricsService {
           bugsInTest,
           totalBugs,
           preprodMilestone: preprodMilestoneName,
-          prodMilestone: prodMilestoneName
+          prodMilestone: prodMilestoneName,
         };
       }
 
       // --- LOGIQUE PAR DEFAUT AUTOMATIQUE ---
       const milestonesResponse = await client.get(`/projects/${projectId}/milestones`, {
-        params: { is_completed: 0, sort: 'milestones:created_at', order: 'desc', per_page: 100 }
+        params: { is_completed: 0, sort: 'milestones:created_at', order: 'desc', per_page: 100 },
       });
       const activeMilestones = milestonesResponse.data.result || [];
 
@@ -456,22 +591,24 @@ class IstqbMetricsService {
           bugsInTest: 0,
           preprodMilestone: activeMilestones[0] ? activeMilestones[0].name : 'N/A',
           prodMilestone: activeMilestones[2] ? activeMilestones[2].name : 'N/A',
-          message: 'Pas assez de milestones actives pour comparer (3 requises).'
+          message: 'Pas assez de milestones actives pour comparer (3 requises).',
         };
       }
 
       let preprodMilestone = null;
       let prodMilestone = null;
-      let preprodRuns = [];
       let prodRuns = [];
-      let preprodSessions = [];
       let prodSessions = [];
       let milestonesWithActivityCount = 0;
 
       for (const m of activeMilestones) {
         const [runsResp, sessionsResp] = await Promise.all([
-          client.get(`/projects/${projectId}/runs`, { params: { milestone_id: m.id, per_page: 100 } }),
-          client.get(`/projects/${projectId}/sessions`, { params: { milestone_id: m.id, per_page: 100 } })
+          client.get(`/projects/${projectId}/runs`, {
+            params: { milestone_id: m.id, per_page: 100 },
+          }),
+          client.get(`/projects/${projectId}/sessions`, {
+            params: { milestone_id: m.id, per_page: 100 },
+          }),
         ]);
 
         const runs = runsResp.data.result || [];
@@ -481,8 +618,6 @@ class IstqbMetricsService {
           milestonesWithActivityCount++;
           if (milestonesWithActivityCount === 1) {
             preprodMilestone = m;
-            preprodRuns = runs;
-            preprodSessions = sessions;
           } else if (milestonesWithActivityCount === 3) {
             prodMilestone = m;
             prodRuns = runs;
@@ -500,7 +635,7 @@ class IstqbMetricsService {
           bugsInTest: 0,
           preprodMilestone: preprodMilestone ? preprodMilestone.name : 'N/A',
           prodMilestone: prodMilestone ? prodMilestone.name : 'N/A',
-          message: 'Impossible de trouver 3 milestones avec de l\'activité (runs/sessions).'
+          message: "Impossible de trouver 3 milestones avec de l'activité (runs/sessions).",
         };
       }
 
@@ -508,29 +643,38 @@ class IstqbMetricsService {
 
       const isProdRunFn = (runName) => {
         const name = runName.toLowerCase();
-        return name.includes('patch') || name.includes('retour de prod') || name.includes('retour') || name.includes('prod');
+        return (
+          name.includes('patch') ||
+          name.includes('retour de prod') ||
+          name.includes('retour') ||
+          name.includes('prod')
+        );
       };
 
-      const testRuns = prodRuns.filter(r => !isProdRunFn(r.name));
+      const testRuns = prodRuns.filter((r) => !isProdRunFn(r.name));
 
       for (const run of testRuns) {
-        bugsInTest += (run.status2_count || 0);
+        bugsInTest += run.status2_count || 0;
       }
 
       for (const session of prodSessions) {
-        bugsInTest += (session.status2_count || 0);
+        bugsInTest += session.status2_count || 0;
       }
 
       let bugsInProd = 0;
-      const patchRuns = prodRuns.filter(r => isProdRunFn(r.name));
+      const patchRuns = prodRuns.filter((r) => isProdRunFn(r.name));
 
       for (const run of patchRuns) {
         const runDetails = await this.testmo.getRunDetails(run.id);
         if (runDetails.issues && runDetails.issues.length > 0) {
           bugsInProd += runDetails.issues.length;
         } else {
-          const results = await client.get(`/runs/${run.id}/results`, { params: { expands: 'issues' } });
-          const failedResultsWithIssues = results.data.result.filter(res => res.issues && res.issues.length > 0);
+          const results = await client.get(`/runs/${run.id}/results`, {
+            params: { expands: 'issues' },
+          });
+          const failedResultsWithIssues = results.data.result.filter(
+            (res) => res.issues && res.issues.length > 0
+          );
 
           if (failedResultsWithIssues.length > 0) {
             bugsInProd += failedResultsWithIssues.length;
@@ -552,9 +696,8 @@ class IstqbMetricsService {
         bugsInTest,
         totalBugs,
         preprodMilestone: preprodMilestone.name,
-        prodMilestone: prodMilestone.name
+        prodMilestone: prodMilestone.name,
       };
-
     } catch (error) {
       throw this.testmo._handleError('getEscapeAndDetectionRates', error);
     }
@@ -574,31 +717,40 @@ class IstqbMetricsService {
 
     try {
       const milestonesResponse = await client.get(`/projects/${projectId}/milestones`, {
-        params: { sort: 'milestones:created_at', order: 'desc', per_page: 100 }
+        params: { sort: 'milestones:created_at', order: 'desc', per_page: 100 },
       });
       const milestones = (milestonesResponse.data.result || []).slice(0, 20);
 
       if (milestones.length === 0) return [];
 
-      const [activeRunsResp, closedRunsResp, activeSessionsResp, closedSessionsResp] = await Promise.all([
-        client.get(`/projects/${projectId}/runs`, { params: { is_closed: 0, per_page: 100, expands: 'milestones' } }),
-        client.get(`/projects/${projectId}/runs`, { params: { is_closed: 1, per_page: 100, expands: 'milestones' } }),
-        client.get(`/projects/${projectId}/sessions`, { params: { is_closed: 0, per_page: 100 } }),
-        client.get(`/projects/${projectId}/sessions`, { params: { is_closed: 1, per_page: 100 } })
-      ]);
+      const [activeRunsResp, closedRunsResp, activeSessionsResp, closedSessionsResp] =
+        await Promise.all([
+          client.get(`/projects/${projectId}/runs`, {
+            params: { is_closed: 0, per_page: 100, expands: 'milestones' },
+          }),
+          client.get(`/projects/${projectId}/runs`, {
+            params: { is_closed: 1, per_page: 100, expands: 'milestones' },
+          }),
+          client.get(`/projects/${projectId}/sessions`, {
+            params: { is_closed: 0, per_page: 100 },
+          }),
+          client.get(`/projects/${projectId}/sessions`, {
+            params: { is_closed: 1, per_page: 100 },
+          }),
+        ]);
 
       const allRuns = [
         ...(activeRunsResp.data.result || []),
-        ...(closedRunsResp.data.result || [])
+        ...(closedRunsResp.data.result || []),
       ];
 
       const allSessions = [
         ...(activeSessionsResp.data.result || []),
-        ...(closedSessionsResp.data.result || [])
+        ...(closedSessionsResp.data.result || []),
       ];
 
       const runsByMilestone = new Map();
-      allRuns.forEach(run => {
+      allRuns.forEach((run) => {
         if (run.milestone_id) {
           if (!runsByMilestone.has(run.milestone_id)) {
             runsByMilestone.set(run.milestone_id, []);
@@ -608,7 +760,7 @@ class IstqbMetricsService {
       });
 
       const sessionsByMilestone = new Map();
-      allSessions.forEach(session => {
+      allSessions.forEach((session) => {
         if (session.milestone_id) {
           if (!sessionsByMilestone.has(session.milestone_id)) {
             sessionsByMilestone.set(session.milestone_id, []);
@@ -619,7 +771,12 @@ class IstqbMetricsService {
 
       const isProdRunFn = (runName) => {
         const name = runName.toLowerCase();
-        return name.includes('patch') || name.includes('retour de prod') || name.includes('retour') || name.includes('prod');
+        return (
+          name.includes('patch') ||
+          name.includes('retour de prod') ||
+          name.includes('retour') ||
+          name.includes('prod')
+        );
       };
 
       const trends = [];
@@ -630,11 +787,12 @@ class IstqbMetricsService {
 
         if (milestoneRuns.length === 0 && milestoneSessions.length === 0) continue;
 
-        const preprodRuns = milestoneRuns.filter(r => !isProdRunFn(r.name));
-        const prodRuns = milestoneRuns.filter(r => isProdRunFn(r.name));
+        const preprodRuns = milestoneRuns.filter((r) => !isProdRunFn(r.name));
+        const prodRuns = milestoneRuns.filter((r) => isProdRunFn(r.name));
 
-        const bugsInTest = preprodRuns.reduce((acc, r) => acc + (r.status2_count || 0), 0) +
-                           milestoneSessions.reduce((acc, s) => acc + (s.status2_count || 0), 0);
+        const bugsInTest =
+          preprodRuns.reduce((acc, r) => acc + (r.status2_count || 0), 0) +
+          milestoneSessions.reduce((acc, s) => acc + (s.status2_count || 0), 0);
 
         const bugsInProd = prodRuns.reduce((acc, r) => acc + (r.status2_count || 0), 0);
 
@@ -649,7 +807,7 @@ class IstqbMetricsService {
           bugsInProd,
           bugsInTest,
           totalBugs,
-          isCompleted: m.is_completed
+          isCompleted: m.is_completed,
         });
       }
 
@@ -657,7 +815,6 @@ class IstqbMetricsService {
 
       this.testmo._setCache(cacheKey, sortedTrends);
       return sortedTrends;
-
     } catch (error) {
       throw this.testmo._handleError('getAnnualQualityTrends', error);
     }
@@ -669,7 +826,16 @@ class IstqbMetricsService {
    */
   _getEmptyMetrics() {
     return {
-      raw: { total: 0, untested: 0, passed: 0, failed: 0, retest: 0, blocked: 0, skipped: 0, completed: 0 },
+      raw: {
+        total: 0,
+        untested: 0,
+        passed: 0,
+        failed: 0,
+        retest: 0,
+        blocked: 0,
+        skipped: 0,
+        completed: 0,
+      },
       completionRate: 0,
       passRate: 0,
       failureRate: 0,
@@ -679,15 +845,29 @@ class IstqbMetricsService {
       statusDistribution: {
         labels: ['Passed', 'Failed', 'Retest', 'Blocked', 'Skipped', 'Untested', 'WIP'],
         values: [0, 0, 0, 0, 0, 0, 0],
-        colors: ['#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#6B7280', '#9CA3AF', '#3B82F6']
+        colors: ['#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#6B7280', '#9CA3AF', '#3B82F6'],
       },
       runsCount: 0,
       runs: [],
       slaStatus: { ok: true, alerts: [] },
       timestamp: new Date().toISOString(),
-      itil: { mttr: 0, mttrTarget: 72, leadTime: 0, leadTimeTarget: 120, changeFailRate: 0, changeFailRateTarget: 20 },
+      itil: {
+        mttr: 0,
+        mttrTarget: 72,
+        leadTime: 0,
+        leadTimeTarget: 120,
+        changeFailRate: 0,
+        changeFailRateTarget: 20,
+      },
       lean: { wipTotal: 0, wipTarget: 20, activeRuns: 0, closedRuns: 161 },
-      istqb: { avgPassRate: 0, passRateTarget: 80, milestonesCompleted: 13, milestonesTotal: 27, blockRate: 0, blockRateTarget: 5 }
+      istqb: {
+        avgPassRate: 0,
+        passRateTarget: 80,
+        milestonesCompleted: 13,
+        milestonesTotal: 27,
+        blockRate: 0,
+        blockRateTarget: 5,
+      },
     };
   }
 
@@ -699,7 +879,7 @@ class IstqbMetricsService {
     const SLA_THRESHOLDS = {
       passRate: { target: 95, warning: 90, critical: 85 },
       blockedRate: { max: 5 },
-      completionRate: { target: 90, warning: 80 }
+      completionRate: { target: 90, warning: 80 },
     };
 
     const alerts = [];
@@ -710,7 +890,7 @@ class IstqbMetricsService {
         metric: 'Pass Rate',
         value: metrics.passRate,
         threshold: SLA_THRESHOLDS.passRate.critical,
-        message: `Pass rate critique: ${metrics.passRate}% < ${SLA_THRESHOLDS.passRate.critical}%`
+        message: `Pass rate critique: ${metrics.passRate}% < ${SLA_THRESHOLDS.passRate.critical}%`,
       });
     } else if (metrics.passRate < SLA_THRESHOLDS.passRate.warning) {
       alerts.push({
@@ -718,7 +898,7 @@ class IstqbMetricsService {
         metric: 'Pass Rate',
         value: metrics.passRate,
         threshold: SLA_THRESHOLDS.passRate.warning,
-        message: `Pass rate en warning: ${metrics.passRate}% < ${SLA_THRESHOLDS.passRate.warning}%`
+        message: `Pass rate en warning: ${metrics.passRate}% < ${SLA_THRESHOLDS.passRate.warning}%`,
       });
     }
 
@@ -728,7 +908,7 @@ class IstqbMetricsService {
         metric: 'Blocked Rate',
         value: metrics.blockedRate,
         threshold: SLA_THRESHOLDS.blockedRate.max,
-        message: `Trop de tests bloqués: ${metrics.blockedRate}% > ${SLA_THRESHOLDS.blockedRate.max}%`
+        message: `Trop de tests bloqués: ${metrics.blockedRate}% > ${SLA_THRESHOLDS.blockedRate.max}%`,
       });
     }
 
@@ -738,13 +918,13 @@ class IstqbMetricsService {
         metric: 'Completion Rate',
         value: metrics.completionRate,
         threshold: SLA_THRESHOLDS.completionRate.warning,
-        message: `Avancement insuffisant: ${metrics.completionRate}% < ${SLA_THRESHOLDS.completionRate.warning}%`
+        message: `Avancement insuffisant: ${metrics.completionRate}% < ${SLA_THRESHOLDS.completionRate.warning}%`,
       });
     }
 
     return {
       ok: alerts.length === 0,
-      alerts: alerts
+      alerts: alerts,
     };
   }
 }

@@ -19,7 +19,9 @@ async function main() {
     console.log('\n✅ Test RÉUSSI — Les endpoints beta fonctionnent\n');
     console.log('Résultats:', JSON.stringify(result.results, null, 2));
     console.log('\n💡 Pour nettoyer le dossier de test:');
-    console.log('   node -e "require(\'dotenv\').config(); require(\'./services/sync.service\').cleanupTestFolder().then(r => console.log(r))"');
+    console.log(
+      "   node -e \"require('dotenv').config(); require('./services/sync.service').cleanupTestFolder().then(r => console.log(r))\""
+    );
     console.log('   Ou via API: DELETE http://localhost:3001/api/sync/test-cleanup\n');
   } else {
     console.log('\n❌ Test ÉCHOUÉ\n');
@@ -29,7 +31,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Erreur fatale:', err);
   process.exit(1);
 });

@@ -8,7 +8,9 @@ async function generateReport(req, res) {
   try {
     const { projectId, milestoneId, formats, recommendations } = req.body;
 
-    logger.info(`Génération rapport: project=${projectId}, milestone=${milestoneId}, formats=${JSON.stringify(formats)}`);
+    logger.info(
+      `Génération rapport: project=${projectId}, milestone=${milestoneId}, formats=${JSON.stringify(formats)}`
+    );
 
     const data = await reportService.collectReportData(projectId, milestoneId);
     const result = { success: true, files: {} };

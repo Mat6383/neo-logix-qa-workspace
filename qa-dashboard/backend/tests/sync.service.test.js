@@ -57,22 +57,31 @@ describe('syncIteration — dryRun=true', () => {
     Object.assign(gitlabModule, {
       findIteration: jest.fn().mockResolvedValue({ id: 42, title: 'R06 - run 1' }),
       getIssuesByStatusAndIteration: jest.fn().mockResolvedValue([
-        { id: 100, iid: 1, title: 'Cas de test A', web_url: 'https://gitlab.test/issues/1', project_id: '5' },
-        { id: 101, iid: 2, title: 'Cas de test B', web_url: 'https://gitlab.test/issues/2', project_id: '5' }
-      ])
+        {
+          id: 100,
+          iid: 1,
+          title: 'Cas de test A',
+          web_url: 'https://gitlab.test/issues/1',
+          project_id: '5',
+        },
+        {
+          id: 101,
+          iid: 2,
+          title: 'Cas de test B',
+          web_url: 'https://gitlab.test/issues/2',
+          project_id: '5',
+        },
+      ]),
     });
     Object.assign(testmoModule, {
-      getOrCreateFolder: jest.fn()
+      getOrCreateFolder: jest
+        .fn()
         .mockResolvedValueOnce({ id: 10, name: '[TEST-API] R06' })
         .mockResolvedValueOnce({ id: 11, name: 'R06 - run 1' }),
-      findCaseByName: jest.fn().mockResolvedValue(null)
+      findCaseByName: jest.fn().mockResolvedValue(null),
     });
 
-    const stats = await syncService.syncIteration(
-      'R06 - run 1',
-      { dryRun: true },
-      () => {}
-    );
+    const stats = await syncService.syncIteration('R06 - run 1', { dryRun: true }, () => {});
 
     expect(stats.created).toBe(2);
     expect(stats.errors).toBe(0);
@@ -80,7 +89,7 @@ describe('syncIteration — dryRun=true', () => {
 
   test('retourne une erreur si itération non trouvée', async () => {
     Object.assign(gitlabModule, {
-      findIteration: jest.fn().mockResolvedValue(null)
+      findIteration: jest.fn().mockResolvedValue(null),
     });
 
     const stats = await syncService.syncIteration('R99 - inexistant', { dryRun: true });

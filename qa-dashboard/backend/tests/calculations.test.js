@@ -25,25 +25,30 @@ function sessionPassRate(session) {
 
 function aggregateSessions(sessions) {
   const aggregated = {
-    total: 0, passed: 0, failed: 0,
-    completed: 0, success: 0, failure: 0, wip: 0,
+    total: 0,
+    passed: 0,
+    failed: 0,
+    completed: 0,
+    success: 0,
+    failure: 0,
+    wip: 0,
   };
 
-  sessions.forEach(session => {
+  sessions.forEach((session) => {
     const successCount = session.success_count || 0;
     const failureCount = session.failure_count || 0;
     const sessionTotal = successCount + failureCount;
 
     if (sessionTotal > 0) {
-      aggregated.total     += sessionTotal;
-      aggregated.passed    += successCount;
-      aggregated.failed    += failureCount;
+      aggregated.total += sessionTotal;
+      aggregated.passed += successCount;
+      aggregated.failed += failureCount;
       aggregated.completed += sessionTotal;
-      aggregated.success   += successCount;
-      aggregated.failure   += failureCount;
+      aggregated.success += successCount;
+      aggregated.failure += failureCount;
     } else {
       aggregated.total += 1;
-      aggregated.wip   += 1;
+      aggregated.wip += 1;
     }
   });
 
@@ -52,10 +57,10 @@ function aggregateSessions(sessions) {
 
 function globalMetrics(aggregated) {
   return {
-    completionRate:  _calculatePercentage(aggregated.completed, aggregated.total),
-    passRate:        _calculatePercentage(aggregated.passed, aggregated.completed),
-    failureRate:     _calculatePercentage(aggregated.failed, aggregated.completed),
-    testEfficiency:  _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
+    completionRate: _calculatePercentage(aggregated.completed, aggregated.total),
+    passRate: _calculatePercentage(aggregated.passed, aggregated.completed),
+    failureRate: _calculatePercentage(aggregated.failed, aggregated.completed),
+    testEfficiency: _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
   };
 }
 
@@ -152,9 +157,9 @@ describe('aggregateSessions — intégration des sessions dans les métriques gl
       { success_count: 0, failure_count: 3 }, // Sophie
     ];
     const agg = aggregateSessions(sessions);
-    expect(agg.total).toBe(7);     // 3 + 1 + 3
-    expect(agg.passed).toBe(3);    // 2 + 1 + 0
-    expect(agg.failed).toBe(4);    // 1 + 0 + 3
+    expect(agg.total).toBe(7); // 3 + 1 + 3
+    expect(agg.passed).toBe(3); // 2 + 1 + 0
+    expect(agg.failed).toBe(4); // 1 + 0 + 3
     expect(agg.completed).toBe(7);
     expect(agg.wip).toBe(0);
   });
@@ -165,7 +170,7 @@ describe('aggregateSessions — intégration des sessions dans les métriques gl
       { success_count: 0, failure_count: 0 }, // WIP
     ];
     const agg = aggregateSessions(sessions);
-    expect(agg.total).toBe(6);     // 5 + 1 WIP
+    expect(agg.total).toBe(6); // 5 + 1 WIP
     expect(agg.passed).toBe(5);
     expect(agg.wip).toBe(1);
     expect(agg.completed).toBe(5); // La session WIP n'est pas completed
@@ -182,14 +187,16 @@ describe('aggregateSessions — intégration des sessions dans les métriques gl
 
 // ─── Helper extrait de sync.service.js — _extractStepsFromNotes ─────────────
 // marked est ESM-only, on utilise un stub simple pour les tests unitaires
-function fakeMarked(text) { return `<p>${text.trim()}</p>`; }
+function fakeMarked(text) {
+  return `<p>${text.trim()}</p>`;
+}
 
 function extractStepsFromNotes(notes, markedFn = fakeMarked) {
   // (?!\() exclut les liens markdown [texte](url)
   const SECTION_HEADER_RE = /\[([^\]]+)\](?!\()/g;
   const TEST_RE = /^tests?$/i;
 
-  const structured = notes.filter(n => n.body && /\[[^\]]+\](?!\()/.test(n.body));
+  const structured = notes.filter((n) => n.body && /\[[^\]]+\](?!\()/.test(n.body));
   if (structured.length === 0) return [];
 
   // Extrait les sections { label, content } d'un body
@@ -200,19 +207,21 @@ function extractStepsFromNotes(notes, markedFn = fakeMarked) {
     while ((m = re.exec(body)) !== null) {
       headers.push({ label: m[1].trim(), start: m.index, end: m.index + m[0].length });
     }
-    return headers.map((h, i) => {
-      const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
-      return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
-    }).filter(s => s.content.length > 0);
+    return headers
+      .map((h, i) => {
+        const contentEnd = i + 1 < headers.length ? headers[i + 1].start : body.length;
+        return { label: h.label, content: body.slice(h.end, contentEnd).trim() };
+      })
+      .filter((s) => s.content.length > 0);
   }
 
   // Sections non-TEST : depuis le commentaire le plus complet (le plus long)
-  const best = structured.reduce((a, b) => b.body.length > a.body.length ? b : a);
-  const otherSections = parseSections(best.body).filter(s => !TEST_RE.test(s.label));
+  const best = structured.reduce((a, b) => (b.body.length > a.body.length ? b : a));
+  const otherSections = parseSections(best.body).filter((s) => !TEST_RE.test(s.label));
 
   // Sections [TEST]/[TESTS] : toutes les notes dans l'ordre chronologique (structured = ordre d'arrivée)
-  const allTestSections = structured.flatMap(note =>
-    parseSections(note.body).filter(s => TEST_RE.test(s.label))
+  const allTestSections = structured.flatMap((note) =>
+    parseSections(note.body).filter((s) => TEST_RE.test(s.label))
   );
 
   if (otherSections.length === 0 && allTestSections.length === 0) return [];
@@ -222,7 +231,7 @@ function extractStepsFromNotes(notes, markedFn = fakeMarked) {
   return [...otherSections, ...allTestSections].map((s, i) => ({
     text1: markedFn(`**[${s.label}]**\n\n${s.content}`),
     text3: EXPECTED,
-    display_order: i + 1
+    display_order: i + 1,
   }));
 }
 
@@ -246,7 +255,7 @@ describe('extractStepsFromNotes — parsing commentaires GitLab → steps Testmo
     expect(steps[1].display_order).toBe(2);
   });
 
-  test('TEST placé en dernier même s\'il est premier dans le commentaire', () => {
+  test("TEST placé en dernier même s'il est premier dans le commentaire", () => {
     const body = '[TEST]\nEtapes.\n[IMPACT]\nScript R14.';
     const steps = extractStepsFromNotes([{ body }]);
     expect(steps).toHaveLength(2);
@@ -263,13 +272,13 @@ describe('extractStepsFromNotes — parsing commentaires GitLab → steps Testmo
   test('expected = "Conforme aux specs fonctionnelles" pour tous les steps', () => {
     const body = '[PRÉREQUIS]\nPré.\n[TEST]\nTest.';
     const steps = extractStepsFromNotes([{ body }]);
-    steps.forEach(s => expect(s.text3).toBe('<p>Conforme aux specs fonctionnelles</p>'));
+    steps.forEach((s) => expect(s.text3).toBe('<p>Conforme aux specs fonctionnelles</p>'));
   });
 
   test('champs text1 non vide (format Testmo correct)', () => {
     const body = '[PRÉREQUIS]\nAvoir un client.\n[TEST]\nFaire la manip.';
     const steps = extractStepsFromNotes([{ body }]);
-    steps.forEach(s => {
+    steps.forEach((s) => {
       expect(s.text1).toBeTruthy();
       expect(s.text1.trim().length).toBeGreaterThan(0);
       expect(s).toHaveProperty('text3');
@@ -280,7 +289,9 @@ describe('extractStepsFromNotes — parsing commentaires GitLab → steps Testmo
   test('prend le commentaire le plus long pour les sections non-TEST, collecte tous les [TEST]', () => {
     const notes = [
       { body: '[TEST]\nCourt.' },
-      { body: '[PRÉREQUIS]\nLong prérequis avec beaucoup de texte.\n[TEST]\nTest long avec beaucoup d\'étapes.' }
+      {
+        body: "[PRÉREQUIS]\nLong prérequis avec beaucoup de texte.\n[TEST]\nTest long avec beaucoup d'étapes.",
+      },
     ];
     const steps = extractStepsFromNotes(notes);
     // [PRÉREQUIS] du plus long + [TEST Court] (note 1, chronologiquement 1ère) + [TEST Long] (note 2)
@@ -305,7 +316,7 @@ FEN_PLANNING_DAY`;
     // Doit produire 2 steps (TEST + IMPACT), pas 3 avec [R14.sql] comme section
     expect(steps).toHaveLength(2);
     // Le contenu du TEST doit inclure le lien
-    const testStep = steps.find(s => s.text1.includes('[TEST]'));
+    const testStep = steps.find((s) => s.text1.includes('[TEST]'));
     expect(testStep).toBeDefined();
     expect(testStep.text1).toContain('R14.sql');
     // TEST doit être en dernier
@@ -331,10 +342,10 @@ Script R14.`;
 
   // ─── Nouveau comportement : collecte de TOUS les [TEST] chronologiquement ─────
 
-  test('deux notes avec [TEST] → les deux steps TEST collectés dans l\'ordre chronologique', () => {
+  test("deux notes avec [TEST] → les deux steps TEST collectés dans l'ordre chronologique", () => {
     const notes = [
       { body: '[PRÉREQUIS]\nPré requis ici.\n[TEST]\nTest de la note 1.' },
-      { body: '[TEST]\nTest de la note 2.' }
+      { body: '[TEST]\nTest de la note 2.' },
     ];
     // plus complet = note 1 → non-TEST : [PRÉREQUIS]
     // tous les [TEST] chrono : note1 puis note2
@@ -348,7 +359,7 @@ Script R14.`;
   test('[TEST] dans une note plus ancienne que le plus complet → aussi inclus (option A)', () => {
     const notes = [
       { body: '[TEST]\nPremier test (ancien).' },
-      { body: '[PRÉREQUIS]\nPré.\n[IMPACT]\nImpact.\n[TEST]\nTest complet.' }
+      { body: '[PRÉREQUIS]\nPré.\n[IMPACT]\nImpact.\n[TEST]\nTest complet.' },
     ];
     // plus complet = note 2 → non-TEST : [PRÉREQUIS] + [IMPACT]
     // tous les [TEST] chrono : note1 (ancien) puis note2
@@ -360,11 +371,11 @@ Script R14.`;
     expect(steps[3].text1).toContain('Test complet');
   });
 
-  test('trois notes avec [TEST] → 3 steps TEST dans l\'ordre chronologique', () => {
+  test("trois notes avec [TEST] → 3 steps TEST dans l'ordre chronologique", () => {
     const notes = [
       { body: '[TEST]\nTest A.' },
       { body: '[TEST]\nTest B.' },
-      { body: '[TEST]\nTest C.' }
+      { body: '[TEST]\nTest C.' },
     ];
     const steps = extractStepsFromNotes(notes);
     expect(steps).toHaveLength(3);
@@ -376,7 +387,7 @@ Script R14.`;
   test('note sans [TEST] + note avec [TEST] seul → [TEST] de la 2e note inclus', () => {
     const notes = [
       { body: '[PRÉREQUIS]\nPré.\n[IMPACT]\nImpact.' },
-      { body: '[TEST]\nTest récent.' }
+      { body: '[TEST]\nTest récent.' },
     ];
     const steps = extractStepsFromNotes(notes);
     expect(steps).toHaveLength(3);
@@ -388,7 +399,7 @@ Script R14.`;
   test('[TESTS] pluriel dans une note secondaire → aussi collecté', () => {
     const notes = [
       { body: '[PRÉREQUIS]\nPré.\n[TEST]\nTest principal.' },
-      { body: '[TESTS]\nCorrection de test.' }
+      { body: '[TESTS]\nCorrection de test.' },
     ];
     const steps = extractStepsFromNotes(notes);
     expect(steps).toHaveLength(3);
@@ -403,18 +414,23 @@ function isCaseEnriched(testCase) {
   if (testCase.estimate && testCase.estimate > 0) return true;
   if (testCase.issues && testCase.issues.length > 0) return true;
 
-  const manualTags = (testCase.tags || []).filter(t => {
-    const name = typeof t === 'string' ? t : (t.name || t.tag || '');
+  const manualTags = (testCase.tags || []).filter((t) => {
+    const name = typeof t === 'string' ? t : t.name || t.tag || '';
     if (!name) return false;
     return !name.startsWith('gitlab-') && !name.startsWith('iteration-') && name !== 'sync-auto';
   });
   if (manualTags.length > 0) return true;
 
-  if (testCase.custom_priority && testCase.custom_priority !== 'Normal' && testCase.custom_priority !== 2) return true;
+  if (
+    testCase.custom_priority &&
+    testCase.custom_priority !== 'Normal' &&
+    testCase.custom_priority !== 2
+  )
+    return true;
   if (testCase.attachments && testCase.attachments.length > 0) return true;
   // Format Testmo réel: text1 = contenu du step
-  const nonEmptySteps = (testCase.custom_steps || []).filter(s => {
-    const content = typeof s === 'object' ? (s.text1 || s.step || s.content || '') : String(s || '');
+  const nonEmptySteps = (testCase.custom_steps || []).filter((s) => {
+    const content = typeof s === 'object' ? s.text1 || s.step || s.content || '' : String(s || '');
     return content.trim().length > 0;
   });
   if (nonEmptySteps.length > 0) return true;
@@ -440,7 +456,11 @@ describe('isCaseEnriched — protection anti-écrasement des cas enrichis', () =
 
   // ── Cas ENRICHIS (sync doit skiper) ──
   test('a des custom_steps avec text1 (format Testmo réel) → true', () => {
-    const c = { custom_steps: [{ text1: '<p>Ouvrir la page</p>', text3: '<p>Page affichée</p>', display_order: 1 }] };
+    const c = {
+      custom_steps: [
+        { text1: '<p>Ouvrir la page</p>', text3: '<p>Page affichée</p>', display_order: 1 },
+      ],
+    };
     expect(isCaseEnriched(c)).toBe(true);
   });
 
@@ -478,13 +498,23 @@ describe('isCaseEnriched — protection anti-écrasement des cas enrichis', () =
   // ── Régression : tags malformés (bug #6015) ──
   test('tag objet avec champ .tag (pas .name) → ne crash pas, auto-tag ignoré', () => {
     // Cas qui provoquait "Cannot read properties of undefined (reading 'startsWith')"
-    const c = { tags: [{ id: 5, tag: 'sync-auto' }, { id: 6, tag: 'gitlab-6015' }] };
+    const c = {
+      tags: [
+        { id: 5, tag: 'sync-auto' },
+        { id: 6, tag: 'gitlab-6015' },
+      ],
+    };
     expect(() => isCaseEnriched(c)).not.toThrow();
     expect(isCaseEnriched(c)).toBe(false); // ce sont des auto-tags
   });
 
   test('tag objet avec champ .tag manuel → true', () => {
-    const c = { tags: [{ id: 5, tag: 'sync-auto' }, { id: 7, tag: 'smoke' }] };
+    const c = {
+      tags: [
+        { id: 5, tag: 'sync-auto' },
+        { id: 7, tag: 'smoke' },
+      ],
+    };
     expect(isCaseEnriched(c)).toBe(true);
   });
 
@@ -544,10 +574,10 @@ describe('globalMetrics — formules ISTQB', () => {
     const agg = aggregateSessions(sessions);
     const m = globalMetrics(agg);
 
-    expect(m.completionRate).toBe(100);           // 7/7
-    expect(m.passRate).toBe(42.86);               // 3/7
-    expect(m.failureRate).toBe(57.14);            // 4/7
-    expect(m.testEfficiency).toBe(42.86);         // 3/(3+4)
+    expect(m.completionRate).toBe(100); // 7/7
+    expect(m.passRate).toBe(42.86); // 3/7
+    expect(m.failureRate).toBe(57.14); // 4/7
+    expect(m.testEfficiency).toBe(42.86); // 3/(3+4)
   });
 
   test('toutes sessions passées → passRate 100%, failureRate 0%', () => {
@@ -575,16 +605,16 @@ const STATUS_ID_TO_NAME = {
   2: 'Passed',
   3: 'Failed',
   4: 'Retest',
-  8: 'WIP'
+  8: 'WIP',
 };
 
 // Mapping Testmo status_id → GitLab label
 // Mapping empiriquement vérifié sur cette instance Testmo (≠ IDs standards)
 const STATUS_TO_LABEL = {
-  2: 'Test::OK',               // Passed  (vert)
-  3: 'Test::KO',               // Failed  (rouge)
-  4: 'DoubleTestNécessaire',   // Retest  (orange)
-  8: 'Test::WIP'               // WIP     (violet)
+  2: 'Test::OK', // Passed  (vert)
+  3: 'Test::KO', // Failed  (rouge)
+  4: 'DoubleTestNécessaire', // Retest  (orange)
+  8: 'Test::WIP', // WIP     (violet)
 };
 
 const ALL_TEST_LABELS = [
@@ -594,7 +624,7 @@ const ALL_TEST_LABELS = [
   'Test::SKIPPED',
   'Test::BLOCKED',
   'DoubleTestNécessaire',
-  'Test::TODO'
+  'Test::TODO',
 ];
 
 /**
@@ -604,7 +634,7 @@ const ALL_TEST_LABELS = [
 function computeLabelChanges(currentLabels, newLabel) {
   if (!newLabel) return { addLabel: null, removeLabels: [], action: 'skip' };
 
-  const labelsToRemove = currentLabels.filter(l => ALL_TEST_LABELS.includes(l) && l !== newLabel);
+  const labelsToRemove = currentLabels.filter((l) => ALL_TEST_LABELS.includes(l) && l !== newLabel);
   const alreadyHasLabel = currentLabels.includes(newLabel);
 
   if (alreadyHasLabel && labelsToRemove.length === 0) {
@@ -625,7 +655,7 @@ function buildCommentText(runName, statusId) {
  * Vérifie si un commentaire identique existe déjà (extrait de _postCommentIfNeeded)
  */
 function isCommentDuplicate(existingNotes, commentText) {
-  return existingNotes.some(n => n.body === commentText);
+  return existingNotes.some((n) => n.body === commentText);
 }
 
 describe('STATUS_TO_LABEL — mapping Testmo status_id → GitLab label', () => {
@@ -651,13 +681,13 @@ describe('STATUS_TO_LABEL — mapping Testmo status_id → GitLab label', () => 
   });
 
   test('statut inconnu (5, 6, 7, 99) → undefined (ignoré)', () => {
-    [5, 6, 7, 99].forEach(id => {
+    [5, 6, 7, 99].forEach((id) => {
       expect(STATUS_TO_LABEL[id]).toBeUndefined();
     });
   });
 
   test('tous les statuts observés (2,3,4,8) ont un label défini', () => {
-    [2, 3, 4, 8].forEach(id => {
+    [2, 3, 4, 8].forEach((id) => {
       expect(STATUS_TO_LABEL[id]).toBeTruthy();
     });
   });
@@ -675,7 +705,7 @@ describe('ALL_TEST_LABELS — liste exhaustive des labels Test:: gérés', () =>
   });
 
   test('toutes les valeurs de STATUS_TO_LABEL sont dans ALL_TEST_LABELS', () => {
-    Object.values(STATUS_TO_LABEL).forEach(label => {
+    Object.values(STATUS_TO_LABEL).forEach((label) => {
       expect(ALL_TEST_LABELS).toContain(label);
     });
   });
@@ -703,7 +733,7 @@ describe('STATUS_ID_TO_NAME — noms lisibles des statuts Testmo', () => {
   });
 
   test('tous les statuts de STATUS_TO_LABEL ont un nom lisible', () => {
-    Object.keys(STATUS_TO_LABEL).forEach(id => {
+    Object.keys(STATUS_TO_LABEL).forEach((id) => {
       expect(STATUS_ID_TO_NAME[Number(id)]).toBeTruthy();
     });
   });
@@ -712,27 +742,37 @@ describe('STATUS_ID_TO_NAME — noms lisibles des statuts Testmo', () => {
 describe('buildCommentText — format du commentaire automatique GitLab', () => {
   test('format correct pour un run et un statut Passed', () => {
     const text = buildCommentText('R10 - run 1', 2);
-    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Passed');
+    expect(text).toBe(
+      'Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Passed'
+    );
   });
 
   test('format correct pour un statut WIP', () => {
     const text = buildCommentText('R14 - run 2', 8);
-    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R14 - run 2 - Status WIP');
+    expect(text).toBe(
+      'Commentaire ajouté automatiquement - Test sur le run: R14 - run 2 - Status WIP'
+    );
   });
 
   test('format correct pour un statut Failed', () => {
     const text = buildCommentText('R10 - run 1', 3);
-    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Failed');
+    expect(text).toBe(
+      'Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Failed'
+    );
   });
 
   test('format correct pour un statut Retest', () => {
     const text = buildCommentText('R10 - run 1', 4);
-    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Retest');
+    expect(text).toBe(
+      'Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status Retest'
+    );
   });
 
-  test('statut inconnu → affiche l\'id brut comme fallback', () => {
+  test("statut inconnu → affiche l'id brut comme fallback", () => {
     const text = buildCommentText('R10 - run 1', 99);
-    expect(text).toBe('Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status 99');
+    expect(text).toBe(
+      'Commentaire ajouté automatiquement - Test sur le run: R10 - run 1 - Status 99'
+    );
   });
 
   test('deux runs différents → deux textes distincts', () => {
@@ -742,14 +782,14 @@ describe('buildCommentText — format du commentaire automatique GitLab', () => 
   });
 
   test('même run, deux statuts différents → deux textes distincts', () => {
-    const textWIP    = buildCommentText('R10 - run 1', 8);
+    const textWIP = buildCommentText('R10 - run 1', 8);
     const textPassed = buildCommentText('R10 - run 1', 2);
     expect(textWIP).not.toBe(textPassed);
   });
 });
 
 describe('isCommentDuplicate — idempotence des commentaires GitLab', () => {
-  const runName  = 'R10 - run 1';
+  const runName = 'R10 - run 1';
   const statusId = 2; // Passed
   const commentText = buildCommentText(runName, statusId);
 
@@ -771,13 +811,13 @@ describe('isCommentDuplicate — idempotence des commentaires GitLab', () => {
     const notes = [
       { body: 'Commentaire manuel du testeur' },
       { body: commentText },
-      { body: 'Autre note auto' }
+      { body: 'Autre note auto' },
     ];
     expect(isCommentDuplicate(notes, commentText)).toBe(true);
   });
 
   test('même run WIP + Passed = deux commentaires distincts (pas de faux doublon)', () => {
-    const wipText    = buildCommentText(runName, 8);
+    const wipText = buildCommentText(runName, 8);
     const passedText = buildCommentText(runName, 2);
     // On a uniquement le commentaire WIP dans les notes
     const notes = [{ body: wipText }];
@@ -882,10 +922,13 @@ describe('computeLabelChanges — logique de mise à jour des labels GitLab', ()
 
 const {
   STATUS_TO_GITLAB_STATUS,
-  GITLAB_STATUS_OK, GITLAB_STATUS_KO,
-  GITLAB_STATUS_WIP, GITLAB_STATUS_RETEST, GITLAB_STATUS_TODO,
+  GITLAB_STATUS_OK,
+  GITLAB_STATUS_KO,
+  GITLAB_STATUS_WIP,
+  GITLAB_STATUS_RETEST,
+  GITLAB_STATUS_TODO,
   computeStatusChange,
-  VERSION_FIELD_KEY
+  VERSION_FIELD_KEY,
 } = require('../services/status-sync.service');
 
 describe('STATUS_TO_GITLAB_STATUS — mapping Testmo status_id → GitLab status natif', () => {
@@ -905,10 +948,10 @@ describe('STATUS_TO_GITLAB_STATUS — mapping Testmo status_id → GitLab status
     expect(STATUS_TO_GITLAB_STATUS[1]).toBeUndefined();
   });
   test('statuts inconnus (5, 6, 7) → undefined', () => {
-    [5, 6, 7].forEach(id => expect(STATUS_TO_GITLAB_STATUS[id]).toBeUndefined());
+    [5, 6, 7].forEach((id) => expect(STATUS_TO_GITLAB_STATUS[id]).toBeUndefined());
   });
   test('statuts mappés (2, 3, 4, 8) → valeur truthy', () => {
-    [2, 3, 4, 8].forEach(id => expect(STATUS_TO_GITLAB_STATUS[id]).toBeTruthy());
+    [2, 3, 4, 8].forEach((id) => expect(STATUS_TO_GITLAB_STATUS[id]).toBeTruthy());
   });
 });
 
@@ -954,22 +997,22 @@ describe('VERSION_FIELD_KEY — champ custom version GitLab', () => {
       { iid: 1, custom_fields: { version: '1.2.0' } },
       { iid: 2, custom_fields: { version: '1.3.0' } },
       { iid: 3, custom_fields: { version: '1.2.0' } },
-      { iid: 4 }
+      { iid: 4 },
     ];
     const keys = key.split('.');
-    const filtered = issues.filter(issue => {
+    const filtered = issues.filter((issue) => {
       let val = issue;
       for (const k of keys) val = val?.[k];
       return val === '1.2.0';
     });
-    expect(filtered.map(i => i.iid)).toEqual([1, 3]);
+    expect(filtered.map((i) => i.iid)).toEqual([1, 3]);
   });
 
   test('filtrage mémoire — version inexistante → 0 résultats', () => {
     const key = 'custom_fields.version';
     const issues = [{ iid: 1, custom_fields: { version: '1.2.0' } }];
     const keys = key.split('.');
-    const filtered = issues.filter(issue => {
+    const filtered = issues.filter((issue) => {
       let val = issue;
       for (const k of keys) val = val?.[k];
       return val === '9.9.9';
@@ -981,7 +1024,7 @@ describe('VERSION_FIELD_KEY — champ custom version GitLab', () => {
     const key = 'custom_fields.version';
     const issues = [{ iid: 1 }, { iid: 2, custom_fields: {} }];
     const keys = key.split('.');
-    const filtered = issues.filter(issue => {
+    const filtered = issues.filter((issue) => {
       let val = issue;
       for (const k of keys) val = val?.[k];
       return val === '1.0.0';

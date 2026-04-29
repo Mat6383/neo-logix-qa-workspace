@@ -17,14 +17,14 @@ const PROJECTS = [
       repoId: 1,
       rootFolderId: 4514,
       gitlabIntegrationId: 2,
-      gitlabConnectionProjectId: 63
+      gitlabConnectionProjectId: 63,
     },
     gitlab: {
       projectId: 63,
       token: null, // uses env GITLAB_TOKEN
-      label: 'Test::TODO'
+      label: 'Test::TODO',
     },
-    configured: true
+    configured: true,
   },
   {
     id: 'workshop-web',
@@ -34,14 +34,14 @@ const PROJECTS = [
       repoId: 101,
       rootFolderId: 4522,
       gitlabIntegrationId: 2,
-      gitlabConnectionProjectId: 141
+      gitlabConnectionProjectId: 141,
     },
     gitlab: {
       projectId: 141,
       token: null,
-      label: 'Test::TODO'
+      label: 'Test::TODO',
     },
-    configured: true
+    configured: true,
   },
   {
     id: 'workshop',
@@ -51,14 +51,14 @@ const PROJECTS = [
       repoId: 5,
       rootFolderId: null,
       gitlabIntegrationId: 2,
-      gitlabConnectionProjectId: 61
+      gitlabConnectionProjectId: 61,
     },
     gitlab: {
       projectId: 61,
       token: null,
-      label: 'Test::TODO'
+      label: 'Test::TODO',
     },
-    configured: true
+    configured: true,
   },
   {
     id: 'link',
@@ -68,14 +68,14 @@ const PROJECTS = [
       repoId: 39,
       rootFolderId: 694,
       gitlabIntegrationId: 2,
-      gitlabConnectionProjectId: 61
+      gitlabConnectionProjectId: 61,
     },
     gitlab: {
       projectId: 61,
       token: null,
-      label: 'Test::TODO'
+      label: 'Test::TODO',
     },
-    configured: true
+    configured: true,
   },
   {
     id: 'kiosk',
@@ -85,15 +85,15 @@ const PROJECTS = [
       repoId: 4,
       rootFolderId: 15,
       gitlabIntegrationId: 2,
-      gitlabConnectionProjectId: null
+      gitlabConnectionProjectId: null,
     },
     gitlab: {
       projectId: null,
       token: null,
-      label: 'Test::TODO'
+      label: 'Test::TODO',
     },
-    configured: false
-  }
+    configured: false,
+  },
 ];
 
 module.exports = PROJECTS;

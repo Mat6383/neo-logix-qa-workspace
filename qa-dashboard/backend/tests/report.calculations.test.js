@@ -28,7 +28,7 @@ function makeMappedRun(overrides = {}) {
     untested: 0,
     completionRate: 93.33,
     passRate: 89.29,
-    milestone: 42,       // ← renommé depuis milestone_id
+    milestone: 42, // ← renommé depuis milestone_id
     isExploratory: false,
     ...overrides,
   };
@@ -42,24 +42,35 @@ function computeReportStats(runsData) {
   const totalSkipped = runsData.reduce((s, r) => s + (r.skipped || 0), 0);
   const totalWip = runsData.reduce((s, r) => s + (r.wip || 0), 0);
   const executed = totalTests - totalWip - totalSkipped;
-  const completionRate = totalTests > 0 ? Math.round(((totalTests - totalWip) / totalTests) * 1000) / 10 : 0;
+  const completionRate =
+    totalTests > 0 ? Math.round(((totalTests - totalWip) / totalTests) * 1000) / 10 : 0;
   const passRate = executed > 0 ? Math.round((totalPassed / executed) * 1000) / 10 : 0;
   const failureRate = executed > 0 ? Math.round((totalFailed / executed) * 1000) / 10 : 0;
-  return { totalTests, totalPassed, totalFailed, totalSkipped, totalWip, executed, completionRate, passRate, failureRate };
+  return {
+    totalTests,
+    totalPassed,
+    totalFailed,
+    totalSkipped,
+    totalWip,
+    executed,
+    completionRate,
+    passRate,
+    failureRate,
+  };
 }
 
 function computeVerdict(passRate, failureRate) {
   if (passRate < 70 || failureRate > 30) return 'NO GO';
-  if (passRate < 95 || failureRate > 5)  return 'GO SOUS RÉSERVE';
+  if (passRate < 95 || failureRate > 5) return 'GO SOUS RÉSERVE';
   return 'GO';
 }
 
 // ─── Helpers extraits de ReportGeneratorModal.jsx ───────────────────────────
 function modalSummary(runs) {
-  const milestoneId  = runs[0]?.milestone || null;
-  const totalTests   = runs.reduce((s, r) => s + (r.total || 0), 0);
-  const totalPassed  = runs.reduce((s, r) => s + (r.passed || 0), 0);
-  const totalFailed  = runs.reduce((s, r) => s + (r.failed || 0), 0);
+  const milestoneId = runs[0]?.milestone || null;
+  const totalTests = runs.reduce((s, r) => s + (r.total || 0), 0);
+  const totalPassed = runs.reduce((s, r) => s + (r.passed || 0), 0);
+  const totalFailed = runs.reduce((s, r) => s + (r.failed || 0), 0);
   return { milestoneId, totalTests, totalPassed, totalFailed };
 }
 
@@ -98,14 +109,11 @@ describe('modalSummary — prévisualisation dans ReportGeneratorModal', () => {
   });
 
   test('totalTests calculé depuis r.total (pas r.total_count)', () => {
-    const runs = [
-      makeMappedRun({ total: 16 }),
-      makeMappedRun({ total: 14 }),
-    ];
+    const runs = [makeMappedRun({ total: 16 }), makeMappedRun({ total: 14 })];
     expect(modalSummary(runs).totalTests).toBe(30);
   });
 
-  test('totalTests = 0 si tous les runs n\'ont pas de champ total', () => {
+  test("totalTests = 0 si tous les runs n'ont pas de champ total", () => {
     // Cas où l'ancien code (r.total_count) donnait 0
     const runs = [{ passed: 5, failed: 1 }]; // pas de .total ni .total_count
     expect(modalSummary(runs).totalTests).toBe(0);
@@ -123,7 +131,15 @@ describe('modalSummary — prévisualisation dans ReportGeneratorModal', () => {
 
   test('avec session exploratoire incluse dans runs', () => {
     const regularRun = makeMappedRun({ total: 10, passed: 8, failed: 2, milestone: 7 });
-    const session = { id: 'session-34', name: 'Session Gab', total: 3, passed: 2, failed: 1, milestone: 7, isExploratory: true };
+    const session = {
+      id: 'session-34',
+      name: 'Session Gab',
+      total: 3,
+      passed: 2,
+      failed: 1,
+      milestone: 7,
+      isExploratory: true,
+    };
     const s = modalSummary([regularRun, session]);
     expect(s.totalTests).toBe(13);
     expect(s.totalPassed).toBe(10);
@@ -156,7 +172,7 @@ describe('computeReportStats — statistiques backend (report.service.js)', () =
     const runs = [{ total: 10, passed: 6, failed: 2, skipped: 0, wip: 2 }];
     const s = computeReportStats(runs);
     expect(s.completionRate).toBe(80);
-    expect(s.executed).toBe(8);  // totalTests - wip - skipped
+    expect(s.executed).toBe(8); // totalTests - wip - skipped
   });
 
   test('passRate calculé sur executed (pas sur totalTests)', () => {

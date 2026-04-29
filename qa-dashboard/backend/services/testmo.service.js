@@ -3,12 +3,12 @@
  * TESTMO SERVICE - API Integration
  * ================================================
  * Service responsable de toutes les interactions avec l'API Testmo
- * 
+ *
  * Standards appliqués:
  * - ISTQB: Métriques de test standardisées
  * - ITIL: Gestion d'incidents et logging
  * - LEAN: Optimisation des requêtes et cache
- * 
+ *
  * @author Matou - Neo-Logix QA Lead
  * @version 1.0.0
  */
@@ -25,25 +25,30 @@ function _calculatePercentage(value, total) {
 
 function aggregateSessions(sessions) {
   const aggregated = {
-    total: 0, passed: 0, failed: 0,
-    completed: 0, success: 0, failure: 0, wip: 0,
+    total: 0,
+    passed: 0,
+    failed: 0,
+    completed: 0,
+    success: 0,
+    failure: 0,
+    wip: 0,
   };
 
-  sessions.forEach(session => {
+  sessions.forEach((session) => {
     const successCount = session.success_count || 0;
     const failureCount = session.failure_count || 0;
     const sessionTotal = successCount + failureCount;
 
     if (sessionTotal > 0) {
-      aggregated.total     += sessionTotal;
-      aggregated.passed    += successCount;
-      aggregated.failed    += failureCount;
+      aggregated.total += sessionTotal;
+      aggregated.passed += successCount;
+      aggregated.failed += failureCount;
       aggregated.completed += sessionTotal;
-      aggregated.success   += successCount;
-      aggregated.failure   += failureCount;
+      aggregated.success += successCount;
+      aggregated.failure += failureCount;
     } else {
       aggregated.total += 1;
-      aggregated.wip   += 1;
+      aggregated.wip += 1;
     }
   });
 
@@ -52,10 +57,10 @@ function aggregateSessions(sessions) {
 
 function globalMetrics(aggregated) {
   return {
-    completionRate:  _calculatePercentage(aggregated.completed, aggregated.total),
-    passRate:        _calculatePercentage(aggregated.passed, aggregated.completed),
-    failureRate:     _calculatePercentage(aggregated.failed, aggregated.completed),
-    testEfficiency:  _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
+    completionRate: _calculatePercentage(aggregated.completed, aggregated.total),
+    passRate: _calculatePercentage(aggregated.passed, aggregated.completed),
+    failureRate: _calculatePercentage(aggregated.failed, aggregated.completed),
+    testEfficiency: _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
   };
 }
 
@@ -74,21 +79,21 @@ class TestmoService {
       baseURL: `${this.baseURL}/api/v1`,
       timeout: this.timeout,
       headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
     });
 
     // Intercepteur pour logging ITIL
     this.client.interceptors.response.use(
-      response => {
+      (response) => {
         logger.info(`API Success: ${response.config.method.toUpperCase()} ${response.config.url}`);
         return response;
       },
-      error => {
+      (error) => {
         logger.error(`API Error: ${error.response?.status} ${error.config?.url}`, {
           status: error.response?.status,
-          data: error.response?.data
+          data: error.response?.data,
         });
         return Promise.reject(error);
       }
@@ -120,9 +125,10 @@ class TestmoService {
 
     try {
       const response = await this._withRetry(
-        () => this.client.get('/projects', {
-          params: { per_page: 100, sort: 'projects:created_at', order: 'desc' }
-        }),
+        () =>
+          this.client.get('/projects', {
+            params: { per_page: 100, sort: 'projects:created_at', order: 'desc' },
+          }),
         'getProjects'
       );
       this._setCache(cacheKey, response.data);
@@ -135,7 +141,7 @@ class TestmoService {
   /**
    * Récupère les runs actifs d'un projet
    * ISTQB Section 5.3: Test Monitoring
-   * 
+   *
    * @param {number} projectId - ID du projet
    * @param {boolean} activeOnly - Uniquement runs actifs
    */
@@ -149,15 +155,16 @@ class TestmoService {
 
     try {
       const response = await this._withRetry(
-        () => this.client.get(`/projects/${projectId}/runs`, {
-          params: {
-            is_closed: activeOnly ? 0 : undefined,
-            per_page: 100,
-            sort: 'runs:created_at',
-            order: 'desc',
-            expands: 'users,milestones,configs'
-          }
-        }),
+        () =>
+          this.client.get(`/projects/${projectId}/runs`, {
+            params: {
+              is_closed: activeOnly ? 0 : undefined,
+              per_page: 100,
+              sort: 'runs:created_at',
+              order: 'desc',
+              expands: 'users,milestones,configs',
+            },
+          }),
         'getProjectRuns'
       );
       this._setCache(cacheKey, response.data);
@@ -169,7 +176,7 @@ class TestmoService {
 
   /**
    * Récupère les sessions exploratoires d'un projet
-   * 
+   *
    * @param {number} projectId - ID du projet
    * @param {boolean} activeOnly - Uniquement sessions actives
    */
@@ -183,21 +190,21 @@ class TestmoService {
 
     try {
       const response = await this._withRetry(
-        () => this.client.get(`/projects/${projectId}/sessions`, {
-          params: {
-            is_closed: activeOnly ? 0 : undefined,
-            per_page: 100,
-            sort: 'sessions:created_at',
-            order: 'desc',
-            expands: 'users,milestones'
-          }
-        }),
+        () =>
+          this.client.get(`/projects/${projectId}/sessions`, {
+            params: {
+              is_closed: activeOnly ? 0 : undefined,
+              per_page: 100,
+              sort: 'sessions:created_at',
+              order: 'desc',
+              expands: 'users,milestones',
+            },
+          }),
         'getProjectSessions'
       );
 
       this._setCache(cacheKey, response.data);
       return response.data;
-
     } catch (error) {
       throw this._handleError('getProjectSessions', error);
     }
@@ -206,20 +213,20 @@ class TestmoService {
   /**
    * Récupère les détails d'un run spécifique
    * ISTQB Section 5.4: Test Reporting
-   * 
+   *
    * @param {number} runId - ID du run
    */
   async getRunDetails(runId) {
     try {
       const response = await this._withRetry(
-        () => this.client.get(`/runs/${runId}`, {
-          params: { expands: 'users,milestones,configs,issues' }
-        }),
+        () =>
+          this.client.get(`/runs/${runId}`, {
+            params: { expands: 'users,milestones,configs,issues' },
+          }),
         'getRunDetails'
       );
 
       return response.data.result;
-
     } catch (error) {
       throw this._handleError('getRunDetails', error);
     }
@@ -227,7 +234,7 @@ class TestmoService {
 
   /**
    * Récupère les milestones d'un projet
-   * 
+   *
    * @param {number} projectId - ID du projet
    */
   async getProjectMilestones(projectId) {
@@ -239,15 +246,15 @@ class TestmoService {
 
     try {
       const response = await this._withRetry(
-        () => this.client.get(`/projects/${projectId}/milestones`, {
-          params: { per_page: 100, sort: 'milestones:created_at', order: 'desc' }
-        }),
+        () =>
+          this.client.get(`/projects/${projectId}/milestones`, {
+            params: { per_page: 100, sort: 'milestones:created_at', order: 'desc' },
+          }),
         'getProjectMilestones'
       );
 
       this._setCache(cacheKey, response.data);
       return response.data;
-
     } catch (error) {
       throw this._handleError('getProjectMilestones', error);
     }
@@ -256,7 +263,7 @@ class TestmoService {
   /**
    * Récupère les résultats détaillés d'un run
    * API 2025: Nouveau endpoint /runs/{id}/results
-   * 
+   *
    * @param {number} runId - ID du run
    * @param {string} statusFilter - Filtrer par statut (ex: '3,5' pour Failed + Blocked)
    */
@@ -264,7 +271,7 @@ class TestmoService {
     try {
       const params = {
         per_page: 100,
-        expands: 'users,issues'
+        expands: 'users,issues',
       };
 
       if (statusFilter) {
@@ -276,7 +283,6 @@ class TestmoService {
         'getRunResults'
       );
       return response.data;
-
     } catch (error) {
       throw this._handleError('getRunResults', error);
     }
@@ -285,7 +291,7 @@ class TestmoService {
   /**
    * Récupère les runs d'automation
    * ISTQB: Automated Test Execution
-   * 
+   *
    * @param {number} projectId - ID du projet
    */
   async getAutomationRuns(projectId) {
@@ -297,20 +303,20 @@ class TestmoService {
 
     try {
       const response = await this._withRetry(
-        () => this.client.get(`/projects/${projectId}/automation/runs`, {
-          params: {
-            per_page: 100,
-            sort: 'automation_runs:created_at',
-            order: 'desc',
-            expands: 'users,milestones'
-          }
-        }),
+        () =>
+          this.client.get(`/projects/${projectId}/automation/runs`, {
+            params: {
+              per_page: 100,
+              sort: 'automation_runs:created_at',
+              order: 'desc',
+              expands: 'users,milestones',
+            },
+          }),
         'getAutomationRuns'
       );
 
       this._setCache(cacheKey, response.data);
       return response.data;
-
     } catch (error) {
       throw this._handleError('getAutomationRuns', error);
     }
@@ -336,7 +342,7 @@ class TestmoService {
   _setCache(key, data) {
     this.cache.set(key, {
       data: data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -381,7 +387,7 @@ class TestmoService {
    */
   async findFolder(projectId, folderName, parentId = null) {
     const folders = await this.getFolders(projectId, parentId);
-    return folders.find(f => f.name === folderName) || null;
+    return folders.find((f) => f.name === folderName) || null;
   }
 
   /**
@@ -435,7 +441,7 @@ class TestmoService {
   async deleteFolders(projectId, folderIds) {
     try {
       const response = await this.client.delete(`/projects/${projectId}/folders`, {
-        data: { ids: folderIds }
+        data: { ids: folderIds },
       });
       logger.info(`Testmo: ${folderIds.length} folder(s) supprimé(s)`);
       return response.data;
@@ -491,11 +497,10 @@ class TestmoService {
    * @param {number|null} folderId - Restreindre la recherche à un folder
    * @returns {Object|null} Le case trouvé ou null
    */
-  async findCaseByTag(projectId, tag, folderId = null) {
-    const cases = await this.getCases(projectId, folderId, 'tags');
-    // L'API retourne tags comme IDs numériques — on ne peut pas matcher par nom
-    // Stratégie : on cherche par nom de case (le titre GitLab est unique par folder)
-    return null; // Sera résolu par findCaseByName
+  async findCaseByTag(_projectId, _tag, _folderId = null) {
+    // L'API retourne tags comme IDs numériques — impossible de matcher par nom de tag
+    // Délégué à findCaseByName (titre GitLab = nom unique dans le folder)
+    return null;
   }
 
   /**
@@ -509,7 +514,7 @@ class TestmoService {
    */
   async findCaseByName(projectId, name, folderId = null) {
     const cases = await this.getCases(projectId, folderId);
-    return cases.find(c => c.name === name) || null;
+    return cases.find((c) => c.name === name) || null;
   }
 
   /**
@@ -523,14 +528,18 @@ class TestmoService {
   async createCase(projectId, caseData) {
     try {
       if (caseData.custom_steps) {
-        logger.info(`Testmo: createCase payload custom_steps: ${JSON.stringify(caseData.custom_steps).substring(0, 500)}`);
+        logger.info(
+          `Testmo: createCase payload custom_steps: ${JSON.stringify(caseData.custom_steps).substring(0, 500)}`
+        );
       }
       const response = await this.client.post(`/projects/${projectId}/cases`, {
-        cases: [caseData]
+        cases: [caseData],
       });
       const created = response.data.result ? response.data.result[0] : response.data;
       if (created?.custom_steps) {
-        logger.info(`Testmo: Case créé — steps retournés: ${JSON.stringify(created.custom_steps).substring(0, 300)}`);
+        logger.info(
+          `Testmo: Case créé — steps retournés: ${JSON.stringify(created.custom_steps).substring(0, 300)}`
+        );
       }
       logger.info(`Testmo: Case créé — "${caseData.name}" (id=${created.id})`);
       return created;
@@ -572,18 +581,24 @@ class TestmoService {
     if (testCase.issues && testCase.issues.length > 0) return true;
 
     // Tags : ignorer les tags auto (gitlab-#, iteration:, sync-auto)
-    const manualTags = (testCase.tags || []).filter(t => {
-      const name = typeof t === 'string' ? t : (t.name || t.tag || '');
+    const manualTags = (testCase.tags || []).filter((t) => {
+      const name = typeof t === 'string' ? t : t.name || t.tag || '';
       if (!name) return false;
       return !name.startsWith('gitlab-') && !name.startsWith('iteration-') && name !== 'sync-auto';
     });
     if (manualTags.length > 0) return true;
 
-    if (testCase.custom_priority && testCase.custom_priority !== 'Normal' && testCase.custom_priority !== 2) return true;
+    if (
+      testCase.custom_priority &&
+      testCase.custom_priority !== 'Normal' &&
+      testCase.custom_priority !== 2
+    )
+      return true;
     if (testCase.attachments && testCase.attachments.length > 0) return true;
     // Ne compter que les steps avec du contenu réel (format Testmo: text1 = contenu du step)
-    const nonEmptySteps = (testCase.custom_steps || []).filter(s => {
-      const content = typeof s === 'object' ? (s.text1 || s.step || s.content || '') : String(s || '');
+    const nonEmptySteps = (testCase.custom_steps || []).filter((s) => {
+      const content =
+        typeof s === 'object' ? s.text1 || s.step || s.content || '' : String(s || '');
       return content.trim().length > 0;
     });
     if (nonEmptySteps.length > 0) return true;
@@ -616,12 +631,19 @@ class TestmoService {
         lastError = err;
         const status = err.response?.status;
         // Ne pas réessayer sur les erreurs client 4xx (sauf 429 rate-limit)
-        const isRetryable = !status || status === 429 || status >= 500 ||
-          err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND';
+        const isRetryable =
+          !status ||
+          status === 429 ||
+          status >= 500 ||
+          err.code === 'ECONNRESET' ||
+          err.code === 'ETIMEDOUT' ||
+          err.code === 'ENOTFOUND';
         if (!isRetryable || attempt === maxRetries) break;
         const delay = baseDelay * Math.pow(2, attempt - 1); // 500ms, 1s, 2s
-        logger.warn(`[Retry] ${label} — tentative ${attempt}/${maxRetries} échouée (${err.message}), nouvel essai dans ${delay}ms`);
-        await new Promise(r => setTimeout(r, delay));
+        logger.warn(
+          `[Retry] ${label} — tentative ${attempt}/${maxRetries} échouée (${err.message}), nouvel essai dans ${delay}ms`
+        );
+        await new Promise((r) => setTimeout(r, delay));
       }
     }
     throw lastError;
@@ -636,7 +658,7 @@ class TestmoService {
       method: method,
       status: error.response?.status,
       message: error.response?.data?.message || error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     logger.error(`Testmo Service Error in ${method}:`, incident);

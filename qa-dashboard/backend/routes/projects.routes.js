@@ -16,15 +16,14 @@ router.get('/', async (req, res) => {
     res.json({
       success: true,
       data: projects,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Erreur GET /api/projects:', error);
     res.status(500).json({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -33,29 +32,33 @@ router.get('/', async (req, res) => {
  * Liste des runs actifs d'un projet
  * ISTQB: Test Monitoring
  */
-router.get('/:projectId/runs', validateParams(projectIdParam), validateQuery(activeQuery), async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.projectId);
-    const activeOnly = req.query.active !== 'false';
+router.get(
+  '/:projectId/runs',
+  validateParams(projectIdParam),
+  validateQuery(activeQuery),
+  async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const activeOnly = req.query.active !== 'false';
 
-    const runs = await testmoService.getProjectRuns(projectId, activeOnly);
+      const runs = await testmoService.getProjectRuns(projectId, activeOnly);
 
-    res.set('Cache-Control', 'private, max-age=120'); // 2 min
-    res.json({
-      success: true,
-      data: runs,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error(`Erreur GET /api/projects/${req.params.projectId}/runs:`, error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
+      res.set('Cache-Control', 'private, max-age=120'); // 2 min
+      res.json({
+        success: true,
+        data: runs,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error(`Erreur GET /api/projects/${req.params.projectId}/runs:`, error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
-});
+);
 
 /**
  * Liste des milestones d'un projet
@@ -70,15 +73,14 @@ router.get('/:projectId/milestones', validateParams(projectIdParam), async (req,
     res.json({
       success: true,
       data: milestones,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error(`Erreur GET /api/projects/${req.params.projectId}/milestones:`, error);
     res.status(500).json({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -96,15 +98,14 @@ router.get('/:projectId/automation', validateParams(projectIdParam), async (req,
     res.json({
       success: true,
       data: automationRuns,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error(`Erreur GET /api/projects/${req.params.projectId}/automation:`, error);
     res.status(500).json({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });

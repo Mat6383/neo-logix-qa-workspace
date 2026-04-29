@@ -17,15 +17,14 @@ router.get('/:runId', validateParams(runIdParam), async (req, res) => {
     res.json({
       success: true,
       data: runDetails,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error(`Erreur GET /api/runs/${req.params.runId}:`, error);
     res.status(500).json({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -44,15 +43,14 @@ router.get('/:runId/results', validateParams(runIdParam), async (req, res) => {
     res.json({
       success: true,
       data: results,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error(`Erreur GET /api/runs/${req.params.runId}/results:`, error);
     res.status(500).json({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });

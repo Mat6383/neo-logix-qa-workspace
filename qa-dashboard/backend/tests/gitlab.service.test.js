@@ -12,10 +12,10 @@ const axios = require('axios');
 const { GitLabService } = require('../services/gitlab.service');
 
 function makeService() {
-  process.env.GITLAB_URL          = 'https://gitlab.test';
-  process.env.GITLAB_TOKEN        = 'test-token';
-  process.env.GITLAB_WRITE_TOKEN  = 'test-write-token';
-  process.env.GITLAB_PROJECT_ID   = '5';
+  process.env.GITLAB_URL = 'https://gitlab.test';
+  process.env.GITLAB_TOKEN = 'test-token';
+  process.env.GITLAB_WRITE_TOKEN = 'test-write-token';
+  process.env.GITLAB_PROJECT_ID = '5';
   const svc = new GitLabService();
   svc.apiDelay = 0;
   return svc;
@@ -65,25 +65,25 @@ describe('getIssueNotes', () => {
     service.client.get = jest.fn().mockResolvedValue({
       data: [
         { id: 1, body: 'Commentaire manuel', system: false, created_at: '2024-01-01' },
-        { id: 2, body: 'assigned to @user', system: true,  created_at: '2024-01-02' },
-        { id: 3, body: 'Autre commentaire', system: false, created_at: '2024-01-03' }
+        { id: 2, body: 'assigned to @user', system: true, created_at: '2024-01-02' },
+        { id: 3, body: 'Autre commentaire', system: false, created_at: '2024-01-03' },
       ],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const notes = await service.getIssueNotes('5', 42);
 
     expect(notes).toHaveLength(2);
-    expect(notes.every(n => !n.system)).toBe(true);
+    expect(notes.every((n) => !n.system)).toBe(true);
   });
 
-  test('erreur API → retourne [] sans lever d\'exception', async () => {
+  test("erreur API → retourne [] sans lever d'exception", async () => {
     const service = makeService();
     // Court-circuiter _withRetry pour éviter les délais de retry (600ms+)
     service._withRetry = async (fn) => fn();
-    service.client.get = jest.fn().mockRejectedValue(
-      Object.assign(new Error('Network Error'), { response: { status: 500 } })
-    );
+    service.client.get = jest
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('Network Error'), { response: { status: 500 } }));
 
     const notes = await service.getIssueNotes('5', 99);
     expect(notes).toEqual([]);
@@ -93,7 +93,7 @@ describe('getIssueNotes', () => {
     const service = makeService();
     service.client.get = jest.fn().mockResolvedValue({
       data: [],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const notes = await service.getIssueNotes('5', 1);
@@ -109,9 +109,9 @@ describe('findIterationForProject', () => {
     service.client.get = jest.fn().mockResolvedValue({
       data: [
         { id: 10, iid: 1, title: 'R06 - run 1' },
-        { id: 11, iid: 2, title: 'R07 - run 2' }
+        { id: 11, iid: 2, title: 'R07 - run 2' },
       ],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const result = await service.findIterationForProject('5', 'R06-run1');
@@ -124,9 +124,9 @@ describe('findIterationForProject', () => {
     service.client.get = jest.fn().mockResolvedValue({
       data: [
         { id: 30, iid: 3, title: null },
-        { id: 40, iid: 4, title: null }
+        { id: 40, iid: 4, title: null },
       ],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const result = await service.findIterationForProject('5', 'Itération #3 (01/01 → 31/01)');
@@ -138,7 +138,7 @@ describe('findIterationForProject', () => {
     const service = makeService();
     service.client.get = jest.fn().mockResolvedValue({
       data: [{ id: 10, iid: 1, title: 'R06 - run 1' }],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const result = await service.findIterationForProject('5', 'R99 - inexistant');
@@ -154,14 +154,14 @@ describe('searchIterations', () => {
     service.client.get = jest.fn().mockResolvedValue({
       data: [
         { id: 1, iid: 1, title: null, start_date: '2024-01-01', due_date: '2024-01-14' },
-        { id: 2, iid: 2, title: 'R06 - run 1', start_date: null, due_date: null }
+        { id: 2, iid: 2, title: 'R06 - run 1', start_date: null, due_date: null },
       ],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const result = await service.searchIterations('5');
 
-    const cadenceAuto = result.find(it => it.id === 1);
+    const cadenceAuto = result.find((it) => it.id === 1);
     expect(cadenceAuto.title).toMatch(/Itération #1/);
   });
 
@@ -171,9 +171,9 @@ describe('searchIterations', () => {
       data: [
         { id: 1, iid: 1, title: 'R06' },
         { id: 3, iid: 3, title: 'R08' },
-        { id: 2, iid: 2, title: 'R07' }
+        { id: 2, iid: 2, title: 'R07' },
       ],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const result = await service.searchIterations('5');
@@ -188,9 +188,9 @@ describe('searchIterations', () => {
       data: [
         { id: 1, iid: 1, title: 'R06 - run 1' },
         { id: 2, iid: 2, title: 'R07 - run 2' },
-        { id: 3, iid: 3, title: 'R08 - run 3' }
+        { id: 3, iid: 3, title: 'R08 - run 3' },
       ],
-      headers: { 'x-next-page': '' }
+      headers: { 'x-next-page': '' },
     });
 
     const result = await service.searchIterations('5', 'R07');
@@ -206,10 +206,10 @@ describe('executeGraphQL', () => {
     jest.restoreAllMocks();
   });
 
-  test('retourne data.data si la réponse ne contient pas d\'erreurs', async () => {
+  test("retourne data.data si la réponse ne contient pas d'erreurs", async () => {
     const service = makeService();
     jest.spyOn(axios, 'post').mockResolvedValue({
-      data: { data: { workItemUpdate: { workItem: { id: 'gid://1' }, errors: [] } } }
+      data: { data: { workItemUpdate: { workItem: { id: 'gid://1' }, errors: [] } } },
     });
 
     const result = await service.executeGraphQL('query { test }', {});
@@ -219,22 +219,24 @@ describe('executeGraphQL', () => {
   test('throw si la réponse contient des erreurs GraphQL', async () => {
     const service = makeService();
     jest.spyOn(axios, 'post').mockResolvedValue({
-      data: { errors: [{ message: 'Field does not exist' }] }
+      data: { errors: [{ message: 'Field does not exist' }] },
     });
 
-    await expect(service.executeGraphQL('query { bad }', {}))
-      .rejects.toThrow('Field does not exist');
+    await expect(service.executeGraphQL('query { bad }', {})).rejects.toThrow(
+      'Field does not exist'
+    );
   });
 
   test('throw sur erreur réseau (axios reject)', async () => {
     const service = makeService();
     // Court-circuiter _withRetry pour éviter les délais de retry (600ms+)
     service._withRetry = async (fn) => fn();
-    jest.spyOn(axios, 'post').mockRejectedValue(
-      Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' })
-    );
+    jest
+      .spyOn(axios, 'post')
+      .mockRejectedValue(
+        Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' })
+      );
 
-    await expect(service.executeGraphQL('query { test }', {}))
-      .rejects.toThrow();
+    await expect(service.executeGraphQL('query { test }', {})).rejects.toThrow();
   });
 });

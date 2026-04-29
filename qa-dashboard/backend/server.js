@@ -3,13 +3,13 @@
  * TESTMO DASHBOARD - Backend Server
  * ================================================
  * Serveur Express sécurisé pour API Testmo
- * 
+ *
  * Standards:
  * - ISTQB: Métriques de test standardisées
  * - ITIL: Service management et logging
  * - LEAN: Cache et optimisation des requêtes
  * - DevOps: Sécurité et bonnes pratiques
- * 
+ *
  * @author Matou - Neo-Logix QA Lead
  * @version 1.0.0
  */
@@ -20,13 +20,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const testmoService = require('./services/testmo.service');
-const ReportService = require('./services/report.service');
 const statusSyncService = require('./services/status-sync.service');
 const logger = require('./services/logger.service');
 const sentry = require('./services/sentry.service');
 sentry.init();
-const reportService = new ReportService(testmoService);
 
 // Routeurs
 const healthRouter = require('./routes/health.routes');
@@ -47,7 +44,7 @@ const PORT = process.env.PORT || 3001;
 
 // Validation des variables d'environnement critiques (ITIL Configuration Management)
 const REQUIRED_ENV = ['TESTMO_URL', 'TESTMO_TOKEN', 'GITLAB_URL', 'GITLAB_TOKEN'];
-const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missingEnv.length > 0) {
   logger.error(`CONFIGURATION MANQUANTE: ${missingEnv.join(', ')} requis dans .env`);
   process.exit(1);
@@ -55,7 +52,7 @@ if (missingEnv.length > 0) {
 
 // Avertissements pour variables recommandées
 const RECOMMENDED_ENV = ['GITLAB_WRITE_TOKEN', 'FRONTEND_URL', 'SYNC_TIMEZONE'];
-RECOMMENDED_ENV.forEach(k => {
+RECOMMENDED_ENV.forEach((k) => {
   if (!process.env[k]) {
     logger.warn(`[Config] Variable optionnelle non définie : ${k} (valeur par défaut utilisée)`);
   }
@@ -72,26 +69,32 @@ app.use(express.urlencoded({ extended: true }));
 // CORS — support multi-origines via FRONTEND_URL (virgule-séparé)
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
   .split(',')
-  .map(s => s.trim())
+  .map((s) => s.trim())
   .filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Autoriser les requêtes sans origin (ex: curl, Postman, health checks internes)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    logger.warn(`CORS: origine refusée — ${origin}`);
-    callback(new Error(`CORS: origine non autorisée — ${origin}`));
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Autoriser les requêtes sans origin (ex: curl, Postman, health checks internes)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      logger.warn(`CORS: origine refusée — ${origin}`);
+      callback(new Error(`CORS: origine non autorisée — ${origin}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+);
 
 // CSRF — exige X-Requested-With sur toutes les mutations (defense-in-depth, CORS étant la première ligne)
 app.use('/api', (req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
     if (!req.headers['x-requested-with']) {
-      return res.status(403).json({ success: false, error: 'En-tête X-Requested-With manquant', timestamp: new Date().toISOString() });
+      return res.status(403).json({
+        success: false,
+        error: 'En-tête X-Requested-With manquant',
+        timestamp: new Date().toISOString(),
+      });
     }
   }
   next();
@@ -105,9 +108,9 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    error: 'Trop de requêtes — réessayez dans une minute (rate limit: 200 req/min)'
+    error: 'Trop de requêtes — réessayez dans une minute (rate limit: 200 req/min)',
   },
-  skip: (req) => req.path === '/api/health' // health check jamais limité
+  skip: (req) => req.path === '/api/health', // health check jamais limité
 });
 
 // Rate-limiter plus strict sur les routes coûteuses
@@ -118,8 +121,8 @@ const heavyLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    error: 'Trop de requêtes sur cet endpoint — réessayez dans une minute'
-  }
+    error: 'Trop de requêtes sur cet endpoint — réessayez dans une minute',
+  },
 });
 
 app.use('/api/', apiLimiter);
@@ -131,7 +134,7 @@ app.use('/api/sync/status-to-gitlab', heavyLimiter);
 app.use((req, res, next) => {
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
-    userAgent: req.get('user-agent')
+    userAgent: req.get('user-agent'),
   });
   next();
 });
@@ -157,27 +160,25 @@ app.use((req, res) => {
     success: false,
     error: 'Route non trouvée',
     path: req.path,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 // ==========================================
 // Gestion globale des erreurs (ITIL)
 // ==========================================
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   logger.error('Erreur non gérée:', {
     message: err.message,
     stack: err.stack,
     path: req.path,
-    method: req.method
+    method: req.method,
   });
 
   res.status(err.status || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production'
-      ? 'Erreur interne du serveur'
-      : err.message,
-    timestamp: new Date().toISOString()
+    error: process.env.NODE_ENV === 'production' ? 'Erreur interne du serveur' : err.message,
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -188,7 +189,7 @@ app.use((err, req, res, next) => {
 // Expression cron : */5 8-17 * * 1-5
 // (heure 8-17 = de 8:00 à 17:55, dernière exécution avant 18h)
 
-const cron           = require('node-cron');
+const cron = require('node-cron');
 const autoSyncConfig = require('./services/auto-sync-config.service');
 
 /**
@@ -204,7 +205,9 @@ async function runAutoSync() {
   }
 
   const { runId, iterationName, gitlabProjectId } = autoSyncConfig.getConfig();
-  logger.info(`[AutoSync] Démarrage — run=${runId} iteration="${iterationName}" glProject=${gitlabProjectId}`);
+  logger.info(
+    `[AutoSync] Démarrage — run=${runId} iteration="${iterationName}" glProject=${gitlabProjectId}`
+  );
 
   try {
     const stats = await statusSyncService.syncRunStatusToGitLab(
@@ -212,14 +215,21 @@ async function runAutoSync() {
       iterationName,
       gitlabProjectId,
       (type, data) => {
-        if (type === 'updated')   logger.info(`[AutoSync] ✓ #${data.issueIid} "${data.caseName}" → ${data.label}`);
-        else if (type === 'error') logger.error(`[AutoSync] ✗ #${data.issueIid} "${data.caseName}": ${data.error}`);
-        else if (type === 'done')  logger.info(`[AutoSync] Terminé — updated=${data.updated} skipped=${data.skipped} errors=${data.errors}`);
-        else if (type === 'warn')  logger.warn(`[AutoSync] ${data.message}`);
+        if (type === 'updated')
+          logger.info(`[AutoSync] ✓ #${data.issueIid} "${data.caseName}" → ${data.label}`);
+        else if (type === 'error')
+          logger.error(`[AutoSync] ✗ #${data.issueIid} "${data.caseName}": ${data.error}`);
+        else if (type === 'done')
+          logger.info(
+            `[AutoSync] Terminé — updated=${data.updated} skipped=${data.skipped} errors=${data.errors}`
+          );
+        else if (type === 'warn') logger.warn(`[AutoSync] ${data.message}`);
       },
       false // dryRun = false
     );
-    logger.info(`[AutoSync] Stats: updated=${stats.updated} skipped=${stats.skipped} errors=${stats.errors} total=${stats.total}`);
+    logger.info(
+      `[AutoSync] Stats: updated=${stats.updated} skipped=${stats.skipped} errors=${stats.errors} total=${stats.total}`
+    );
   } catch (err) {
     logger.error(`[AutoSync] Erreur critique: ${err.message}`);
   }
@@ -228,17 +238,23 @@ async function runAutoSync() {
 // Cron toujours enregistré — c'est le flag `enabled` dans la config qui pilote
 const SYNC_TIMEZONE = process.env.SYNC_TIMEZONE || 'Europe/Paris';
 
-cron.schedule('*/5 8-17 * * 1-5', () => {
-  const { enabled } = autoSyncConfig.getConfig();
-  if (!enabled) {
-    logger.debug('[AutoSync] Cron déclenché mais auto-sync désactivé — ignoré');
-    return;
-  }
-  logger.info('[AutoSync] Cron déclenché');
-  runAutoSync();
-}, { timezone: SYNC_TIMEZONE });
+cron.schedule(
+  '*/5 8-17 * * 1-5',
+  () => {
+    const { enabled } = autoSyncConfig.getConfig();
+    if (!enabled) {
+      logger.debug('[AutoSync] Cron déclenché mais auto-sync désactivé — ignoré');
+      return;
+    }
+    logger.info('[AutoSync] Cron déclenché');
+    runAutoSync();
+  },
+  { timezone: SYNC_TIMEZONE }
+);
 
-logger.info(`[AutoSync] Cron enregistré — lun-ven 8h-18h toutes les 5 min (timezone: ${SYNC_TIMEZONE})`);
+logger.info(
+  `[AutoSync] Cron enregistré — lun-ven 8h-18h toutes les 5 min (timezone: ${SYNC_TIMEZONE})`
+);
 logger.info(`[AutoSync] Config initiale: ${JSON.stringify(autoSyncConfig.getConfig())}`);
 
 // ==========================================
