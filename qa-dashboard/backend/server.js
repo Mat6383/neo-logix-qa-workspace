@@ -87,6 +87,16 @@ app.use(cors({
   credentials: true
 }));
 
+// CSRF — exige X-Requested-With sur toutes les mutations (defense-in-depth, CORS étant la première ligne)
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    if (!req.headers['x-requested-with']) {
+      return res.status(403).json({ success: false, error: 'En-tête X-Requested-With manquant', timestamp: new Date().toISOString() });
+    }
+  }
+  next();
+});
+
 // Rate-limiting global (ITIL Availability Management — protection DoS)
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // fenêtre d'1 minute
