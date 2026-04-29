@@ -25,11 +25,19 @@ export default defineConfig(({ mode }) => {
   build: {
     outDir: 'dist',
     sourcemap: true,
-    // Optimisation LEAN
     minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true
+      }
+    },
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('html2canvas') || id.includes('jspdf')) return 'pdf-export';
+          if (id.includes('/docx/')) return 'docx-export';
+          if (id.includes('chart.js') || id.includes('react-chartjs-2')) return 'charts';
+        }
       }
     }
   }

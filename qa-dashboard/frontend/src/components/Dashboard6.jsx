@@ -280,7 +280,7 @@ export default function Dashboard6({ isDark }) {
           if (line.startsWith('data: ')) {
             try {
               const event = JSON.parse(line.slice(6));
-              setLogLines(prev => [...prev, event]);
+              setLogLines(prev => { const next = [...prev, event]; return next.length > 500 ? next.slice(-500) : next; });
 
               if (event.type === 'done') {
                 setFinalStats({

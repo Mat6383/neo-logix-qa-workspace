@@ -15,6 +15,7 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { getColorByThreshold, getColorForFailure } from '../utils/colorHelpers';
 import '../styles/MetricsCards.css';
 
 const MetricsCards = ({ metrics, useBusiness }) => {
@@ -146,23 +147,5 @@ const MetricCard = ({ title, subtitle, value, total, target, icon: Icon, color, 
     </div>
   );
 };
-
-/**
- * Détermine la couleur selon seuils ISTQB
- */
-function getColorByThreshold(value, targetThreshold, warningThreshold) {
-  if (value >= targetThreshold) return '#10B981'; // Vert
-  if (value >= warningThreshold) return '#F59E0B'; // Orange
-  return '#EF4444'; // Rouge
-}
-
-/**
- * Couleur pour le taux d'échec (inverse)
- */
-function getColorForFailure(value) {
-  if (value <= 5) return '#10B981'; // Vert si peu d'échecs
-  if (value <= 10) return '#F59E0B'; // Orange
-  return '#EF4444'; // Rouge si beaucoup d'échecs
-}
 
 export default MetricsCards;

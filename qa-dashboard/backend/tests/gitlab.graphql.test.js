@@ -329,6 +329,88 @@ describe('VERSION_FIELD_KEY — GID du champ custom Version Prod', () => {
   });
 });
 
+// ─── 8. Filtrage par Work Item status — logique getIssuesByStatusAndIteration ──
+// La méthode REST+GraphQL récupère tous les tickets de l'itération,
+// puis filtre ceux dont le Work Item status = Test::TODO (Status/15).
+
+function buildStatusMap(graphqlNodes) {
+  const statusByGid = new Map();
+  for (const node of (graphqlNodes || [])) {
+    const statusWidget = node?.widgets?.find(w => w.type === 'STATUS');
+    statusByGid.set(node.id, statusWidget?.status?.id || null);
+  }
+  return statusByGid;
+}
+
+function filterIssuesByStatus(allIssues, graphqlNodes, targetStatusGid) {
+  const statusByGid = buildStatusMap(graphqlNodes);
+  return allIssues.filter(issue => {
+    const gid = `gid://gitlab/WorkItem/${issue.id}`;
+    return statusByGid.get(gid) === targetStatusGid;
+  });
+}
+
+const TODO_GID = 'gid://gitlab/WorkItems::Statuses::Custom::Status/15';
+
+const MOCK_STATUS_NODES = [
+  { id: 'gid://gitlab/WorkItem/100', widgets: [{ type: 'STATUS', status: { id: TODO_GID, name: 'Test TODO' } }] },
+  { id: 'gid://gitlab/WorkItem/101', widgets: [{ type: 'STATUS', status: { id: 'gid://gitlab/WorkItems::Statuses::Custom::Status/18', name: 'Test OK' } }] },
+  { id: 'gid://gitlab/WorkItem/102', widgets: [{ type: 'ASSIGNEES' }] },
+  { id: 'gid://gitlab/WorkItem/103', widgets: [{ type: 'STATUS', status: { id: TODO_GID, name: 'Test TODO' } }] }
+];
+
+describe('buildStatusMap — construction du Map GID → statusGid', () => {
+  test('retourne le GID TODO pour les issues en statut Test::TODO', () => {
+    const map = buildStatusMap(MOCK_STATUS_NODES);
+    expect(map.get('gid://gitlab/WorkItem/100')).toBe(TODO_GID);
+    expect(map.get('gid://gitlab/WorkItem/103')).toBe(TODO_GID);
+  });
+
+  test('retourne un GID différent pour un statut Test OK', () => {
+    const map = buildStatusMap(MOCK_STATUS_NODES);
+    expect(map.get('gid://gitlab/WorkItem/101')).toBe('gid://gitlab/WorkItems::Statuses::Custom::Status/18');
+  });
+
+  test('issue sans widget STATUS → null dans le Map', () => {
+    const map = buildStatusMap(MOCK_STATUS_NODES);
+    expect(map.get('gid://gitlab/WorkItem/102')).toBeNull();
+  });
+
+  test('nodes null/undefined → Map vide', () => {
+    expect(buildStatusMap(null).size).toBe(0);
+    expect(buildStatusMap(undefined).size).toBe(0);
+  });
+});
+
+describe('filterIssuesByStatus — filtre par Work Item status Test::TODO', () => {
+  test('retourne uniquement les issues avec status Test::TODO', () => {
+    const result = filterIssuesByStatus(MOCK_REST_ISSUES, MOCK_STATUS_NODES, TODO_GID);
+    expect(result.map(i => i.id)).toEqual([100, 103]);
+  });
+
+  test('issue avec status Test OK → exclue', () => {
+    const result = filterIssuesByStatus(MOCK_REST_ISSUES, MOCK_STATUS_NODES, TODO_GID);
+    expect(result.map(i => i.id)).not.toContain(101);
+  });
+
+  test('issue sans widget STATUS → exclue (status null ≠ TODO_GID)', () => {
+    const result = filterIssuesByStatus(MOCK_REST_ISSUES, MOCK_STATUS_NODES, TODO_GID);
+    expect(result.map(i => i.id)).not.toContain(102);
+  });
+
+  test('nodes vide → 0 résultats', () => {
+    expect(filterIssuesByStatus(MOCK_REST_ISSUES, [], TODO_GID)).toHaveLength(0);
+  });
+
+  test('issues vide → 0 résultats', () => {
+    expect(filterIssuesByStatus([], MOCK_STATUS_NODES, TODO_GID)).toHaveLength(0);
+  });
+
+  test('nodes null → 0 résultats', () => {
+    expect(filterIssuesByStatus(MOCK_REST_ISSUES, null, TODO_GID)).toHaveLength(0);
+  });
+});
+
 // ─── 7. updateWorkItemStatus — mutation GraphQL avec axios mocké ──────────────
 // Vérifie que la méthode appelle /api/graphql avec les bons paramètres.
 // Le mock jest.mock est hoisted — les deux require('axios') (test + service)
@@ -435,5 +517,62 @@ describe('updateWorkItemStatus — appel GraphQL mutation', () => {
     });
     await expect(gitlabService.updateWorkItemStatus(WORK_ITEM_GID, STATUS_GID))
       .rejects.toThrow('Status not allowed');
+  });
+});
+
+// ─── 9. getIssuesByStatusAndIteration — intégration avec mocks ───────────────
+// La méthode construit une query aliasée (wi_100, wi_101…) compatible toutes
+// versions GitLab (root `nodes` absent sur certaines instances self-hosted).
+
+const MOCK_ALIASED_STATUS_RESPONSE = {
+  wi_100: { id: 'gid://gitlab/WorkItem/100', widgets: [{ type: 'STATUS', status: { id: TODO_GID } }] },
+  wi_101: { id: 'gid://gitlab/WorkItem/101', widgets: [{ type: 'STATUS', status: { id: 'gid://gitlab/WorkItems::Statuses::Custom::Status/18' } }] },
+  wi_102: { id: 'gid://gitlab/WorkItem/102', widgets: [{ type: 'ASSIGNEES' }] },
+  wi_103: { id: 'gid://gitlab/WorkItem/103', widgets: [{ type: 'STATUS', status: { id: TODO_GID } }] }
+};
+
+describe('getIssuesByStatusAndIteration — intégration REST + GraphQL aliasé', () => {
+  let spyGetIssues, spyGraphQL;
+
+  beforeEach(() => {
+    spyGetIssues = jest.spyOn(gitlabService, 'getIssuesForIteration')
+      .mockResolvedValue(MOCK_REST_ISSUES);
+    spyGraphQL = jest.spyOn(gitlabService, 'executeGraphQL')
+      .mockResolvedValue(MOCK_ALIASED_STATUS_RESPONSE);
+  });
+
+  afterEach(() => {
+    spyGetIssues.mockRestore();
+    spyGraphQL.mockRestore();
+  });
+
+  test('appelle getIssuesForIteration avec le bon projectId et iterationId', async () => {
+    await gitlabService.getIssuesByStatusAndIteration(63, 109);
+    expect(spyGetIssues).toHaveBeenCalledWith(63, 109);
+  });
+
+  test('retourne uniquement les issues avec status Test::TODO (ids 100 et 103)', async () => {
+    const result = await gitlabService.getIssuesByStatusAndIteration(63, 109);
+    expect(result.map(i => i.id)).toEqual([100, 103]);
+  });
+
+  test('retourne [] sans appel GraphQL si getIssuesForIteration retourne []', async () => {
+    spyGetIssues.mockResolvedValue([]);
+    const result = await gitlabService.getIssuesByStatusAndIteration(63, 109);
+    expect(result).toEqual([]);
+    expect(spyGraphQL).not.toHaveBeenCalled();
+  });
+
+  test('la query GraphQL utilise des aliases wi_<id> et workItem(id:)', async () => {
+    await gitlabService.getIssuesByStatusAndIteration(63, 109);
+    const [query] = spyGraphQL.mock.calls[0];
+    expect(query).toContain('wi_100: workItem(id: "gid://gitlab/WorkItem/100")');
+    expect(query).toContain('wi_103: workItem(id: "gid://gitlab/WorkItem/103")');
+  });
+
+  test('lève une erreur si executeGraphQL rejette', async () => {
+    spyGraphQL.mockRejectedValue(new Error('GraphQL timeout'));
+    await expect(gitlabService.getIssuesByStatusAndIteration(63, 109))
+      .rejects.toThrow('GraphQL timeout');
   });
 });

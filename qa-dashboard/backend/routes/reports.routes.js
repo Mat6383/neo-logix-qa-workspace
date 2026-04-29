@@ -1,57 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const testmoService = require('../services/testmo.service');
-const ReportService = require('../services/report.service');
-const logger = require('../services/logger.service');
 const { validateBody, reportsGenerateBody } = require('../validators');
+const { generateReport } = require('../controllers/reports.controller');
 
-const reportService = new ReportService(testmoService);
-
-/**
- * Génère un rapport de clôture de tests (HTML et/ou PPTX)
- * ISTQB §5.4.2 Test Closure Report
- */
-router.post('/generate', validateBody(reportsGenerateBody), async (req, res) => {
-  try {
-    const { projectId, milestoneId, formats, recommendations } = req.body;
-
-    logger.info(`Génération rapport: project=${projectId}, milestone=${milestoneId}, formats=${JSON.stringify(formats)}`);
-
-    // 1. Collect data
-    const data = await reportService.collectReportData(projectId, milestoneId);
-
-    const result = { success: true, files: {} };
-
-    // 2. Generate HTML
-    if (formats.html) {
-      const htmlContent = reportService.generateHTML(data, recommendations);
-      result.files.html = Buffer.from(htmlContent, 'utf-8').toString('base64');
-      result.files.htmlFilename = `${data.milestoneName}_Cloture_Tests.html`;
-    }
-
-    // 3. Generate PPTX
-    if (formats.pptx) {
-      const pres = await reportService.generatePPTX(data, recommendations);
-      const pptxBuffer = await pres.write({ outputType: 'nodebuffer' });
-      result.files.pptx = pptxBuffer.toString('base64');
-      result.files.pptxFilename = `${data.milestoneName}_Cloture_Tests.pptx`;
-    }
-
-    result.summary = {
-      milestone: data.milestoneName,
-      verdict: data.verdict,
-      totalTests: data.stats.totalTests,
-      passRate: data.stats.passRate,
-      failedTests: data.failedTests.length,
-    };
-
-    logger.info(`Rapport généré: ${data.milestoneName} — ${data.verdict}`);
-    res.json(result);
-
-  } catch (error) {
-    logger.error('Erreur POST /api/reports/generate:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.post('/generate', validateBody(reportsGenerateBody), generateReport);
 
 module.exports = router;

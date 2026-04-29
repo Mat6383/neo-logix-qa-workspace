@@ -1,20 +1,18 @@
 import React, { useRef } from 'react';
+import { useToast } from '../hooks/useToast';
+import { getColorByThreshold } from '../utils/colorHelpers';
 import {
     ShieldAlert, ShieldCheck, Activity, Database, CheckCircle, Bug,
     Download, Layers, CheckSquare, XCircle, BarChart3, TrendingUp, AlertTriangle, Search
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import TestClosureModal from './TestClosureModal';
-import QuickClosureModal from './QuickClosureModal';
-import ReportGeneratorModal from './ReportGeneratorModal';
+import ModalGroup from './ModalGroup';
 
 const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, showProductionSection = true, onToggleProductionSection }) => {
     const dashboardRef = useRef(null);
+    const { addToast } = useToast();
     const [showAllRuns, setShowAllRuns] = React.useState(false);
-    const [showClosureModal, setShowClosureModal] = React.useState(false);
-    const [showQuickClosureModal, setShowQuickClosureModal] = React.useState(false);
-    const [showReportGenerator, setShowReportGenerator] = React.useState(false);
 
     // Provide the export function to the parent component on mount
     React.useEffect(() => {
@@ -57,11 +55,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
         return metrics.slaStatus.alerts.find(a => a.metric === metricName);
     };
 
-    const getPassRateColor = (passRate) => {
-        if (passRate >= 95) return '#10B981';
-        if (passRate >= 90) return '#F59E0B';
-        return '#EF4444';
-    };
+    const getPassRateColor = (passRate) => getColorByThreshold(passRate, 95, 90);
 
     const renderAlert = (alert) => {
         if (!alert) return null;
@@ -108,7 +102,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
             pdf.save(`QA_Dashboard_${project.name}_${new Date().toLocaleDateString('fr-FR')}.pdf`);
         } catch (error) {
             console.error('Erreur lors de l\'export PDF:', error);
-            alert('Erreur lors de la génération du PDF');
+            addToast({ message: 'Erreur lors de la génération du PDF', type: 'error' });
         }
     };
 
@@ -183,50 +177,12 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                         <h2 style={{ fontSize: '1.35rem', color: 'var(--text-color)', margin: 0 }}>
                             {useBusiness ? 'PRÉPRODUCTION' : 'PREPROD'}
                         </h2>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button
-                                onClick={() => setShowClosureModal(true)}
-                                style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                    backgroundColor: '#3B82F6', color: 'white', border: 'none', 
-                                    padding: '0.4rem 0.8rem', borderRadius: '6px', fontWeight: 600, 
-                                    cursor: 'pointer', fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#2563EB'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#3B82F6'}
-                            >
-                                <CheckSquare size={16} /> Clôture de Test
-                            </button>
-                            <button
-                                onClick={() => setShowQuickClosureModal(true)}
-                                style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                    backgroundColor: '#10B981', color: 'white', border: 'none', 
-                                    padding: '0.4rem 0.8rem', borderRadius: '6px', fontWeight: 600, 
-                                    cursor: 'pointer', fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#059669'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#10B981'}
-                            >
-                                <CheckSquare size={16} /> Quick Clôture DOCX
-                            </button>
-                            <button
-                                onClick={() => setShowReportGenerator(true)}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    backgroundColor: '#8B5CF6', color: 'white', border: 'none',
-                                    padding: '0.4rem 0.8rem', borderRadius: '6px', fontWeight: 600,
-                                    cursor: 'pointer', fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(139, 92, 246, 0.3)',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#7C3AED'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#8B5CF6'}
-                            >
-                                <CheckSquare size={16} /> Rapport HTML / PPTX
-                            </button>
-                        </div>
+                        <ModalGroup
+                            metrics={metrics}
+                            project={project}
+                            useBusiness={useBusiness}
+                            isDark={isDark}
+                        />
                         <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }}></div>
                     </div>
 
@@ -470,7 +426,7 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                                         <span style={{ fontWeight: 700, color: 'var(--text-color)' }}>{run.completionRate}%</span>
                                     </div>
                                     <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${run.completionRate}%`, height: '100%', backgroundColor: run.isExploratory ? '#8B5CF6' : (run.completionRate >= 90 ? '#10B981' : run.completionRate >= 80 ? '#F59E0B' : '#3B82F6') }}></div>
+                                        <div style={{ width: `${run.completionRate}%`, height: '100%', backgroundColor: run.isExploratory ? '#8B5CF6' : (run.completionRate >= 90 ? '#10B981' : run.completionRate >= 80 ? '#F59E0B' : '#EF4444') }}></div>
                                     </div>
  
                                     {/* Taux de succès */}
@@ -604,32 +560,6 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
                 </div> {/* Fin Section Prod */}
             </div>
             
-            {/* Modal de Clôture */}
-            <TestClosureModal
-                isOpen={showClosureModal}
-                onClose={() => setShowClosureModal(false)}
-                metrics={metrics}
-                project={project}
-                useBusiness={useBusiness}
-                isDark={isDark}
-            />
-
-            <QuickClosureModal
-                isOpen={showQuickClosureModal}
-                onClose={() => setShowQuickClosureModal(false)}
-                metrics={metrics}
-                project={project}
-                useBusiness={useBusiness}
-                isDark={isDark}
-            />
-
-            <ReportGeneratorModal
-                isOpen={showReportGenerator}
-                onClose={() => setShowReportGenerator(false)}
-                metrics={metrics}
-                project={project}
-                isDark={isDark}
-            />
         </div>
     );
 };

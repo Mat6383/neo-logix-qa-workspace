@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { X, FileText, Download, Activity, History, Calendar, Layers, Bug, Plus, Trash2 } from 'lucide-react';
 import apiService from '../services/api.service';
 import { generateQuickClosureDoc } from '../utils/docxGenerator';
+import { useToast } from '../hooks/useToast';
 
 const QuickClosureModal = ({ isOpen, onClose, metrics, project, useBusiness, isDark }) => {
+    const { addToast } = useToast();
     const [trends, setTrends] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRuns, setSelectedRuns] = useState([]);
@@ -109,7 +111,7 @@ const QuickClosureModal = ({ isOpen, onClose, metrics, project, useBusiness, isD
             onClose(); // Fermer après l'export
         } catch (error) {
             console.error("Erreur génération:", error);
-            alert("Erreur lors de la génération du document DOCX.");
+            addToast({ message: 'Erreur lors de la génération du document DOCX.', type: 'error' });
         } finally {
             setIsExporting(false);
         }

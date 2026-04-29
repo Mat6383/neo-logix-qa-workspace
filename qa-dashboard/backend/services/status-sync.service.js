@@ -233,12 +233,12 @@ class StatusSyncService {
    * @param {string}        runName   - Nom du run Testmo
    * @param {number}        statusId  - ID du statut Testmo
    */
-  async _postCommentIfNeeded(projectId, issueIid, caseName, runName, statusId) {
+  async _postCommentIfNeeded(projectId, issueIid, caseName, runName, statusId, cachedNotes = null) {
     const commentText = this._buildCommentText(runName, statusId);
 
     try {
-      // Récupère les commentaires existants pour vérifier l'idempotence
-      const existingNotes = await gitlabService.getIssueNotes(projectId, issueIid);
+      // Utilise le cache pré-chargé si disponible, sinon fait un appel direct
+      const existingNotes = cachedNotes?.get(issueIid) ?? await gitlabService.getIssueNotes(projectId, issueIid);
       const alreadyExists = existingNotes.some(n => n.body === commentText);
 
       if (alreadyExists) {
@@ -339,6 +339,34 @@ class StatusSyncService {
     }
     onEvent('info', { message: `${issues.length} issue(s) GitLab indexée(s).` });
 
+    // Pré-charger les notes GitLab pour toutes les issues matchées (élimine le N+1)
+    const cachedNotes = new Map();
+    if (!dryRun) {
+      onEvent('info', { message: 'Pré-chargement des commentaires GitLab…' });
+      const issueIidsToFetch = [];
+      for (const r of results) {
+        if (!STATUS_TO_GITLAB_STATUS[r.status_id]) continue;
+        const cn = r.case_name || caseNames.get(r.case_id);
+        if (!cn) continue;
+        const iss = issueByTitle.get(normalize(cn));
+        if (iss) issueIidsToFetch.push(iss.iid);
+      }
+
+      const CONCURRENCY = 5;
+      for (let i = 0; i < issueIidsToFetch.length; i += CONCURRENCY) {
+        const batch = issueIidsToFetch.slice(i, i + CONCURRENCY);
+        await Promise.all(batch.map(async iid => {
+          try {
+            cachedNotes.set(iid, await gitlabService.getIssueNotes(gitlabProjectId, iid));
+          } catch (err) {
+            logger.warn(`[StatusSync] Impossible de charger les notes pour #${iid}: ${err.message}`);
+            cachedNotes.set(iid, []);
+          }
+        }));
+      }
+      onEvent('info', { message: `${cachedNotes.size} cache(s) de commentaires chargé(s).` });
+    }
+
     // 3. Appliquer les statuts Work Item via GraphQL
     stats.total = results.length;
 
@@ -385,7 +413,7 @@ class StatusSyncService {
         onEvent('updated', { caseName, issueIid: issue.iid, newStatus });
         logger.info(`[StatusSync] #${issue.iid} "${caseName}" → status:${newStatus}`);
 
-        await this._postCommentIfNeeded(gitlabProjectId, issue.iid, caseName, runName, statusId);
+        await this._postCommentIfNeeded(gitlabProjectId, issue.iid, caseName, runName, statusId, cachedNotes);
       } catch (err) {
         stats.errors++;
         onEvent('error', { caseName, issueIid: issue.iid, error: err.message });

@@ -17,7 +17,8 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
   }
 });
 
@@ -115,7 +116,7 @@ const apiService = {
       return response.data;
     } catch (error) {
       if (error.name === 'AbortError' || error.name === 'CanceledError') throw error;
-      return { success: false };
+      throw this._handleError('Get Quality Rates', error);
     }
   },
 

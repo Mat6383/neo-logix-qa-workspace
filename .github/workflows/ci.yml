@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'feat/**', 'fix/**', 'refactor/**']
+  pull_request:
+    branches: [master]
+
+jobs:
+  backend:
+    name: Backend (lint + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qa-dashboard/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: qa-dashboard/backend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint --if-present || true
+      - name: Tests
+        run: npm test -- --passWithNoTests --forceExit
+        env:
+          NODE_ENV: test
+          TESTMO_URL: http://localhost
+          TESTMO_TOKEN: test-token
+          GITLAB_URL: http://localhost
+          GITLAB_TOKEN: test-token
+
+  frontend:
+    name: Frontend (lint + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qa-dashboard/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: qa-dashboard/frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - name: Lint
+        run: npm run lint --if-present || true
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build

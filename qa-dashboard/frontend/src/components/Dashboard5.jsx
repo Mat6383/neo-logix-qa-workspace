@@ -258,18 +258,18 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
                                     <td style={{ padding: '0.75rem', fontSize: '0.85rem' }}>{new Date(t.date).toLocaleDateString()}</td>
                                     <td style={{ padding: '0.75rem', textAlign: 'center' }}>{t.bugsInTest}</td>
                                     <td style={{ padding: '0.75rem', textAlign: 'center' }}>{t.bugsInProd}</td>
-                                    <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 700, color: '#10B981' }}>{t.detectionRate}%</td>
-                                    <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 700, color: t.escapeRate > 5 ? '#EF4444' : '#10B981' }}>{t.escapeRate}%</td>
+                                    <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 700, color: t.detectionRate > 95 ? '#10B981' : '#EF4444' }}>{t.detectionRate}%</td>
+                                    <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 700, color: t.escapeRate >= 5 ? '#EF4444' : '#10B981' }}>{t.escapeRate}%</td>
                                     <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                                        <span style={{ 
-                                            padding: '0.2rem 0.5rem', 
-                                            borderRadius: '4px', 
-                                            fontSize: '0.75rem', 
+                                        <span style={{
+                                            padding: '0.2rem 0.5rem',
+                                            borderRadius: '4px',
+                                            fontSize: '0.75rem',
                                             fontWeight: 800,
-                                            backgroundColor: t.escapeRate <= 3 ? 'rgba(16, 185, 129, 0.1)' : t.escapeRate <= 7 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                            color: t.escapeRate <= 3 ? '#10B981' : t.escapeRate <= 7 ? '#F59E0B' : '#EF4444'
+                                            backgroundColor: t.escapeRate <= 3 ? 'rgba(16, 185, 129, 0.1)' : t.escapeRate < 5 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                            color: t.escapeRate <= 3 ? '#10B981' : t.escapeRate < 5 ? '#F59E0B' : '#EF4444'
                                         }}>
-                                            {t.escapeRate <= 3 ? 'EXCELLENT' : t.escapeRate <= 7 ? 'ACCEPTABLE' : 'CRITICAL'}
+                                            {t.escapeRate <= 3 ? 'EXCELLENT' : t.escapeRate < 5 ? 'ACCEPTABLE' : 'CRITICAL'}
                                         </span>
                                     </td>
                                 </tr>
