@@ -16,6 +16,7 @@ const logger = require('./logger.service');
 const testmoService = require('./testmo.service');
 const gitlabService = require('./gitlab.service');
 const { marked } = require('marked');
+const sanitizeHtml = require('sanitize-html');
 
 class SyncService {
   constructor() {
@@ -76,7 +77,7 @@ class SyncService {
       name: title,
       folder_id: folderId,
       tags,
-      custom_description: description ? marked.parse(description.substring(0, 4000)) : '',
+      custom_description: description ? sanitizeHtml(marked.parse(description.substring(0, 4000))) : '',
       issues: [{
         display_id: String(iid),
         integration_id: integrationConfig.gitlabIntegrationId,
@@ -164,7 +165,7 @@ class SyncService {
     const EXPECTED = '<p>Conforme aux specs fonctionnelles</p>';
 
     const steps = [...otherSections, ...allTestSections].map((s, i) => ({
-      text1: marked.parse(`**[${s.label}]**\n\n${s.content}`),
+      text1: sanitizeHtml(marked.parse(`**[${s.label}]**\n\n${s.content}`)),
       text3: EXPECTED,
       display_order: i + 1
     }));
@@ -265,7 +266,7 @@ class SyncService {
 
     logger.info('='.repeat(60));
     logger.info(`Sync: Démarrage synchronisation GitLab → Testmo`);
-    logger.info(`Sync: Itération="${iterationName}" | Label="${cfg.gitlabLabel}" | Test=${isTest} | DryRun=${dryRun}`);
+    logger.info(`Sync: Itération="${iterationName}" | Filtre=Status:Test::TODO | Test=${isTest} | DryRun=${dryRun}`);
     logger.info('='.repeat(60));
 
     emit('start', { iterationName, dryRun });
@@ -289,18 +290,10 @@ class SyncService {
       }
       await this._delay();
 
-      // 2. Récupérer les tickets
+      // 2. Récupérer les tickets (filtre par status Work Item = Test::TODO)
       logger.info('Sync: [2/4] Récupération tickets GitLab...');
-      let issues;
-      if (cfg.gitlabProjectId) {
-        issues = await gitlabService.getIssuesByLabelAndIterationForProject(
-          cfg.gitlabProjectId,
-          cfg.gitlabLabel,
-          iteration.id
-        );
-      } else {
-        issues = await gitlabService.getIssuesByLabelAndIteration(cfg.gitlabLabel, iteration.id);
-      }
+      const gitlabPid = cfg.gitlabProjectId || gitlabService.projectId;
+      const issues = await gitlabService.getIssuesByStatusAndIteration(gitlabPid, iteration.id);
       stats.total = issues.length;
 
       if (issues.length === 0) {
@@ -461,16 +454,11 @@ class SyncService {
     }
     await this._delay();
 
-    // 2. Récupérer les tickets
+    // 2. Récupérer les tickets (filtre par status Work Item = Test::TODO)
     let issues;
     try {
-      if (cfg.gitlabProjectId) {
-        issues = await gitlabService.getIssuesByLabelAndIterationForProject(
-          cfg.gitlabProjectId, cfg.gitlabLabel, iteration.id
-        );
-      } else {
-        issues = await gitlabService.getIssuesByLabelAndIteration(cfg.gitlabLabel, iteration.id);
-      }
+      const gitlabPid = cfg.gitlabProjectId || gitlabService.projectId;
+      issues = await gitlabService.getIssuesByStatusAndIteration(gitlabPid, iteration.id);
     } catch (err) {
       throw new Error(`Erreur récupération tickets: ${err.message}`);
     }
