@@ -26,6 +26,7 @@ export function DashboardProvider({ children }) {
   const abortControllerRef = useRef(null);
   const lastRefreshRef = useRef(Date.now());
   const isLoadingRef = useRef(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
     localStorage.setItem('testmo_projectId', projectId);
@@ -71,7 +72,7 @@ export function DashboardProvider({ children }) {
       setLoading(true);
       setError(null);
 
-      const [metricsResponse, qualityResponse] = await Promise.all([
+      const [metricsResult, qualityResult] = await Promise.allSettled([
         apiService.getDashboardMetrics(
           projectId,
           selectedPreprodMilestones.length > 0 ? selectedPreprodMilestones : null,
@@ -88,11 +89,14 @@ export function DashboardProvider({ children }) {
 
       if (controller.signal.aborted) return;
 
+      if (metricsResult.status === 'rejected') throw metricsResult.reason;
+
+      const metricsResponse = metricsResult.value;
       if (metricsResponse.success) {
-        setMetrics({
-          ...metricsResponse.data,
-          qualityRates: qualityResponse.success ? qualityResponse.data : null
-        });
+        const qualityRates = qualityResult.status === 'fulfilled' && qualityResult.value?.success
+          ? qualityResult.value.data
+          : null;
+        setMetrics({ ...metricsResponse.data, qualityRates });
         setLastUpdate(new Date());
         lastRefreshRef.current = Date.now();
       } else {
@@ -118,8 +122,9 @@ export function DashboardProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reload on project/milestones change
+  // Reload on project/milestones change (skip initial mount — handled by the effect above)
   useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return; }
     loadDashboardMetrics(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, selectedPreprodMilestones, selectedProdMilestones]);

@@ -115,7 +115,7 @@ const apiService = {
       return response.data;
     } catch (error) {
       if (error.name === 'AbortError' || error.name === 'CanceledError') throw error;
-      return { success: false };
+      throw this._handleError('Get Quality Rates', error);
     }
   },
 

@@ -24,7 +24,7 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 | H2 | ✅ done | **Zéro tests pour status-sync.service** — 16 cas purs : buildCommentText, isCommentDuplicate, computeLabelChanges, computeStatusChange, mapping | `backend/tests/status-sync.service.test.js` · commit `3fb3054` |
 | H3 | ✅ done | **Zéro tests pour gitlab.service** — 20 cas : formatEstimate, getIssueNotes, findIterationForProject, searchIterations, executeGraphQL | `backend/tests/gitlab.service.test.js` · commit `c1cf8b5` |
 | H4 | ✅ done | **Tokens dans les logs** — `_scrubEvent` dans Sentry `beforeSend` + 4 call sites testmo.service passent `{status,message}` au lieu du full error | `backend/services/sentry.service.js`, `testmo.service.js:343,363,609,690` · commit `d2a8b2e` |
-| H5 | ⬜ todo | **Erreurs avalées inconsistamment** — `api.service.js` retourne `{ success: false }` au lieu de throw ; les composants qui attendent une exception ne reçoivent rien | `frontend/src/services/api.service.js` |
+| H5 | ✅ done | **Erreurs avalées inconsistamment** — `api.service.js` retourne `{ success: false }` au lieu de throw ; `DashboardContext` utilisait `Promise.all` (bloquant) au lieu de `Promise.allSettled` (non-bloquant pour quality rates) | `frontend/src/services/api.service.js`, `frontend/src/contexts/DashboardContext.jsx` |
 
 ---
 
@@ -65,3 +65,4 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-04-29 | C1, C2, C3 | `feat/modernisation-architecture` |
 | 2026-04-29 | H1, H2, H3 | `feat/modernisation-architecture` |
 | 2026-04-29 | H4 | `feat/modernisation-architecture` |
+| 2026-04-29 | H5 | `feat/modernisation-architecture` |

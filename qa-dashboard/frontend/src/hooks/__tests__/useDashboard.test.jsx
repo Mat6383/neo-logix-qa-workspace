@@ -73,4 +73,33 @@ describe('useDashboard', () => {
     const { result } = renderHook(() => useDashboard(), { wrapper });
     await waitFor(() => expect(result.current.backendStatus).toBe('ok'));
   });
+
+  // ─── H5 — getQualityRates ne doit pas bloquer les métriques principales ───
+
+  it('charge les métriques même si getQualityRates rejette (non-bloquant)', async () => {
+    const apiService = (await import('../../services/api.service')).default;
+    vi.mocked(apiService.getQualityRates).mockRejectedValueOnce(new Error('quality rates unavailable'));
+
+    const { result } = renderHook(() => useDashboard(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Les métriques principales sont chargées malgré l'échec des quality rates
+    expect(result.current.metrics).not.toBeNull();
+    expect(result.current.metrics.qualityRates).toBeNull();
+    // Aucun setError — quality rates est non-bloquant
+    expect(result.current.error).toBeNull();
+  });
+
+  it("met error quand getDashboardMetrics rejette (erreur principale bloquante)", async () => {
+    const apiService = (await import('../../services/api.service')).default;
+    vi.mocked(apiService.getDashboardMetrics).mockRejectedValueOnce(new Error('backend unavailable'));
+
+    const { result } = renderHook(() => useDashboard(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error).toContain('backend unavailable');
+  });
 });
