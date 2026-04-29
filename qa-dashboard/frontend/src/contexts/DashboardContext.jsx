@@ -129,14 +129,17 @@ export function DashboardProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, selectedPreprodMilestones, selectedProdMilestones]);
 
-  // Auto-refresh interval (1 min)
+  // Auto-refresh interval (1 min) — paused when tab is hidden
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      console.log('[Auto-refresh] Rechargement des métriques (1m)...');
-      loadDashboardMetrics();
-    }, 60000);
-    return () => clearInterval(interval);
+    let intervalId = null;
+    const start = () => { if (!intervalId) intervalId = setInterval(() => loadDashboardMetrics(), 60000); };
+    const stop  = () => { clearInterval(intervalId); intervalId = null; };
+    const onVisibility = () => (document.visibilityState === 'hidden' ? stop() : start());
+
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [autoRefresh, loadDashboardMetrics]);
 
   // Visibility/focus refresh
