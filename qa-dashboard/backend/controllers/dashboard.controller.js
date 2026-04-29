@@ -2,7 +2,11 @@ const testmoService = require('../services/testmo.service');
 const logger = require('../services/logger.service');
 
 function parseMilestones(query) {
-  return query ? query.split(',').map(Number) : null;
+  if (!query) return null;
+  const ids = query.split(',')
+    .map(s => parseInt(s.trim(), 10))
+    .filter(n => Number.isInteger(n) && n > 0);
+  return ids.length > 0 ? ids : null;
 }
 
 async function getMetrics(req, res) {
@@ -55,4 +59,4 @@ async function getAnnualTrends(req, res) {
   }
 }
 
-module.exports = { getMetrics, getQualityRates, getAnnualTrends };
+module.exports = { getMetrics, getQualityRates, getAnnualTrends, parseMilestones };
