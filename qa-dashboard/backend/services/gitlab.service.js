@@ -356,6 +356,59 @@ class GitLabService {
   }
 
   /**
+   * Récupère les tickets d'une itération dont le Work Item status = Test::TODO.
+   * Remplace le filtrage par label Test::TODO (obsolète).
+   *
+   * Flux : REST (tous les tickets de l'itération) → GraphQL (lire le status) → filtre local.
+   *
+   * @param {number|string} projectId   - ID du projet GitLab
+   * @param {number}        iterationId - ID de l'itération
+   * @returns {Array}
+   */
+  async getIssuesByStatusAndIteration(projectId, iterationId) {
+    const todoStatusGid = process.env.GITLAB_STATUS_TODO || 'gid://gitlab/WorkItems::Statuses::Custom::Status/15';
+
+    try {
+      const allIssues = await this.getIssuesForIteration(projectId, iterationId);
+      if (!allIssues.length) return [];
+
+      // Requête avec aliases par work item — compatible toutes versions GitLab
+      // (root `nodes(ids:[])` n'est pas disponible sur certaines instances self-hosted)
+      const CHUNK_SIZE = 50;
+      const statusByGid = new Map();
+
+      for (let i = 0; i < allIssues.length; i += CHUNK_SIZE) {
+        const chunk = allIssues.slice(i, i + CHUNK_SIZE);
+        const fields = `{ id widgets { type ... on WorkItemWidgetStatus { status { id } } } }`;
+        const query = `query {\n${chunk.map(iss =>
+          `  wi_${iss.id}: workItem(id: "gid://gitlab/WorkItem/${iss.id}") ${fields}`
+        ).join('\n')}\n}`;
+
+        const data = await this.executeGraphQL(query, {});
+
+        for (const issue of chunk) {
+          const node = data[`wi_${issue.id}`];
+          const statusWidget = node?.widgets?.find(w => w.type === 'STATUS');
+          statusByGid.set(`gid://gitlab/WorkItem/${issue.id}`, statusWidget?.status?.id || null);
+        }
+
+        if (i + CHUNK_SIZE < allIssues.length) await this._delay();
+      }
+
+      const filtered = allIssues.filter(issue => {
+        const gid = `gid://gitlab/WorkItem/${issue.id}`;
+        return statusByGid.get(gid) === todoStatusGid;
+      });
+
+      logger.info(`GitLab: ${filtered.length}/${allIssues.length} issue(s) avec status=Test::TODO (iteration_id=${iterationId}, project=${projectId})`);
+      return filtered;
+    } catch (error) {
+      logger.error(`GitLab: Erreur getIssuesByStatusAndIteration:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Récupère TOUTES les issues d'une itération (sans filtre de label)
    * Utilisé par le StatusSync pour obtenir tous les tickets de l'itération.
    *
