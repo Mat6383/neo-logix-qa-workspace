@@ -260,23 +260,24 @@ logger.info(`[AutoSync] Config initiale: ${JSON.stringify(autoSyncConfig.getConf
 // ==========================================
 // Démarrage du serveur
 // ==========================================
-app.listen(PORT, () => {
-  logger.info(`
+if (require.main === module) {
+  app.listen(PORT, () => {
+    logger.info(`
 ╔════════════════════════════════════════════════╗
 ║   TESTMO DASHBOARD - Backend Server Started   ║
 ╠════════════════════════════════════════════════╣
-║  Port:        ${PORT}                            
-║  Environment: ${process.env.NODE_ENV || 'development'}                   
-║  Testmo URL:  ${process.env.TESTMO_URL}        
-║  Frontend:    ${process.env.FRONTEND_URL || 'http://localhost:3000'}    
+║  Port:        ${PORT}
+║  Environment: ${process.env.NODE_ENV || 'development'}
+║  Testmo URL:  ${process.env.TESTMO_URL}
+║  Frontend:    ${process.env.FRONTEND_URL || 'http://localhost:3000'}
 ╠════════════════════════════════════════════════╣
 ║  Standards: ISTQB | LEAN | ITIL | DevOps      ║
 ║  Author: Matou - Neo-Logix QA Lead            ║
 ╚════════════════════════════════════════════════╝
-  `);
-
-  logger.info('Server ready to accept connections');
-});
+    `);
+    logger.info('Server ready to accept connections');
+  });
+}
 
 // Gestion propre de l'arrêt (ITIL Change Management)
 process.on('SIGTERM', () => {
