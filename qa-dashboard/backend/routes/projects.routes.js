@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const testmoService = require('../services/testmo.service');
 const logger = require('../services/logger.service');
-const { validateParams, projectIdParam } = require('../validators');
+const { validateParams, validateQuery, projectIdParam, activeQuery } = require('../validators');
 
 /**
  * Liste tous les projets Testmo
@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
   try {
     const projects = await testmoService.getProjects();
 
+    res.set('Cache-Control', 'private, max-age=300'); // 5 min
     res.json({
       success: true,
       data: projects,
@@ -32,13 +33,14 @@ router.get('/', async (req, res) => {
  * Liste des runs actifs d'un projet
  * ISTQB: Test Monitoring
  */
-router.get('/:projectId/runs', validateParams(projectIdParam), async (req, res) => {
+router.get('/:projectId/runs', validateParams(projectIdParam), validateQuery(activeQuery), async (req, res) => {
   try {
     const projectId = parseInt(req.params.projectId);
-    const activeOnly = req.query.active !== 'false'; // Par défaut: actifs seulement
+    const activeOnly = req.query.active !== 'false';
 
     const runs = await testmoService.getProjectRuns(projectId, activeOnly);
 
+    res.set('Cache-Control', 'private, max-age=120'); // 2 min
     res.json({
       success: true,
       data: runs,
@@ -64,6 +66,7 @@ router.get('/:projectId/milestones', validateParams(projectIdParam), async (req,
 
     const milestones = await testmoService.getProjectMilestones(projectId);
 
+    res.set('Cache-Control', 'private, max-age=600'); // 10 min
     res.json({
       success: true,
       data: milestones,

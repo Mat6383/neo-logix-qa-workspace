@@ -21,6 +21,15 @@ const iidParam = z.object({
   iid: z.coerce.number().int().positive('iid invalide')
 });
 
+// ─── Query ─────────────────────────────────────────────────────────────────
+const activeQuery = z.object({
+  active: z.enum(['true', 'false']).optional()
+});
+
+const iterationSearchQuery = z.object({
+  search: z.string().max(100, 'search: 100 caractères maximum').optional()
+});
+
 // ─── Body ──────────────────────────────────────────────────────────────────
 const syncPreviewBody = z.object({
   projectId: z.string().min(1, '"projectId" requis'),
@@ -151,6 +160,8 @@ module.exports = {
   validateBody,
   validateQuery,
   projectIdParam,
+  activeQuery,
+  iterationSearchQuery,
   syncProjectIdParam,
   runIdParam,
   iterationIdParam,
