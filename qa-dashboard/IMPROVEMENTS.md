@@ -32,11 +32,11 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Fichier(s) |
 |---|--------|-------------|-----------|
-| M1 | ⬜ todo | **testmo.service.js 1400+ LOC** — mélange client HTTP + calculs ISTQB + cache + retry ; splitter en `testmo-api.js` + `istqb-metrics.js` | `backend/services/testmo.service.js` |
-| M2 | ⬜ todo | **Logique couleur/seuil dupliquée 3×** — `getColorByThreshold()` redéfini dans MetricsCards, Dashboard4, StatusChart | `frontend/src/components/MetricsCards.jsx`, `Dashboard4.jsx`, `StatusChart.jsx` |
-| M3 | ⬜ todo | **Dashboard4.jsx 639 LOC** — gère métriques + export PDF + 3 modales (TestClosure, QuickClosure, ReportGenerator) ; extraire les modales | `frontend/src/components/Dashboard4.jsx` |
-| M4 | ⬜ todo | **`_withRetry()` appliqué inconsistamment** — `gitlab.service.js` protège tous les appels, `testmo.service.js` seulement certains ; erreurs réseau tombent silencieusement | `backend/services/testmo.service.js` |
-| M5 | ⬜ todo | **Paramètres query non validés** — `?active=0` ou `?dryRun=yes` passent les vérifications ; utiliser les validators Zod existants | `backend/routes/projects.routes.js:38`, `backend/services/sync.controller.js:124` |
+| M1 | ✅ done | **testmo.service.js 1400+ LOC** — 3 méthodes ISTQB + helpers extraits dans `istqb-metrics.service.js` ; testmo.service passe de 1414 → 665 LOC | `backend/services/testmo.service.js`, `backend/services/istqb-metrics.service.js` |
+| M2 | ✅ done | **Logique couleur/seuil dupliquée** — `utils/colorHelpers.js` centralise `getColorByThreshold` + `getColorForFailure` ; MetricsCards + Dashboard4 importent le module | `frontend/src/utils/colorHelpers.js` |
+| M3 | ✅ done | **Dashboard4.jsx 639 LOC** — modal state + boutons + renders extraits dans `ModalGroup.jsx` ; Dashboard4 passe à 567 LOC | `frontend/src/components/ModalGroup.jsx` |
+| M4 | ✅ done | **`_withRetry()` appliqué inconsistamment** — 7 méthodes GET supplémentaires wrappées (getProjectSessions, getRunDetails, getProjectMilestones, getRunResults, getAutomationRuns, getFolders, getCases) | `backend/services/testmo.service.js` |
+| M5 | ✅ done | **Paramètres query non validés** — `activeQuery` (enum true/false) sur runs, `iterationSearchQuery` (max 100 chars) sur iterations ; Zod retourne 400 sur valeur invalide | `backend/validators/index.js`, `backend/routes/` |
 
 ---
 
@@ -44,9 +44,9 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Fichier(s) |
 |---|--------|-------------|-----------|
-| P1 | ⬜ todo | **Dashboard6 logs non virtualisés** — `logLines` grandit indéfiniment pendant le SSE ; 500+ événements = 500 nœuds DOM, freeze sur gros syncs | `frontend/src/components/Dashboard6.jsx:148` |
-| P2 | ⬜ todo | **Auto-refresh ignorant la visibilité** — DashboardContext recharge toutes les 60s même quand l'onglet est en arrière-plan | `frontend/src/contexts/DashboardContext.jsx` |
-| P3 | ⬜ todo | **Pas de headers HTTP cache** — réponses API sans `Cache-Control` / `ETag` ; le frontend re-fetch des données identiques à chaque navigation | `backend/routes/` |
+| P1 | ✅ done | **Dashboard6 logs non virtualisés** — `logLines` cappé à 500 entrées (slice -500) ; évite le freeze DOM sur gros syncs | `frontend/src/components/Dashboard6.jsx` |
+| P2 | ✅ done | **Auto-refresh ignorant la visibilité** — setInterval suspendu sur `visibilityState=hidden`, repris sur visible | `frontend/src/contexts/DashboardContext.jsx` |
+| P3 | ✅ done | **Pas de headers HTTP cache** — `Cache-Control: private, max-age=N` sur 6 routes GET (2–10 min selon la volatilité) | `backend/routes/dashboard.routes.js`, `backend/routes/projects.routes.js` |
 
 ---
 
@@ -54,7 +54,7 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Fichier(s) |
 |---|--------|-------------|-----------|
-| S1 | ⬜ todo | **Pas de protection CSRF** — endpoints POST/PUT sans token CSRF ; n'importe quelle origine peut déclencher un sync | `backend/server.js` |
+| S1 | ✅ done | **Pas de protection CSRF** — middleware backend exige `X-Requested-With` sur POST/PUT/DELETE/PATCH ; le frontend axios l'envoie sur toutes les requêtes | `backend/server.js`, `frontend/src/services/api.service.js` |
 
 ---
 
@@ -66,3 +66,4 @@ Légende statut : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-04-29 | H1, H2, H3 | `feat/modernisation-architecture` |
 | 2026-04-29 | H4 | `feat/modernisation-architecture` |
 | 2026-04-29 | H5 | `feat/modernisation-architecture` |
+| 2026-04-29 | M1, M2, M3, M4, M5, P1, P2, P3, S1 | `feat/modernisation-architecture` |
