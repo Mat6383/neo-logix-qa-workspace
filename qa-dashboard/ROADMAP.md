@@ -20,7 +20,7 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Effort |
 |---|--------|-------------|--------|
-| F1 | ⬜ todo | **Brancher `getIssuesByStatusAndIteration`** — méthode GitLab créée mais non reliée à une route/controller ; à intégrer dans le flux sync GitLab → Testmo | ~2h |
+| F1 | ✅ done | **Brancher `getIssuesByStatusAndIteration`** — déjà intégré dans `sync.service.js` (l. 320 + 489) via les flux `/sync/execute` et `/sync/preview` depuis feat/modernisation-architecture | — |
 
 ---
 
