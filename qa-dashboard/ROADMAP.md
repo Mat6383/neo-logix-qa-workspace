@@ -12,7 +12,7 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | # | Statut | Description | Effort |
 |---|--------|-------------|--------|
 | Q1 | ✅ done | **Prettier warnings backend** — 1284 → 0 warnings ; dead code supprimé (reportService, _resolveField, preprodRuns/Sessions, cases inutile) | ~1h |
-| Q2 | ⬜ todo | **Tests routes API (supertest)** — les controllers/validators ne sont pas testés ; couvrir les 400/500 et cas limites HTTP | ~1 jour |
+| Q2 | ✅ done | **Tests routes API (supertest)** — 77 tests sur 9 routers (400 Zod, 403 CSRF, 200 mock) ; suite totale 367 → 444 tests | ~1 jour |
 
 ---
 
@@ -50,3 +50,4 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 |------|--------------|---------|
 | 2026-04-29 | Audit + C1-C3 + H1-H5 + M1-M5 + P1-P3 + S1 (15 items) | `feat/modernisation-architecture` → merge master |
 | 2026-04-29 | Q1 (0 warnings ESLint), ROADMAP.md créée | `master` |
+| 2026-04-29 | Q2 (77 tests supertest, 444 tests total) | `master` |
