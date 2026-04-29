@@ -7,20 +7,14 @@ jest.mock('../../controllers/sync.controller', () => ({
     res.json({ success: true, data: [], timestamp: new Date().toISOString() }),
   getIterations: (_req, res) =>
     res.json({ success: true, data: [], timestamp: new Date().toISOString() }),
-  previewSync: (_req, res) =>
-    res.json({ success: true, timestamp: new Date().toISOString() }),
-  executeSync: (_req, res) =>
-    res.json({ success: true, timestamp: new Date().toISOString() }),
+  previewSync: (_req, res) => res.json({ success: true, timestamp: new Date().toISOString() }),
+  executeSync: (_req, res) => res.json({ success: true, timestamp: new Date().toISOString() }),
   getHistory: (_req, res) =>
     res.json({ success: true, data: [], timestamp: new Date().toISOString() }),
-  testApi: (_req, res) =>
-    res.json({ success: true, timestamp: new Date().toISOString() }),
-  syncIteration: (_req, res) =>
-    res.json({ success: true, timestamp: new Date().toISOString() }),
-  statusToGitlab: (_req, res) =>
-    res.json({ success: true, timestamp: new Date().toISOString() }),
-  testCleanup: (_req, res) =>
-    res.json({ success: true, timestamp: new Date().toISOString() }),
+  testApi: (_req, res) => res.json({ success: true, timestamp: new Date().toISOString() }),
+  syncIteration: (_req, res) => res.json({ success: true, timestamp: new Date().toISOString() }),
+  statusToGitlab: (_req, res) => res.json({ success: true, timestamp: new Date().toISOString() }),
+  testCleanup: (_req, res) => res.json({ success: true, timestamp: new Date().toISOString() }),
   getAutoConfig: (_req, res) =>
     res.json({ success: true, data: {}, timestamp: new Date().toISOString() }),
   updateAutoConfig: (_req, res) =>
@@ -121,9 +115,7 @@ describe('GET /api/sync/history', () => {
 
 describe('POST /api/sync/iteration', () => {
   test('403 — sans X-Requested-With', async () => {
-    const res = await request(app)
-      .post('/api/sync/iteration')
-      .send({ iteration: 'R01' });
+    const res = await request(app).post('/api/sync/iteration').send({ iteration: 'R01' });
     expect(res.status).toBe(403);
   });
 
@@ -134,10 +126,7 @@ describe('POST /api/sync/iteration', () => {
   });
 
   test('200 — body valide', async () => {
-    const res = await request(app)
-      .post('/api/sync/iteration')
-      .set(CSRF)
-      .send({ iteration: 'R01' });
+    const res = await request(app).post('/api/sync/iteration').set(CSRF).send({ iteration: 'R01' });
     expect(res.status).toBe(200);
   });
 });
@@ -195,9 +184,7 @@ describe('GET /api/sync/auto-config', () => {
 
 describe('PUT /api/sync/auto-config', () => {
   test('403 — sans X-Requested-With', async () => {
-    const res = await request(app)
-      .put('/api/sync/auto-config')
-      .send({ enabled: true });
+    const res = await request(app).put('/api/sync/auto-config').send({ enabled: true });
     expect(res.status).toBe(403);
   });
 
@@ -208,10 +195,7 @@ describe('PUT /api/sync/auto-config', () => {
   });
 
   test('200 — au moins un champ valide', async () => {
-    const res = await request(app)
-      .put('/api/sync/auto-config')
-      .set(CSRF)
-      .send({ enabled: false });
+    const res = await request(app).put('/api/sync/auto-config').set(CSRF).send({ enabled: false });
     expect(res.status).toBe(200);
   });
 });

@@ -9,7 +9,9 @@ jest.mock('../../services/gitlab.service', () => ({
 
 jest.mock('../../services/comments.service', () => ({
   getAll: jest.fn().mockReturnValue({}),
-  upsert: jest.fn().mockReturnValue({ id: 1, issue_iid: 1, comment: 'test', milestone_context: null }),
+  upsert: jest
+    .fn()
+    .mockReturnValue({ id: 1, issue_iid: 1, comment: 'test', milestone_context: null }),
   delete: jest.fn().mockReturnValue(true),
 }));
 
@@ -93,9 +95,7 @@ describe('POST /api/crosstest/comments', () => {
 
 describe('PUT /api/crosstest/comments/:iid', () => {
   test('403 — sans X-Requested-With', async () => {
-    const res = await request(app)
-      .put('/api/crosstest/comments/1')
-      .send({ comment: 'updated' });
+    const res = await request(app).put('/api/crosstest/comments/1').send({ comment: 'updated' });
     expect(res.status).toBe(403);
   });
 
@@ -109,10 +109,7 @@ describe('PUT /api/crosstest/comments/:iid', () => {
   });
 
   test('400 — comment vide', async () => {
-    const res = await request(app)
-      .put('/api/crosstest/comments/1')
-      .set(CSRF)
-      .send({ comment: '' });
+    const res = await request(app).put('/api/crosstest/comments/1').set(CSRF).send({ comment: '' });
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ success: false });
   });
@@ -134,17 +131,13 @@ describe('DELETE /api/crosstest/comments/:iid', () => {
   });
 
   test('400 — iid non numérique', async () => {
-    const res = await request(app)
-      .delete('/api/crosstest/comments/abc')
-      .set(CSRF);
+    const res = await request(app).delete('/api/crosstest/comments/abc').set(CSRF);
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ success: false });
   });
 
   test('200 — iid valide', async () => {
-    const res = await request(app)
-      .delete('/api/crosstest/comments/1')
-      .set(CSRF);
+    const res = await request(app).delete('/api/crosstest/comments/1').set(CSRF);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true });
   });
