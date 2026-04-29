@@ -11,7 +11,7 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Effort |
 |---|--------|-------------|--------|
-| Q1 | ⬜ todo | **Prettier warnings backend** — 1284 warnings sur 36 fichiers ; `prettier --write` + commit | ~1h |
+| Q1 | ✅ done | **Prettier warnings backend** — 1284 → 0 warnings ; dead code supprimé (reportService, _resolveField, preprodRuns/Sessions, cases inutile) | ~1h |
 | Q2 | ⬜ todo | **Tests routes API (supertest)** — les controllers/validators ne sont pas testés ; couvrir les 400/500 et cas limites HTTP | ~1 jour |
 
 ---
@@ -49,3 +49,4 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | Date | Items traités | Branche |
 |------|--------------|---------|
 | 2026-04-29 | Audit + C1-C3 + H1-H5 + M1-M5 + P1-P3 + S1 (15 items) | `feat/modernisation-architecture` → merge master |
+| 2026-04-29 | Q1 (0 warnings ESLint), ROADMAP.md créée | `master` |
