@@ -340,7 +340,7 @@ class TestmoService {
           logger.info(`[getProjectMetrics] Récupération de ${runs.length} runs pour les jalons ${preprodMilestones.join(', ')}`);
 
         } catch (e) {
-          logger.error(`Erreur lors de la récupération des runs filtrés par jalon:`, e);
+          logger.error(`Erreur lors de la récupération des runs filtrés par jalon:`, { status: e.response?.status, message: e.message });
         }
       }
 
@@ -360,7 +360,7 @@ class TestmoService {
 
         logger.info(`[getProjectMetrics] RÃ©cupÃ©ration de ${sessions.length} sessions exploratoires`);
       } catch (e) {
-        logger.error(`Erreur lors de la récupération des sessions exploratoires:`, e);
+        logger.error(`Erreur lors de la récupération des sessions exploratoires:`, { status: e.response?.status, message: e.message });
       }
 
       // Fetch dynamic TV metrics (Closed Runs & Milestones)
@@ -606,7 +606,7 @@ class TestmoService {
           // Stocker temporairement les sessions pour les utiliser plus bas
           this._tempSessions = allSessions;
         } catch (e) {
-          logger.error(`Erreur récupération Quality Rates runs/sessions spécifiques:`, e);
+          logger.error(`Erreur récupération Quality Rates runs/sessions spécifiques:`, { status: e.response?.status, message: e.message });
         }
 
         let preprodRuns = [];
@@ -687,7 +687,7 @@ class TestmoService {
               }
             }
           } catch (e) {
-            logger.error("Erreur details run production:", e);
+            logger.error("Erreur details run production:", { status: e.response?.status, message: e.message });
           }
         }
 
