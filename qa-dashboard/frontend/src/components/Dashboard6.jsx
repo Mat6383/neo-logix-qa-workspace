@@ -31,6 +31,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import apiService from '../services/api.service';
+import RunActionPanel from './RunActionPanel';
 import '../styles/Dashboard6.css';
 
 // ============================================================
@@ -655,6 +656,15 @@ export default function Dashboard6({ isDark }) {
                   <div className="d6-stat-label">Erreurs</div>
                 </div>
               </div>
+            )}
+
+            {/* Action suivante : lancer le status-sync sur le run synchronisé */}
+            {state === 'done' && selectedProject && selectedIter && (
+              <RunActionPanel
+                syncProjectId={selectedProject}
+                iterationName={selectedIter}
+                isDark={isDark}
+              />
             )}
           </div>
         </div>
