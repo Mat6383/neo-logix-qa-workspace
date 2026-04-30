@@ -1,0 +1,23 @@
+.rap-root { margin-top: 24px; padding: 20px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); }
+.rap-root.dark { --card-bg: #1e2736; --border-color: #2d3748; --text-color: #e2e8f0; --text-secondary: #94a3b8; }
+.rap-title { display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 600; color: var(--text-color); margin-bottom: 16px; }
+.rap-hint { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
+.rap-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.rap-btn-primary { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+.rap-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.rap-btn-secondary { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer; background: transparent; color: var(--text-color); font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+.rap-btn-ghost { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; padding: 4px 8px; }
+.rap-error { color: #ef4444; font-size: 0.85rem; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+.rap-success { color: #10b981; font-size: 0.9rem; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+.rap-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.rap-modal { background: var(--card-bg, #fff); border-radius: 12px; padding: 24px; max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.rap-modal h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text-color, #111); }
+.rap-modal-stats { display: grid; gap: 8px; margin-bottom: 20px; }
+.rap-stat-row { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 6px 10px; border-radius: 6px; }
+.rap-stat-add { background: #dcfce7; color: #166534; }
+.rap-stat-preserve { background: #dbeafe; color: #1e40af; }
+.rap-stat-tested { background: #fef3c7; color: #92400e; }
+.rap-stat-extra { background: #f1f5f9; color: #475569; }
+.rap-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.rap-run-select { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); font-size: 0.9rem; margin-bottom: 12px; }
+.rap-run-name-input { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); font-size: 0.9rem; margin-bottom: 12px; box-sizing: border-box; }
