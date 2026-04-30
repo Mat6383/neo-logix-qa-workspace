@@ -1,13 +1,56 @@
 const express = require('express');
 const router = express.Router();
 const testmoService = require('../services/testmo.service');
+const runManager = require('../services/run-manager.service');
 const logger = require('../services/logger.service');
-const { validateParams, runIdParam } = require('../validators');
+const {
+  validateParams,
+  validateBody,
+  validateQuery,
+  runIdParam,
+  folderCasesQuery,
+  projectRunsQuery,
+  createRunBody,
+  mergeBody,
+} = require('../validators');
 
-/**
- * Détails d'un run spécifique
- * ISTQB: Test Reporting
- */
+// ── Routes statiques (AVANT /:runId) ──────────────────────────────────────
+
+router.get('/folder-cases', validateQuery(folderCasesQuery), async (req, res) => {
+  try {
+    const { syncProjectId, iterationName } = req.query;
+    const data = await runManager.getFolderCases(syncProjectId, iterationName);
+    res.json({ success: true, data, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur GET /api/runs/folder-cases:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+router.get('/project-runs', validateQuery(projectRunsQuery), async (req, res) => {
+  try {
+    const { syncProjectId, activeOnly = 'true' } = req.query;
+    const runs = await runManager.getProjectRunsList(syncProjectId, activeOnly === 'true');
+    res.json({ success: true, data: runs, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur GET /api/runs/project-runs:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+router.post('/', validateBody(createRunBody), async (req, res) => {
+  try {
+    const { syncProjectId, name, caseIds, milestoneId } = req.body;
+    const run = await runManager.createRunFromCases(syncProjectId, name, caseIds, milestoneId);
+    res.json({ success: true, data: run, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error('Erreur POST /api/runs:', error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+// ── Routes paramétrées ────────────────────────────────────────────────────
+
 router.get('/:runId', validateParams(runIdParam), async (req, res) => {
   try {
     const runId = parseInt(req.params.runId);
@@ -29,10 +72,6 @@ router.get('/:runId', validateParams(runIdParam), async (req, res) => {
   }
 });
 
-/**
- * Résultats détaillés d'un run
- * API Testmo 2025: Nouveau endpoint
- */
 router.get('/:runId/results', validateParams(runIdParam), async (req, res) => {
   try {
     const runId = parseInt(req.params.runId);
@@ -52,6 +91,31 @@ router.get('/:runId/results', validateParams(runIdParam), async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString(),
     });
+  }
+});
+
+router.post('/:runId/merge-preview', validateParams(runIdParam), validateBody(mergeBody), async (req, res) => {
+  try {
+    const runId = parseInt(req.params.runId);
+    const { caseIds } = req.body;
+    const existingResults = await testmoService.getAllRunResults(runId);
+    const preview = runManager.computeMergePreview(existingResults, caseIds);
+    res.json({ success: true, data: preview, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error(`Erreur POST /api/runs/${req.params.runId}/merge-preview:`, error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+});
+
+router.post('/:runId/merge', validateParams(runIdParam), validateBody(mergeBody), async (req, res) => {
+  try {
+    const runId = parseInt(req.params.runId);
+    const { caseIds } = req.body;
+    const result = await runManager.mergeRunCases(runId, caseIds);
+    res.json({ success: true, data: result, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error(`Erreur POST /api/runs/${req.params.runId}/merge:`, error);
+    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 });
 
