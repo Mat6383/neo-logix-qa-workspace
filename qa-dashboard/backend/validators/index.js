@@ -93,6 +93,27 @@ const autoConfigBody = z
     message: 'Aucun champ valide fourni (enabled, runId, iterationName, gitlabProjectId, version)',
   });
 
+const folderCasesQuery = z.object({
+  syncProjectId: z.string().min(1, '"syncProjectId" requis'),
+  iterationName: z.string().min(1, '"iterationName" requis'),
+});
+
+const projectRunsQuery = z.object({
+  syncProjectId: z.string().min(1, '"syncProjectId" requis'),
+  activeOnly: z.enum(['true', 'false']).optional(),
+});
+
+const createRunBody = z.object({
+  syncProjectId: z.string().min(1, '"syncProjectId" requis'),
+  name: z.string().min(1, '"name" requis'),
+  caseIds: z.array(z.number().int().positive()).min(1, 'Au moins un cas requis'),
+  milestoneId: z.number().int().positive().optional(),
+});
+
+const mergeBody = z.object({
+  caseIds: z.array(z.number().int().positive()).min(1, 'Au moins un cas requis'),
+});
+
 // ─── Middleware ────────────────────────────────────────────────────────────
 function validate(schema) {
   return (req, res, next) => {
@@ -179,4 +200,8 @@ module.exports = {
   crosstestCommentBody,
   crosstestCommentPutBody,
   autoConfigBody,
+  folderCasesQuery,
+  projectRunsQuery,
+  createRunBody,
+  mergeBody,
 };
