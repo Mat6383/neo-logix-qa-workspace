@@ -416,6 +416,61 @@ const apiService = {
 
   // ---- Fin Dashboard 8 ---------------------------------------------------
 
+  // ---- Run Manager -------------------------------------------------------
+
+  async getFolderCases(syncProjectId, iterationName) {
+    try {
+      const response = await apiClient.get('/runs/folder-cases', {
+        params: { syncProjectId, iterationName },
+      });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Folder Cases', error);
+    }
+  },
+
+  async getProjectRunsList(syncProjectId, activeOnly = true) {
+    try {
+      const response = await apiClient.get('/runs/project-runs', {
+        params: { syncProjectId, activeOnly: String(activeOnly) },
+      });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Project Runs List', error);
+    }
+  },
+
+  async createTestRun(syncProjectId, name, caseIds, milestoneId = null) {
+    try {
+      const body = { syncProjectId, name, caseIds };
+      if (milestoneId) body.milestoneId = milestoneId;
+      const response = await apiClient.post('/runs', body);
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Create Test Run', error);
+    }
+  },
+
+  async getRunMergePreview(runId, caseIds) {
+    try {
+      const response = await apiClient.post(`/runs/${runId}/merge-preview`, { caseIds });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Run Merge Preview', error);
+    }
+  },
+
+  async mergeRunCases(runId, caseIds) {
+    try {
+      const response = await apiClient.post(`/runs/${runId}/merge`, { caseIds });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Merge Run Cases', error);
+    }
+  },
+
+  // ---- Fin Run Manager ---------------------------------------------------
+
   /**
    * Gestion des erreurs
    * @private
