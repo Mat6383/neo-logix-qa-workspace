@@ -23,7 +23,9 @@ router.get('/folder-cases', validateQuery(folderCasesQuery), async (req, res) =>
     res.json({ success: true, data, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur GET /api/runs/folder-cases:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 });
 
@@ -34,7 +36,9 @@ router.get('/project-runs', validateQuery(projectRunsQuery), async (req, res) =>
     res.json({ success: true, data: runs, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur GET /api/runs/project-runs:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 });
 
@@ -45,7 +49,9 @@ router.post('/', validateBody(createRunBody), async (req, res) => {
     res.json({ success: true, data: run, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur POST /api/runs:', error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
   }
 });
 
@@ -94,29 +100,43 @@ router.get('/:runId/results', validateParams(runIdParam), async (req, res) => {
   }
 });
 
-router.post('/:runId/merge-preview', validateParams(runIdParam), validateBody(mergeBody), async (req, res) => {
-  try {
-    const runId = parseInt(req.params.runId);
-    const { caseIds } = req.body;
-    const existingResults = await testmoService.getAllRunResults(runId);
-    const preview = runManager.computeMergePreview(existingResults, caseIds);
-    res.json({ success: true, data: preview, timestamp: new Date().toISOString() });
-  } catch (error) {
-    logger.error(`Erreur POST /api/runs/${req.params.runId}/merge-preview:`, error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+router.post(
+  '/:runId/merge-preview',
+  validateParams(runIdParam),
+  validateBody(mergeBody),
+  async (req, res) => {
+    try {
+      const runId = parseInt(req.params.runId);
+      const { caseIds } = req.body;
+      const existingResults = await testmoService.getAllRunResults(runId);
+      const preview = runManager.computeMergePreview(existingResults, caseIds);
+      res.json({ success: true, data: preview, timestamp: new Date().toISOString() });
+    } catch (error) {
+      logger.error(`Erreur POST /api/runs/${req.params.runId}/merge-preview:`, error);
+      res
+        .status(500)
+        .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    }
   }
-});
+);
 
-router.post('/:runId/merge', validateParams(runIdParam), validateBody(mergeBody), async (req, res) => {
-  try {
-    const runId = parseInt(req.params.runId);
-    const { caseIds } = req.body;
-    const result = await runManager.mergeRunCases(runId, caseIds);
-    res.json({ success: true, data: result, timestamp: new Date().toISOString() });
-  } catch (error) {
-    logger.error(`Erreur POST /api/runs/${req.params.runId}/merge:`, error);
-    res.status(500).json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+router.post(
+  '/:runId/merge',
+  validateParams(runIdParam),
+  validateBody(mergeBody),
+  async (req, res) => {
+    try {
+      const runId = parseInt(req.params.runId);
+      const { caseIds } = req.body;
+      const result = await runManager.mergeRunCases(runId, caseIds);
+      res.json({ success: true, data: result, timestamp: new Date().toISOString() });
+    } catch (error) {
+      logger.error(`Erreur POST /api/runs/${req.params.runId}/merge:`, error);
+      res
+        .status(500)
+        .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    }
   }
-});
+);
 
 module.exports = router;
