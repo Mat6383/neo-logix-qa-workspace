@@ -288,6 +288,56 @@ class TestmoService {
     }
   }
 
+  async getAllRunResults(runId) {
+    try {
+      const allResults = [];
+      let page = 1;
+      while (true) {
+        const response = await this._withRetry(
+          () =>
+            this.client.get(`/runs/${runId}/results`, {
+              params: { per_page: 100, page, expands: 'users' },
+            }),
+          `getAllRunResults_p${page}`
+        );
+        const batch = response.data.result || [];
+        allResults.push(...batch);
+        if (!response.data.next_page) break;
+        page++;
+      }
+      return allResults;
+    } catch (error) {
+      throw this._handleError('getAllRunResults', error);
+    }
+  }
+
+  async createRun(projectId, { name, description = '', milestoneId = null, caseIds = [] }) {
+    try {
+      const run = { name };
+      if (description) run.description = description;
+      if (milestoneId) run.milestone_id = milestoneId;
+      if (caseIds.length > 0) run.case_ids = caseIds;
+      const response = await this.client.post(`/projects/${projectId}/runs`, { runs: [run] });
+      const created = response.data.result ? response.data.result[0] : response.data;
+      logger.info(`Testmo: Run créé — "${name}" (id=${created.id}, cases=${caseIds.length})`);
+      return created;
+    } catch (error) {
+      throw this._handleError('createRun', error);
+    }
+  }
+
+  async updateRunCaseIds(runId, caseIds) {
+    try {
+      const response = await this.client.patch(`/runs/${runId}`, {
+        runs: [{ case_ids: caseIds }],
+      });
+      logger.info(`Testmo: Run ${runId} — case_ids mis à jour (${caseIds.length} cas)`);
+      return response.data;
+    } catch (error) {
+      throw this._handleError('updateRunCaseIds', error);
+    }
+  }
+
   /**
    * Récupère les runs d'automation
    * ISTQB: Automated Test Execution
