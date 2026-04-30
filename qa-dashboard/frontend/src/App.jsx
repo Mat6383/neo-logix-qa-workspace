@@ -17,6 +17,7 @@ const Dashboard5 = lazy(() => import('./components/Dashboard5'));
 const Dashboard6 = lazy(() => import('./components/Dashboard6'));
 const Dashboard7 = lazy(() => import('./components/Dashboard7'));
 const Dashboard8 = lazy(() => import('./components/Dashboard8'));
+const Dashboard9 = lazy(() => import('./components/Dashboard9'));
 const ConfigurationScreen = lazy(() => import('./components/ConfigurationScreen'));
 import {
   RefreshCw,
@@ -41,6 +42,7 @@ const VIEW_TO_ROUTE = {
   '7': '/sync/gitlab',
   '8': '/crosstest',
   '9': '/autosync',
+  '10': '/runs/manage',
 };
 
 // Maps URL path → select option value (for controlled select)
@@ -174,6 +176,7 @@ function App() {
               <option value="6">⚙️ Configuration des Cycles</option>
               <option value="8">🔗 CrossTest OK</option>
               <option value="9">🤖 Auto-Sync Testmo → GitLab</option>
+              <option value="10">🧪 Gestionnaire de Runs</option>
             </select>
           </div>
 
@@ -326,6 +329,10 @@ function App() {
 
             <Route path="/autosync" element={
               <Dashboard8 isDark={darkMode} />
+            } />
+
+            <Route path="/runs/manage" element={
+              <Dashboard9 isDark={darkMode} />
             } />
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
