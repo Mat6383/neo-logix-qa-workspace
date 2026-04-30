@@ -884,9 +884,7 @@ class GitLabService {
       }
 
       const result = Array.from(values).sort();
-      logger.info(
-        `GitLab: ${result.length} valeur(s) pour "${fieldName}" (project=${projectId})`
-      );
+      logger.info(`GitLab: ${result.length} valeur(s) pour "${fieldName}" (project=${projectId})`);
       return result;
     } catch (error) {
       logger.error(
