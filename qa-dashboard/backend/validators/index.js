@@ -31,12 +31,22 @@ const iterationSearchQuery = z.object({
 });
 
 // ─── Body ──────────────────────────────────────────────────────────────────
-const syncPreviewBody = z.object({
-  projectId: z.string().min(1, '"projectId" requis'),
-  iterationName: z.string().min(1, '"iterationName" requis'),
-});
+const syncFiltersBody = z
+  .object({
+    projectId: z.string().min(1, '"projectId" requis'),
+    folderName: z.string().min(1, '"folderName" requis (nom du dossier Testmo)'),
+    iterationName: z.string().optional(),
+    statusGid: z.string().optional(),
+    versionProd: z.string().optional(),
+    versionTest: z.string().optional(),
+  })
+  .refine(
+    (data) => data.iterationName || data.statusGid || data.versionProd || data.versionTest,
+    { message: 'Au moins un filtre requis : iterationName, statusGid, versionProd ou versionTest' }
+  );
 
-const syncExecuteBody = syncPreviewBody;
+const syncPreviewBody = syncFiltersBody;
+const syncExecuteBody = syncFiltersBody;
 
 const syncIterationBody = z.object({
   iteration: z.string().min(1, 'Paramètre "iteration" requis'),
@@ -192,6 +202,7 @@ module.exports = {
   runIdParam,
   iterationIdParam,
   iidParam,
+  syncFiltersBody,
   syncPreviewBody,
   syncExecuteBody,
   syncIterationBody,
