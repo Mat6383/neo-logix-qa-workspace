@@ -798,6 +798,106 @@ class GitLabService {
   }
 
   /**
+   * Liste les statuts Work Item disponibles pour un projet (via échantillon de 100 issues).
+   * Utilisé pour alimenter le sélecteur de statut du Dashboard 6.
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @returns {Array<{id: string, name: string}>} Statuts distincts trouvés
+   */
+  async getAvailableStatuses(projectId) {
+    try {
+      const issues = await this._getPaginated(`/projects/${projectId}/issues`, {
+        state: 'all',
+        scope: 'all',
+        per_page: 100,
+      });
+      if (!issues.length) return [];
+
+      const CHUNK_SIZE = 50;
+      const statusMap = new Map();
+      const sample = issues.slice(0, 100);
+
+      for (let i = 0; i < sample.length; i += CHUNK_SIZE) {
+        const chunk = sample.slice(i, i + CHUNK_SIZE);
+        const fields = `{ id widgets { type ... on WorkItemWidgetStatus { status { id name } } } }`;
+        const query = `query {\n${chunk
+          .map((iss) => `  wi_${iss.id}: workItem(id: "gid://gitlab/WorkItem/${iss.id}") ${fields}`)
+          .join('\n')}\n}`;
+
+        const data = await this.executeGraphQL(query, {});
+        for (const issue of chunk) {
+          const node = data[`wi_${issue.id}`];
+          const sw = node?.widgets?.find((w) => w.type === 'STATUS');
+          if (sw?.status?.id && sw?.status?.name) {
+            statusMap.set(sw.status.id, sw.status.name);
+          }
+        }
+        if (i + CHUNK_SIZE < sample.length) await this._delay();
+      }
+
+      const result = Array.from(statusMap.entries()).map(([id, name]) => ({ id, name }));
+      logger.info(`GitLab: ${result.length} statut(s) Work Item pour project=${projectId}`);
+      return result;
+    } catch (error) {
+      logger.error(`GitLab: Erreur getAvailableStatuses project=${projectId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Liste les valeurs distinctes d'un champ custom pour un projet.
+   * Utilisé pour alimenter les sélecteurs "Version Prod" / "Version de test" du Dashboard 6.
+   *
+   * @param {number|string} projectId - ID du projet GitLab
+   * @param {string}        fieldName - Nom du champ custom (ex: "Version Prod", "Version de test")
+   * @returns {Array<string>} Valeurs distinctes triées alphabétiquement
+   */
+  async getCustomFieldValues(projectId, fieldName) {
+    try {
+      const issues = await this._getPaginated(`/projects/${projectId}/issues`, {
+        state: 'all',
+        scope: 'all',
+      });
+      if (!issues.length) return [];
+
+      const CHUNK_SIZE = 50;
+      const values = new Set();
+
+      for (let i = 0; i < issues.length; i += CHUNK_SIZE) {
+        const chunk = issues.slice(i, i + CHUNK_SIZE);
+        const fields = `{ id widgets { ... on WorkItemWidgetCustomFields { customFieldValues { customField { name } ... on WorkItemSelectFieldValue { selectedOptions { value } } } } } }`;
+        const query = `query {\n${chunk
+          .map((iss) => `  wi_${iss.id}: workItem(id: "gid://gitlab/WorkItem/${iss.id}") ${fields}`)
+          .join('\n')}\n}`;
+
+        const data = await this.executeGraphQL(query, {});
+        for (const issue of chunk) {
+          const node = data[`wi_${issue.id}`];
+          const cfWidget = node?.widgets?.find((w) => Array.isArray(w.customFieldValues));
+          const field = cfWidget?.customFieldValues?.find(
+            (cf) => cf.customField?.name === fieldName
+          );
+          const val = field?.selectedOptions?.[0]?.value;
+          if (val) values.add(val);
+        }
+        if (i + CHUNK_SIZE < issues.length) await this._delay();
+      }
+
+      const result = Array.from(values).sort();
+      logger.info(
+        `GitLab: ${result.length} valeur(s) pour "${fieldName}" (project=${projectId})`
+      );
+      return result;
+    } catch (error) {
+      logger.error(
+        `GitLab: Erreur getCustomFieldValues "${fieldName}" project=${projectId}:`,
+        error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Convertit time_estimate (secondes) en format Testmo
    * Ex: 1800 → "30m", 3600 → "1h", 5400 → "1h 30m"
    *
