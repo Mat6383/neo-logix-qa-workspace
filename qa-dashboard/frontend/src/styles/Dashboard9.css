@@ -1,0 +1,13 @@
+.d9-root { padding: 24px; max-width: 900px; margin: 0 auto; }
+.d9-root.dark { color: #e2e8f0; }
+.d9-header { margin-bottom: 24px; }
+.d9-header h2 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.d9-header p { font-size: 0.9rem; color: var(--text-secondary, #64748b); margin-top: 4px; }
+.d9-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.d9-card.dark { background: #1e2736; border-color: #2d3748; }
+.d9-card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; color: var(--text-color); }
+.d9-form-group { margin-bottom: 12px; }
+.d9-form-group label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 4px; color: var(--text-secondary, #64748b); }
+.d9-select, .d9-input { width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color, #e2e8f0); background: var(--card-bg, #fff); color: var(--text-color); font-size: 0.9rem; box-sizing: border-box; }
+.d9-btn-primary { padding: 9px 18px; border-radius: 6px; border: none; cursor: pointer; background: #3b82f6; color: white; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+.d9-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
