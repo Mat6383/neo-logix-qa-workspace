@@ -709,6 +709,95 @@ class GitLabService {
   }
 
   /**
+   * Récupère les issues GitLab avec jusqu'à 4 filtres optionnels cumulables en AND.
+   *
+   * @param {number} projectId  - ID du projet GitLab
+   * @param {object} filters    - Filtres optionnels
+   * @param {number}  [filters.iterationId]  - ID d'itération (utilise getIssuesForIteration)
+   * @param {string}  [filters.statusGid]    - GID du statut WorkItem à matcher
+   * @param {string}  [filters.versionProd]  - Valeur du champ "Version Prod"
+   * @param {string}  [filters.versionTest]  - Valeur du champ "Version de test"
+   * @returns {Promise<object[]>} Issues filtrées
+   */
+  async getIssuesByFilters(projectId, filters = {}) {
+    const { iterationId, statusGid, versionProd, versionTest } = filters;
+
+    let allIssues;
+    if (iterationId) {
+      allIssues = await this.getIssuesForIteration(projectId, iterationId);
+    } else {
+      allIssues = await this._getPaginated(`/projects/${projectId}/issues`, {
+        state: 'all',
+        scope: 'all',
+      });
+    }
+    if (!allIssues.length) return [];
+
+    const needsGraphQL = statusGid || versionProd || versionTest;
+    if (!needsGraphQL) return allIssues;
+
+    const CHUNK_SIZE = 50;
+    const infoByGid = new Map();
+
+    for (let i = 0; i < allIssues.length; i += CHUNK_SIZE) {
+      const chunk = allIssues.slice(i, i + CHUNK_SIZE);
+      const fields = `{
+      id
+      widgets {
+        type
+        ... on WorkItemWidgetStatus { status { id } }
+        ... on WorkItemWidgetCustomFields {
+          customFieldValues {
+            customField { name }
+            ... on WorkItemSelectFieldValue { selectedOptions { value } }
+          }
+        }
+      }
+    }`;
+      const query = `query {\n${chunk
+        .map((iss) => `  wi_${iss.id}: workItem(id: "gid://gitlab/WorkItem/${iss.id}") ${fields}`)
+        .join('\n')}\n}`;
+
+      const data = await this.executeGraphQL(query, {});
+
+      for (const issue of chunk) {
+        const node = data[`wi_${issue.id}`];
+        if (!node) continue;
+        const statusWidget = node.widgets?.find((w) => w.type === 'STATUS');
+        const cfWidget = node.widgets?.find((w) => Array.isArray(w.customFieldValues));
+        const cfValues = cfWidget?.customFieldValues || [];
+        const getField = (name) =>
+          cfValues.find((cf) => cf.customField?.name === name)?.selectedOptions?.[0]?.value || null;
+
+        infoByGid.set(`gid://gitlab/WorkItem/${issue.id}`, {
+          statusGid: statusWidget?.status?.id || null,
+          versionProd: getField('Version Prod'),
+          versionTest: getField('Version de test'),
+        });
+      }
+
+      if (i + CHUNK_SIZE < allIssues.length) await this._delay();
+    }
+
+    const filtered = allIssues.filter((issue) => {
+      const gid = `gid://gitlab/WorkItem/${issue.id}`;
+      const info = infoByGid.get(gid);
+      if (!info) return false;
+      if (statusGid && info.statusGid !== statusGid) return false;
+      if (versionProd && info.versionProd !== versionProd) return false;
+      if (versionTest && info.versionTest !== versionTest) return false;
+      return true;
+    });
+
+    logger.info(
+      `GitLab: getIssuesByFilters — ${filtered.length}/${allIssues.length} issues ` +
+        `(project=${projectId}, iter=${!!iterationId}, status=${!!statusGid}, ` +
+        `vProd=${versionProd || '-'}, vTest=${versionTest || '-'})`
+    );
+    return filtered;
+  }
+
+  /**
    * Convertit time_estimate (secondes) en format Testmo
    * Ex: 1800 → "30m", 3600 → "1h", 5400 → "1h 30m"
    *
