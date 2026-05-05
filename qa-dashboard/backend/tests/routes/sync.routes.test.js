@@ -19,6 +19,10 @@ jest.mock('../../controllers/sync.controller', () => ({
     res.json({ success: true, data: {}, timestamp: new Date().toISOString() }),
   updateAutoConfig: (_req, res) =>
     res.json({ success: true, data: {}, timestamp: new Date().toISOString() }),
+  getStatuses: (_req, res) =>
+    res.json({ success: true, data: [], timestamp: new Date().toISOString() }),
+  getFieldValues: (_req, res) =>
+    res.json({ success: true, data: [], timestamp: new Date().toISOString() }),
 }));
 
 const app = require('../../server');
@@ -75,7 +79,7 @@ describe('POST /api/sync/preview', () => {
     const res = await request(app)
       .post('/api/sync/preview')
       .set(CSRF)
-      .send({ projectId: 'neo-pilot', iterationName: 'R01' });
+      .send({ projectId: 'neo-pilot', folderName: 'Sprint-01', iterationName: 'R01' });
     expect(res.status).toBe(200);
   });
 });
@@ -100,7 +104,7 @@ describe('POST /api/sync/execute', () => {
     const res = await request(app)
       .post('/api/sync/execute')
       .set(CSRF)
-      .send({ projectId: 'neo-pilot', iterationName: 'R01' });
+      .send({ projectId: 'neo-pilot', folderName: 'Sprint-01', iterationName: 'R01' });
     expect(res.status).toBe(200);
   });
 });

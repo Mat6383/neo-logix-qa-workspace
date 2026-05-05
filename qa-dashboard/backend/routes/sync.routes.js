@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  z,
   validateParams,
   validateBody,
   validateQuery,
@@ -24,6 +25,8 @@ const {
   testCleanup,
   getAutoConfig,
   updateAutoConfig,
+  getStatuses,
+  getFieldValues,
 } = require('../controllers/sync.controller');
 
 router.get('/projects', getProjects);
@@ -32,6 +35,17 @@ router.get(
   validateParams(syncProjectIdParam),
   validateQuery(iterationSearchQuery),
   getIterations
+);
+router.get(
+  '/:projectId/statuses',
+  validateParams(syncProjectIdParam),
+  getStatuses
+);
+router.get(
+  '/:projectId/field-values',
+  validateParams(syncProjectIdParam),
+  validateQuery(z.object({ field: z.string().min(1, '"field" requis') })),
+  getFieldValues
 );
 router.post('/preview', validateBody(syncPreviewBody), previewSync);
 router.post('/execute', validateBody(syncExecuteBody), executeSync);

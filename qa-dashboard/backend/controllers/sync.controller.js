@@ -52,7 +52,7 @@ async function getIterations(req, res) {
 
 async function previewSync(req, res) {
   try {
-    const { projectId, iterationName } = req.body;
+    const { projectId, folderName, iterationName, statusGid, versionProd, versionTest } = req.body;
     const project = PROJECTS.find((p) => p.id === projectId);
     if (!project)
       return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
@@ -61,9 +61,10 @@ async function previewSync(req, res) {
         .status(400)
         .json({ success: false, error: `Projet "${project.label}" non configuré` });
 
-    logger.info(`Preview: ${project.label} / "${iterationName}"`);
-    const preview = await syncService.previewIteration(iterationName, project);
-    syncHistoryService.addRun(project.label, iterationName, 'preview', {
+    logger.info(`Preview: ${project.label} / folder="${folderName}"`);
+    const filters = { iterationName, statusGid, versionProd, versionTest };
+    const preview = await syncService.previewIteration(folderName, filters, project);
+    syncHistoryService.addRun(project.label, folderName, 'preview', {
       created: preview.summary.toCreate,
       updated: preview.summary.toUpdate,
       skipped: preview.summary.toSkip,
@@ -79,7 +80,7 @@ async function previewSync(req, res) {
 }
 
 async function executeSync(req, res) {
-  const { projectId, iterationName } = req.body;
+  const { projectId, folderName, iterationName, statusGid, versionProd, versionTest } = req.body;
   const project = PROJECTS.find((p) => p.id === projectId);
   if (!project)
     return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
@@ -102,13 +103,15 @@ async function executeSync(req, res) {
   const heartbeat = setInterval(() => res.write(': ping\n\n'), 15000);
 
   try {
-    logger.info(`Execute: ${project.label} / "${iterationName}"`);
+    logger.info(`Execute: ${project.label} / folder="${folderName}"`);
+    const filters = { iterationName, statusGid, versionProd, versionTest };
     const stats = await syncService.syncIteration(
-      iterationName,
+      folderName,
+      filters,
       { projectConfig: project },
       (type, data) => send(type, data)
     );
-    syncHistoryService.addRun(project.label, iterationName, 'execute', stats);
+    syncHistoryService.addRun(project.label, folderName, 'execute', stats);
   } catch (error) {
     logger.error('Execute SSE error:', error);
     send('error', { message: error.message });
@@ -234,6 +237,45 @@ function updateAutoConfig(req, res) {
   }
 }
 
+async function getStatuses(req, res) {
+  try {
+    const { projectId } = req.params;
+    const project = PROJECTS.find((p) => p.id === projectId);
+    if (!project)
+      return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+    if (!project.configured)
+      return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
+    if (!project.gitlab.projectId)
+      return res.status(400).json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
+
+    const statuses = await gitlabServiceInstance.getAvailableStatuses(project.gitlab.projectId);
+    res.json({ success: true, data: statuses });
+  } catch (err) {
+    logger.error('getStatuses error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+async function getFieldValues(req, res) {
+  try {
+    const { projectId } = req.params;
+    const { field } = req.query;
+    const project = PROJECTS.find((p) => p.id === projectId);
+    if (!project)
+      return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
+    if (!project.configured)
+      return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
+    if (!project.gitlab.projectId)
+      return res.status(400).json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
+
+    const values = await gitlabServiceInstance.getCustomFieldValues(project.gitlab.projectId, field);
+    res.json({ success: true, data: values });
+  } catch (err) {
+    logger.error('getFieldValues error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
 module.exports = {
   getProjects,
   getIterations,
@@ -246,4 +288,6 @@ module.exports = {
   testCleanup,
   getAutoConfig,
   updateAutoConfig,
+  getStatuses,
+  getFieldValues,
 };
