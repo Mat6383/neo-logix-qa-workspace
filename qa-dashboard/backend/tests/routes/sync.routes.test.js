@@ -203,3 +203,36 @@ describe('PUT /api/sync/auto-config', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('GET /api/sync/:projectId/statuses', () => {
+  test('200 — projectId valide', async () => {
+    const res = await request(app).get('/api/sync/neo-pilot/statuses');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true, data: [] });
+  });
+
+  test('400 — projectId invalide (trop court)', async () => {
+    const res = await request(app).get('/api/sync//statuses');
+    expect(res.status).toBe(404); // route non matchée par Express
+  });
+});
+
+describe('GET /api/sync/:projectId/field-values', () => {
+  test('400 — query param field manquant', async () => {
+    const res = await request(app).get('/api/sync/neo-pilot/field-values');
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ success: false });
+  });
+
+  test('200 — field valide', async () => {
+    const res = await request(app).get('/api/sync/neo-pilot/field-values?field=Version%20Prod');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true, data: [] });
+  });
+
+  test('400 — field vide', async () => {
+    const res = await request(app).get('/api/sync/neo-pilot/field-values?field=');
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ success: false });
+  });
+});
