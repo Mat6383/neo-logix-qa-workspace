@@ -270,16 +270,38 @@ const apiService = {
 
   /**
    * Lance un aperçu (dry-run) de synchronisation
-   * @param {string} projectId     - ID interne du projet
-   * @param {string} iterationName - Nom de l'itération
-   * @returns {Promise<Object>} { iteration, folder, issues, summary }
+   * @param {string} projectId  - ID interne du projet
+   * @param {string} folderName - Nom du dossier Testmo
+   * @param {Object} filters    - { iterationName?, statusGid?, versionProd?, versionTest? }
+   * @returns {Promise<Object>} { folder, filters, issues, summary }
    */
-  async previewSync(projectId, iterationName) {
+  async previewSync(projectId, folderName, filters = {}) {
     try {
-      const response = await apiClient.post('/sync/preview', { projectId, iterationName }, { timeout: 60000 });
+      const body = { projectId, folderName, ...filters };
+      const response = await apiClient.post('/sync/preview', body, { timeout: 60000 });
       return response.data.data;
     } catch (error) {
       throw this._handleError('Preview Sync', error);
+    }
+  },
+
+  async getSyncStatuses(projectId) {
+    try {
+      const response = await apiClient.get(`/sync/${projectId}/statuses`);
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Sync Statuses', error);
+    }
+  },
+
+  async getSyncFieldValues(projectId, fieldName) {
+    try {
+      const response = await apiClient.get(`/sync/${projectId}/field-values`, {
+        params: { field: fieldName },
+      });
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Sync Field Values', error);
     }
   },
 
