@@ -1,0 +1,470 @@
+{
+  "/Users/matou/claude-workspace/qa-dashboard/playwright.config.js": {
+    "mtime": 1777471218.9508092,
+    "hash": "a7dd208e59bb9905b0f4c47f1c6319be"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/vite.config.js": {
+    "mtime": 1777471218.9503245,
+    "hash": "2394c293d8f6cf4cceb25d007d580081"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/vitest.config.js": {
+    "mtime": 1777471218.9504714,
+    "hash": "dd897e61c63d0b8f81beddf476097c2f"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/eslint.config.js": {
+    "mtime": 1777471218.9446113,
+    "hash": "d1d062f4c58d594e68766555acda94ff"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/main.jsx": {
+    "mtime": 1777471218.9494693,
+    "hash": "c1da6e6d19fecd804e6efe3caf65f8dc"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/App.jsx": {
+    "mtime": 1777552575.0804667,
+    "hash": "9c11f31e519325eed88107a420c6ab71"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/contexts/ThemeContext.jsx": {
+    "mtime": 1777471218.9478996,
+    "hash": "a407996d2dc5d572e819b60c406a87fa"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/contexts/ToastContext.jsx": {
+    "mtime": 1777471218.9479809,
+    "hash": "f315c6885bf2f75ba1a8ffc71f04b48f"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/contexts/DashboardContext.jsx": {
+    "mtime": 1777471218.9475284,
+    "hash": "036740eaa8d30e8f80f1ca47bf1ef241"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/contexts/PreferencesContext.jsx": {
+    "mtime": 1777471218.947715,
+    "hash": "f6edf62a03e5777d0e1868941eed8801"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/test/setup.js": {
+    "mtime": 1777471218.9498656,
+    "hash": "00e47f7b9836e8f731101981fa2bb2de"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/utils/docxGenerator.js": {
+    "mtime": 1777471218.9501417,
+    "hash": "9f51d1bc6ec2ea03fa5c6996d3c8e9a6"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/utils/colorHelpers.js": {
+    "mtime": 1777471218.9499407,
+    "hash": "097b14b56e1d162af1d8e869a7779e9d"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard3.jsx": {
+    "mtime": 1777471218.9455016,
+    "hash": "0632c614d969dd6b1027cc26eaf103b4"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/QuickClosureModal.jsx": {
+    "mtime": 1777471218.9468837,
+    "hash": "f205668a6371ecec14bdfaeebdd69d49"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/RunActionPanel.jsx": {
+    "mtime": 1777552424.5205383,
+    "hash": "7f306d1cb68bbced4920b8e16e7bd6be"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/RunsList.jsx": {
+    "mtime": 1775074858.7928612,
+    "hash": "ed59e8a6c27120ba5de19a906bab463a"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard5.jsx": {
+    "mtime": 1777471218.9459703,
+    "hash": "192c2700a7ae8942f4cc87a05210e49f"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/TestClosureModal.jsx": {
+    "mtime": 1777471218.9471123,
+    "hash": "25dce045b6cec46e27bc5fc9280790f7"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard4.jsx": {
+    "mtime": 1777471218.9457517,
+    "hash": "be08b70dc8edb946b1fcb3dec0f9dfd1"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard6.jsx": {
+    "mtime": 1777552493.2783277,
+    "hash": "eca613ec8bb2d45635152c8b9e4ea056"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard7.jsx": {
+    "mtime": 1777471218.9463272,
+    "hash": "50e866eb428c1daac654fc8b37fad883"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/MetricsCards.jsx": {
+    "mtime": 1777471218.9465156,
+    "hash": "ada16c475418e4679a795f16b4989f94"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/ErrorBoundary.jsx": {
+    "mtime": 1777471218.9464002,
+    "hash": "6ce960d5e8a28a7fa9e6c2767ccd0b93"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Toast.jsx": {
+    "mtime": 1775074858.793182,
+    "hash": "bd311a9da35d446c3defab3a5114521b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/TvDashboard.jsx": {
+    "mtime": 1776802622.5799956,
+    "hash": "bb235e72851a58ba98f8895cf1c7c1ba"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/ReportGeneratorModal.jsx": {
+    "mtime": 1776802622.5798845,
+    "hash": "458a25fe129d13cd87d79bbc997d7cd7"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/StatusChart.jsx": {
+    "mtime": 1775074858.792986,
+    "hash": "b7a99ea4319749cbddf875f75c211db9"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/ConfigurationScreen.jsx": {
+    "mtime": 1775074858.791728,
+    "hash": "cb1bc513b25301154282afad8c9ed1ac"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard9.jsx": {
+    "mtime": 1777552517.0435834,
+    "hash": "f858467a7329d3fd089089e85c0dc6da"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/Dashboard8.jsx": {
+    "mtime": 1776847614.619794,
+    "hash": "d52132d4969aa0d933720504714e119b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/ModalGroup.jsx": {
+    "mtime": 1777471218.9466684,
+    "hash": "2117ce47a108ce2416328395d51d1cf2"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/components/__tests__/MetricsCards.test.jsx": {
+    "mtime": 1777471218.9473255,
+    "hash": "4ef543e498f5824e55625adbdd1e4130"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/useDashboard.js": {
+    "mtime": 1777471218.9488902,
+    "hash": "6c8e8c239a40a3ff9e126e0f07ea4ad2"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/useTheme.js": {
+    "mtime": 1777471218.9491956,
+    "hash": "0b5c3a9b887284f958ca590c311fe68d"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/usePreferences.js": {
+    "mtime": 1777471218.9490044,
+    "hash": "a61ca7061b0bd0b955ac229965891e20"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/useToast.js": {
+    "mtime": 1777471218.9493647,
+    "hash": "375c5a70e459e6f7baa3e3dc64289b8b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/__tests__/usePreferences.test.jsx": {
+    "mtime": 1777471218.948405,
+    "hash": "cd5a506b85fb054a9e84f1ef95d047e1"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/__tests__/useToast.test.jsx": {
+    "mtime": 1777471218.9486952,
+    "hash": "c44a6314aa7235c6c7d779315eac52c1"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/__tests__/useDashboard.test.jsx": {
+    "mtime": 1777471218.9483154,
+    "hash": "28a1cabc1e4779ad30ce7176a977d306"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/hooks/__tests__/useTheme.test.jsx": {
+    "mtime": 1777471218.948553,
+    "hash": "71f8236a58b2cc0583be39633fe3fc4a"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/src/services/api.service.js": {
+    "mtime": 1777992648.4128711,
+    "hash": "f8ab9d073b723fe3f80c2276c2154a0e"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/server.js": {
+    "mtime": 1777473026.8397467,
+    "hash": "c60aa1b084a5e9ef1d2b37e2a66a4fee"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/jest.config.js": {
+    "mtime": 1777473012.7178855,
+    "hash": "079499d195b17f1570912eaaf7b84d46"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/test-testmo-api.js": {
+    "mtime": 1777471682.3919563,
+    "hash": "e5face8c520f65e794d94199e6f73bcc"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/eslint.config.mjs": {
+    "mtime": 1777471846.2768676,
+    "hash": "de6daac038cd605bcd8a377e1260cf14"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/run-sync.js": {
+    "mtime": 1777471682.2721164,
+    "hash": "03290d7c403e322e3841fa1a11d90f0c"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/config/projects.config.js": {
+    "mtime": 1777471682.1721575,
+    "hash": "c92077be2017b3729c36aeb9c063d4c3"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/gitlab.service.filters.test.js": {
+    "mtime": 1777556317.1929715,
+    "hash": "86d96b163b1d8751036229476a6a5b81"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/critical-bugs.test.js": {
+    "mtime": 1777471682.4141202,
+    "hash": "9f534fb39e726dc6f2c8c1a28b441a5b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/run-manager.service.test.js": {
+    "mtime": 1777551959.1592321,
+    "hash": "ce1ebad6a1d27cf386ec49a069279ce7"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/resilience.test.js": {
+    "mtime": 1777471682.4479918,
+    "hash": "c1f284331845fcf9da4e5ab523822a10"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/report.calculations.test.js": {
+    "mtime": 1777471682.4419858,
+    "hash": "85ec07fccfe3a1ed5d96d1cedf2c8fbd"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/sync.service.test.js": {
+    "mtime": 1777992331.4077349,
+    "hash": "1f7b1f22dd37cecdcef61e5af61069bd"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/gitlab.service.test.js": {
+    "mtime": 1777471682.427834,
+    "hash": "61cf9c17fc096b85a4f382f46f0c6579"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/status-sync.service.test.js": {
+    "mtime": 1777471682.4512644,
+    "hash": "83a584744dd2afd241421b24100d1559"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/calculations.test.js": {
+    "mtime": 1777471682.4099805,
+    "hash": "398e7302a58a664aa122e95b59b72273"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/version-only-mode.test.js": {
+    "mtime": 1777471682.458871,
+    "hash": "f7715f7c41dfd3de39df08efd04142de"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/gitlab.graphql.test.js": {
+    "mtime": 1777471682.4222836,
+    "hash": "38bea0cbdee111d8a5e44210ef3389ca"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/integrity.guards.test.js": {
+    "mtime": 1777471682.4346776,
+    "hash": "47bb08d342af3ece2e50903e375b781c"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/sync.routes.test.js": {
+    "mtime": 1777991927.3252325,
+    "hash": "dcd9e1bdf319a5ac76770d7797f31b15"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/runs.routes.test.js": {
+    "mtime": 1777473157.3304918,
+    "hash": "7fef1275d53720034995129a1f116c0e"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/dashboard.routes.test.js": {
+    "mtime": 1777473168.7283735,
+    "hash": "9a40db316ade7b4513691fc62e551491"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/health.routes.test.js": {
+    "mtime": 1777473141.7186294,
+    "hash": "bd0a271ed53ea5addba7e958dc03bf02"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/reports.routes.test.js": {
+    "mtime": 1777473216.133102,
+    "hash": "cb21282c17daf1f9e3eaf4a9254379f0"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/run-manager.routes.test.js": {
+    "mtime": 1777552234.651955,
+    "hash": "96ba1025fdda9814254e2d237dae1585"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/crosstest.routes.test.js": {
+    "mtime": 1777474460.9505754,
+    "hash": "7380e33dff4b57fe15bb922609b847ae"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/projects.routes.test.js": {
+    "mtime": 1777473149.9058993,
+    "hash": "6656fd8b5c5d2f7f7728b1250fc7a41b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/routes/featureflags-cache.routes.test.js": {
+    "mtime": 1777473149.2438533,
+    "hash": "89a01161a643c715c6d03de740681e00"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/tests/helpers/setup.js": {
+    "mtime": 1777473019.3666563,
+    "hash": "020d543c17c87407dc23b9c43677151d"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/validators/index.js": {
+    "mtime": 1777556528.2969005,
+    "hash": "c5a0b4c22a07e2bc043ba8e7026e2f4b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/controllers/dashboard.controller.js": {
+    "mtime": 1777471682.1827571,
+    "hash": "0e237428a8aa80aae023341099bc78b2"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/controllers/reports.controller.js": {
+    "mtime": 1777471682.1883042,
+    "hash": "5f76118476a5384600ec95015d6ebf3e"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/controllers/sync.controller.js": {
+    "mtime": 1777991812.0368063,
+    "hash": "cec192b356b98b11c25ca321ef203e8b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/health.routes.js": {
+    "mtime": 1777471682.2621646,
+    "hash": "a11f2c5bd705dd7145b1e655d4c58eb5"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/runs.routes.js": {
+    "mtime": 1777552234.6374354,
+    "hash": "1efa6d9ceb8a2dc4ea24599efaf0b800"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/projects.routes.js": {
+    "mtime": 1777471682.265065,
+    "hash": "30426373cd81a7bef9410ea80a6b7a67"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/sync.routes.js": {
+    "mtime": 1777556636.0549686,
+    "hash": "e2ce268b3d561747f756a0709b147e35"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/cache.routes.js": {
+    "mtime": 1777471682.2531195,
+    "hash": "a4010aacd1a09e8d516da2e0beff016a"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/dashboard.routes.js": {
+    "mtime": 1777471682.2598057,
+    "hash": "2cce0fd8e13ea44fc88d7f9571aa3141"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/reports.routes.js": {
+    "mtime": 1777471218.9403927,
+    "hash": "06a0bd3b11decdd3d3460134e3fe178f"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/featureFlags.routes.js": {
+    "mtime": 1777471218.940107,
+    "hash": "a4a9d0ff7f64cb5290bf223a10dd22f1"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/routes/crosstest.routes.js": {
+    "mtime": 1777471682.2584636,
+    "hash": "acc7aba8cf3fd65fff974d2bc32d1867"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/report.service.js": {
+    "mtime": 1777471682.355366,
+    "hash": "763ba4b306aabab590f6ec79ba61abbe"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/sync.service.js": {
+    "mtime": 1777992369.6510537,
+    "hash": "2d715aee8efecc49768c67cac6b6563b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/run-manager.service.js": {
+    "mtime": 1777551975.6966808,
+    "hash": "2e468f7a07710366aef75ee7e6fade78"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/sentry.service.js": {
+    "mtime": 1777471218.941174,
+    "hash": "8ffd6fac4b17a7076037fe276be99eec"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/istqb-metrics.service.js": {
+    "mtime": 1777471791.780259,
+    "hash": "e276f564319ab7430b9e45b6b52379d3"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/auto-sync-config.service.js": {
+    "mtime": 1777471682.282751,
+    "hash": "b8bf065af7628b661c85610d1d5d79e1"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/testmo.service.js": {
+    "mtime": 1777551821.1912284,
+    "hash": "2598e8e9d66b170499a40ebb55fea177"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/comments.service.js": {
+    "mtime": 1777471682.2856004,
+    "hash": "97daa868583f76e42c85ca614a4f811f"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/gitlab.service.js": {
+    "mtime": 1777556464.9815173,
+    "hash": "ce4d940dba792eff507af88a57b8ef88"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/syncHistory.service.js": {
+    "mtime": 1777471682.381483,
+    "hash": "b0c333ced0453d69cc6dc50800f56520"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/status-sync.service.js": {
+    "mtime": 1777471827.0518372,
+    "hash": "ba0d84d901636001f1e51aab9ae61c51"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/backend/services/logger.service.js": {
+    "mtime": 1777471682.3262162,
+    "hash": "42dded67816bbf6cd8b1af8514ba6a59"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/e2e/dashboard.spec.js": {
+    "mtime": 1777471218.9440947,
+    "hash": "f093e70c1a9c400a3b4bbfe7134dce09"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/e2e/health.spec.js": {
+    "mtime": 1777471218.9442742,
+    "hash": "ce74646c4e3e2fff33f2f2c81c386d21"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/reports/generate_R06_pptx.js": {
+    "mtime": 1775074858.7957165,
+    "hash": "1a405fb668b2297a4447e8676c1d13b2"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/Proc\u00e9dures diverses.md": {
+    "mtime": 1775074858.7888675,
+    "hash": "0a34b10e1dc097a9c35426f0507d1f1d"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/README.md": {
+    "mtime": 1775074858.789052,
+    "hash": "3a7a5c499c985db40a1b753ef8450838"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/ROADMAP.md": {
+    "mtime": 1777474291.476548,
+    "hash": "5f84642f2f08daa6e9f2c8bf6caaf5a5"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/IMPROVEMENTS.md": {
+    "mtime": 1777471218.9386778,
+    "hash": "0aa5f0960b7cda3b9b99bb68aa7fd4a4"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/RAPPORT_ANALYSE_QA_DASHBOARD.md": {
+    "mtime": 1776886406.5911858,
+    "hash": "f19f61f72cda2df4732a578a0fa40286"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/CLAUDE.md": {
+    "mtime": 1776847614.6158402,
+    "hash": "1239e30ee24747dc143a5049f9306d71"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/QUICK_START.md": {
+    "mtime": 1775074858.7889464,
+    "hash": "fd02e88afcf17329ed212b31187f53a9"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/frontend/index.html": {
+    "mtime": 1775074858.7913332,
+    "hash": "32d3c41d872109dfe56e03a6d32261fa"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/routines/routine-A-status-sync.md": {
+    "mtime": 1776851322.5132189,
+    "hash": "f5a7a62e7f904e1a6c9a6c67ecdffca9"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/routines/README.md": {
+    "mtime": 1776851358.427679,
+    "hash": "140dfcdbf3ba7246e29b2e22a417e04e"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/routines/routine-B-gitlab-to-testmo.md": {
+    "mtime": 1776852528.7580192,
+    "hash": "9b75788a86a7e6fb637d6fbfad39e25d"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-29-critical-bug-fixes.md": {
+    "mtime": 1777471218.9438477,
+    "hash": "94469a280c02f50cbc8fcb854656ae0b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-30-sync-filtres-cumulables.md": {
+    "mtime": 1777556125.993053,
+    "hash": "e38bc338ccd7a97bdb3ae72975af5966"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-30-run-manager.md": {
+    "mtime": 1777551458.149168,
+    "hash": "d94560f61512685a00ed7acb38fad72f"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-23-modernisation-architecture.md": {
+    "mtime": 1777471218.9435542,
+    "hash": "2c8998776029dc97f0c3a16e010cd4c8"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-29-h1-h2-h3-service-tests.md": {
+    "mtime": 1777471218.9439707,
+    "hash": "2cefe9c653e14569095b2166bc01de6a"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-29-supertest-routes.md": {
+    "mtime": 1777472761.704607,
+    "hash": "ed1d7fee890cfed2fa5c6a65711092d0"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/docs/superpowers/plans/2026-04-21-gitlab-status-version-migration.md": {
+    "mtime": 1776847614.6195405,
+    "hash": "64d4498e2b75ed960f3507c2cec7d02b"
+  },
+  "/Users/matou/claude-workspace/qa-dashboard/reports/R06_Cloture_Tests.html": {
+    "mtime": 1775074858.7949243,
+    "hash": "6c3eccc20789f0fc3102d16f1ccc1fea"
+  }
+}
