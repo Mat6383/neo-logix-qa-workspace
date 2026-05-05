@@ -53,9 +53,11 @@ describe('getIssuesByFilters', () => {
   test('avec iterationId — utilise getIssuesForIteration', async () => {
     const issues = [makeIssue(1)];
     gitlab.getIssuesForIteration.mockResolvedValue(issues);
-    gitlab.executeGraphQL.mockResolvedValue(makeGraphQLData(issues, {
-      1: { statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/15' },
-    }));
+    gitlab.executeGraphQL.mockResolvedValue(
+      makeGraphQLData(issues, {
+        1: { statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/15' },
+      })
+    );
 
     const result = await gitlab.getIssuesByFilters(63, {
       iterationId: 42,
@@ -69,10 +71,12 @@ describe('getIssuesByFilters', () => {
   test('filtre statusGid — exclut les issues sans le bon statut', async () => {
     const issues = [makeIssue(1), makeIssue(2)];
     gitlab._getPaginated.mockResolvedValue(issues);
-    gitlab.executeGraphQL.mockResolvedValue(makeGraphQLData(issues, {
-      1: { statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/15' },
-      2: { statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/99' },
-    }));
+    gitlab.executeGraphQL.mockResolvedValue(
+      makeGraphQLData(issues, {
+        1: { statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/15' },
+        2: { statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/99' },
+      })
+    );
 
     const result = await gitlab.getIssuesByFilters(63, {
       statusGid: 'gid://gitlab/WorkItems::Statuses::Custom::Status/15',
@@ -85,10 +89,12 @@ describe('getIssuesByFilters', () => {
   test('filtre versionProd — exclut les issues sans la bonne version', async () => {
     const issues = [makeIssue(10), makeIssue(11)];
     gitlab._getPaginated.mockResolvedValue(issues);
-    gitlab.executeGraphQL.mockResolvedValue(makeGraphQLData(issues, {
-      10: { versionProd: 'R06 - Pilot' },
-      11: { versionProd: 'R07 - Prod' },
-    }));
+    gitlab.executeGraphQL.mockResolvedValue(
+      makeGraphQLData(issues, {
+        10: { versionProd: 'R06 - Pilot' },
+        11: { versionProd: 'R07 - Prod' },
+      })
+    );
 
     const result = await gitlab.getIssuesByFilters(63, { versionProd: 'R06 - Pilot' });
 
@@ -99,10 +105,12 @@ describe('getIssuesByFilters', () => {
   test('filtre versionTest — exclut les issues sans la bonne version de test', async () => {
     const issues = [makeIssue(20), makeIssue(21)];
     gitlab._getPaginated.mockResolvedValue(issues);
-    gitlab.executeGraphQL.mockResolvedValue(makeGraphQLData(issues, {
-      20: { versionTest: 'Sprint-A' },
-      21: { versionTest: null },
-    }));
+    gitlab.executeGraphQL.mockResolvedValue(
+      makeGraphQLData(issues, {
+        20: { versionTest: 'Sprint-A' },
+        21: { versionTest: null },
+      })
+    );
 
     const result = await gitlab.getIssuesByFilters(63, { versionTest: 'Sprint-A' });
 
@@ -114,11 +122,13 @@ describe('getIssuesByFilters', () => {
     const issues = [makeIssue(30), makeIssue(31), makeIssue(32)];
     gitlab._getPaginated.mockResolvedValue(issues);
     const STATUS = 'gid://gitlab/WorkItems::Statuses::Custom::Status/15';
-    gitlab.executeGraphQL.mockResolvedValue(makeGraphQLData(issues, {
-      30: { statusGid: STATUS, versionProd: 'R06 - Pilot', versionTest: 'Sprint-A' },
-      31: { statusGid: STATUS, versionProd: 'R06 - Pilot', versionTest: null },
-      32: { statusGid: STATUS, versionProd: 'R07 - Prod',  versionTest: 'Sprint-A' },
-    }));
+    gitlab.executeGraphQL.mockResolvedValue(
+      makeGraphQLData(issues, {
+        30: { statusGid: STATUS, versionProd: 'R06 - Pilot', versionTest: 'Sprint-A' },
+        31: { statusGid: STATUS, versionProd: 'R06 - Pilot', versionTest: null },
+        32: { statusGid: STATUS, versionProd: 'R07 - Prod', versionTest: 'Sprint-A' },
+      })
+    );
 
     const result = await gitlab.getIssuesByFilters(63, {
       statusGid: STATUS,
@@ -130,7 +140,7 @@ describe('getIssuesByFilters', () => {
     expect(result[0].id).toBe(30);
   });
 
-  test('aucune issue REST — pas d\'appel GraphQL', async () => {
+  test("aucune issue REST — pas d'appel GraphQL", async () => {
     gitlab._getPaginated.mockResolvedValue([]);
 
     const result = await gitlab.getIssuesByFilters(63, { statusGid: 'anything' });

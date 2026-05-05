@@ -513,7 +513,9 @@ class SyncService {
     let existingChildFolder = null;
     try {
       existingChildFolder = await testmoService.findFolder(cfg.projectId, child, null);
-    } catch (_) { /* dossier inexistant — on continue */ }
+    } catch (_) {
+      /* dossier inexistant — on continue */
+    }
     await this._delay();
 
     // 4. Analyser chaque ticket

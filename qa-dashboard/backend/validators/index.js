@@ -40,10 +40,9 @@ const syncFiltersBody = z
     versionProd: z.string().optional(),
     versionTest: z.string().optional(),
   })
-  .refine(
-    (data) => data.iterationName || data.statusGid || data.versionProd || data.versionTest,
-    { message: 'Au moins un filtre requis : iterationName, statusGid, versionProd ou versionTest' }
-  );
+  .refine((data) => data.iterationName || data.statusGid || data.versionProd || data.versionTest, {
+    message: 'Au moins un filtre requis : iterationName, statusGid, versionProd ou versionTest',
+  });
 
 const syncPreviewBody = syncFiltersBody;
 const syncExecuteBody = syncFiltersBody;

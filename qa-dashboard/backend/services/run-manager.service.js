@@ -37,10 +37,7 @@ function computeMergePreview(existingResults, syncCaseIds) {
     }
   }
 
-  const allFinalCaseIds = [
-    ...existingResults.map((r) => r.case_id),
-    ...toAdd,
-  ];
+  const allFinalCaseIds = [...existingResults.map((r) => r.case_id), ...toAdd];
 
   return { toAdd, pristineInRun, testedInRun, inRunNotInSync, allFinalCaseIds };
 }

@@ -36,11 +36,7 @@ router.get(
   validateQuery(iterationSearchQuery),
   getIterations
 );
-router.get(
-  '/:projectId/statuses',
-  validateParams(syncProjectIdParam),
-  getStatuses
-);
+router.get('/:projectId/statuses', validateParams(syncProjectIdParam), getStatuses);
 router.get(
   '/:projectId/field-values',
   validateParams(syncProjectIdParam),

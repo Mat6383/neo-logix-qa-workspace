@@ -244,9 +244,13 @@ async function getStatuses(req, res) {
     if (!project)
       return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
     if (!project.configured)
-      return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" non configuré` });
     if (!project.gitlab.projectId)
-      return res.status(400).json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
 
     const statuses = await gitlabServiceInstance.getAvailableStatuses(project.gitlab.projectId);
     res.json({ success: true, data: statuses });
@@ -264,11 +268,18 @@ async function getFieldValues(req, res) {
     if (!project)
       return res.status(404).json({ success: false, error: `Projet "${projectId}" inconnu` });
     if (!project.configured)
-      return res.status(400).json({ success: false, error: `Projet "${project.label}" non configuré` });
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" non configuré` });
     if (!project.gitlab.projectId)
-      return res.status(400).json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
+      return res
+        .status(400)
+        .json({ success: false, error: `Projet "${project.label}" sans projectId GitLab` });
 
-    const values = await gitlabServiceInstance.getCustomFieldValues(project.gitlab.projectId, field);
+    const values = await gitlabServiceInstance.getCustomFieldValues(
+      project.gitlab.projectId,
+      field
+    );
     res.json({ success: true, data: values });
   } catch (err) {
     logger.error('getFieldValues error:', err.message);

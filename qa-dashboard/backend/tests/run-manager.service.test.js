@@ -1,13 +1,12 @@
 'use strict';
 
-const {
-  isResultPristine,
-  computeMergePreview,
-} = require('../services/run-manager.service');
+const { isResultPristine, computeMergePreview } = require('../services/run-manager.service');
 
 describe('isResultPristine', () => {
   test('true — résultat vierge (tous champs null/vides)', () => {
-    expect(isResultPristine({ status_id: null, elapsed: 0, comment: '', custom_steps_results: [] })).toBe(true);
+    expect(
+      isResultPristine({ status_id: null, elapsed: 0, comment: '', custom_steps_results: [] })
+    ).toBe(true);
   });
 
   test('false — status_id défini', () => {
@@ -27,24 +26,36 @@ describe('isResultPristine', () => {
   });
 
   test('false — step avec actual_result', () => {
-    expect(isResultPristine({
-      status_id: null, elapsed: 0, comment: '',
-      custom_steps_results: [{ actual_result: "L'écran affiche une erreur", status_id: null }],
-    })).toBe(false);
+    expect(
+      isResultPristine({
+        status_id: null,
+        elapsed: 0,
+        comment: '',
+        custom_steps_results: [{ actual_result: "L'écran affiche une erreur", status_id: null }],
+      })
+    ).toBe(false);
   });
 
   test('false — step avec status_id', () => {
-    expect(isResultPristine({
-      status_id: null, elapsed: 0, comment: '',
-      custom_steps_results: [{ actual_result: '', status_id: 3 }],
-    })).toBe(false);
+    expect(
+      isResultPristine({
+        status_id: null,
+        elapsed: 0,
+        comment: '',
+        custom_steps_results: [{ actual_result: '', status_id: 3 }],
+      })
+    ).toBe(false);
   });
 
   test('true — steps présents mais vides', () => {
-    expect(isResultPristine({
-      status_id: null, elapsed: 0, comment: '',
-      custom_steps_results: [{ actual_result: '', status_id: null }],
-    })).toBe(true);
+    expect(
+      isResultPristine({
+        status_id: null,
+        elapsed: 0,
+        comment: '',
+        custom_steps_results: [{ actual_result: '', status_id: null }],
+      })
+    ).toBe(true);
   });
 
   test('true — champs absents (cas minimum)', () => {
@@ -54,9 +65,9 @@ describe('isResultPristine', () => {
 
 describe('computeMergePreview', () => {
   const existingResults = [
-    { case_id: 1, status_id: 2,    elapsed: 60,  comment: 'OK',  custom_steps_results: [] },
-    { case_id: 2, status_id: null, elapsed: 0,   comment: '',    custom_steps_results: [] },
-    { case_id: 3, status_id: 3,    elapsed: 120, comment: '',    custom_steps_results: [] },
+    { case_id: 1, status_id: 2, elapsed: 60, comment: 'OK', custom_steps_results: [] },
+    { case_id: 2, status_id: null, elapsed: 0, comment: '', custom_steps_results: [] },
+    { case_id: 3, status_id: 3, elapsed: 120, comment: '', custom_steps_results: [] },
   ];
 
   test('identifie les cas à ajouter, préservés, testés, absents du sync', () => {
