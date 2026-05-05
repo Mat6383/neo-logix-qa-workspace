@@ -151,6 +151,15 @@ export default function Dashboard6({ isDark }) {
   const [history, setHistory]           = useState([]);
   const [error, setError]               = useState(null);
 
+  const [folderName, setFolderName]                   = useState('');
+  const [statuses, setStatuses]                       = useState([]);
+  const [selectedStatus, setSelectedStatus]           = useState('');
+  const [versionsProd, setVersionsProd]               = useState([]);
+  const [selectedVersionProd, setSelectedVersionProd] = useState('');
+  const [versionsTest, setVersionsTest]               = useState([]);
+  const [selectedVersionTest, setSelectedVersionTest] = useState('');
+  const [loadingFilters, setLoadingFilters]           = useState(false);
+
   const logEndRef  = useRef(null);
   const iterTimerRef = useRef(null);
 
@@ -188,6 +197,30 @@ export default function Dashboard6({ isDark }) {
       // Historique non critique
     }
   };
+
+  // ---- Chargement des filtres dynamiques (statuts + versions) ----
+  const loadFilters = useCallback(async (projectId) => {
+    if (!projectId) return;
+    setLoadingFilters(true);
+    try {
+      const [statusList, prodList, testList] = await Promise.all([
+        apiService.getSyncStatuses(projectId),
+        apiService.getSyncFieldValues(projectId, 'Version Prod'),
+        apiService.getSyncFieldValues(projectId, 'Version de test'),
+      ]);
+      setStatuses(statusList || []);
+      setVersionsProd(prodList || []);
+      setVersionsTest(testList || []);
+    } catch (err) {
+      console.warn('Impossible de charger les filtres:', err.message);
+    } finally {
+      setLoadingFilters(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedProject) loadFilters(selectedProject);
+  }, [selectedProject, loadFilters]);
 
   // ---- Chargement des itérations (avec debounce) -----------------
   const loadIterations = useCallback(async (projectId, search) => {
@@ -228,13 +261,19 @@ export default function Dashboard6({ isDark }) {
 
   // ---- Analyse (preview) -----------------------------------------
   const handleAnalyze = async () => {
-    if (!selectedProject || !selectedIter) return;
+    if (!selectedProject || !folderName.trim()) return;
     setError(null);
     setPreview(null);
     setState('analyzing');
 
     try {
-      const data = await apiService.previewSync(selectedProject, selectedIter);
+      const filters = {};
+      if (selectedIter)        filters.iterationName = selectedIter;
+      if (selectedStatus)      filters.statusGid     = selectedStatus;
+      if (selectedVersionProd) filters.versionProd   = selectedVersionProd;
+      if (selectedVersionTest) filters.versionTest   = selectedVersionTest;
+
+      const data = await apiService.previewSync(selectedProject, folderName, filters);
       setPreview(data);
       setState('preview');
     } catch (err) {
@@ -260,7 +299,14 @@ export default function Dashboard6({ isDark }) {
     fetch(`${API_BASE}/sync/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId: selectedProject, iterationName: selectedIter }),
+      body: JSON.stringify({
+        projectId: selectedProject,
+        folderName,
+        ...(selectedIter        && { iterationName:  selectedIter }),
+        ...(selectedStatus      && { statusGid:       selectedStatus }),
+        ...(selectedVersionProd && { versionProd:     selectedVersionProd }),
+        ...(selectedVersionTest && { versionTest:     selectedVersionTest }),
+      }),
       signal: ctrl.signal
     }).then(async (response) => {
       if (!response.ok) {
@@ -330,13 +376,18 @@ export default function Dashboard6({ isDark }) {
     setLogLines([]);
     setFinalStats(null);
     setError(null);
+    setSelectedStatus('');
+    setSelectedVersionProd('');
+    setSelectedVersionTest('');
+    setFolderName('');
   };
 
   // ---- Helpers UI --------------------------------------------------
   const currentProject = projects.find(p => p.id === selectedProject);
   const isConfigured   = currentProject?.configured === true;
-  const canAnalyze     = isConfigured && selectedIter && state === 'idle';
-  const canExecute     = isConfigured && selectedIter && state === 'preview';
+  const hasAtLeastOneFilter = selectedIter || selectedStatus || selectedVersionProd || selectedVersionTest;
+  const canAnalyze     = isConfigured && hasAtLeastOneFilter && folderName.trim() && state === 'idle';
+  const canExecute     = isConfigured && hasAtLeastOneFilter && folderName.trim() && state === 'preview';
   const progressPct    = finalStats && finalStats.total > 0
     ? Math.round(((finalStats.created + finalStats.updated + finalStats.skipped + finalStats.errors) / finalStats.total) * 100)
     : (state === 'syncing' ? null : 0);
@@ -455,7 +506,10 @@ export default function Dashboard6({ isDark }) {
                   <select
                     className="d6-select"
                     value={selectedIter}
-                    onChange={e => setSelectedIter(e.target.value)}
+                    onChange={e => {
+                      setSelectedIter(e.target.value);
+                      if (!folderName) setFolderName(e.target.value);
+                    }}
                     disabled={state === 'syncing' || state === 'analyzing' || loadingIters}
                   >
                     <option value="">Choisir une itération...</option>
@@ -475,6 +529,71 @@ export default function Dashboard6({ isDark }) {
                   >
                     <RefreshCw size={14} className={loadingIters ? 'd6-spinner' : ''} />
                   </button>
+                </div>
+              </div>
+
+              {/* ── Filtres additionnels (optionnels) ── */}
+              <div className="d6-config-row" style={{ flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <div className="d6-field">
+                  <label>
+                    Status Work Item
+                    {loadingFilters && <RefreshCw size={11} className="d6-spinner" style={{ marginLeft: 4 }} />}
+                  </label>
+                  <select
+                    className="d6-select"
+                    value={selectedStatus}
+                    onChange={e => setSelectedStatus(e.target.value)}
+                    disabled={loadingFilters || state === 'syncing' || state === 'analyzing'}
+                  >
+                    <option value="">— Tous les statuts —</option>
+                    {statuses.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="d6-field">
+                  <label>Version Prod</label>
+                  <select
+                    className="d6-select"
+                    value={selectedVersionProd}
+                    onChange={e => setSelectedVersionProd(e.target.value)}
+                    disabled={loadingFilters || state === 'syncing' || state === 'analyzing'}
+                  >
+                    <option value="">— Toutes les versions —</option>
+                    {versionsProd.map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="d6-field">
+                  <label>Version de test</label>
+                  <select
+                    className="d6-select"
+                    value={selectedVersionTest}
+                    onChange={e => setSelectedVersionTest(e.target.value)}
+                    disabled={loadingFilters || state === 'syncing' || state === 'analyzing'}
+                  >
+                    <option value="">— Toutes —</option>
+                    {versionsTest.map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="d6-field">
+                  <label>
+                    Nom du dossier Testmo <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="d6-input"
+                    value={folderName}
+                    onChange={e => setFolderName(e.target.value)}
+                    placeholder="Ex : R14 - run 2"
+                    disabled={state === 'syncing' || state === 'analyzing'}
+                  />
                 </div>
               </div>
 
@@ -507,7 +626,8 @@ export default function Dashboard6({ isDark }) {
         <div className="d6-section">
           <div className="d6-section-header">
             <Search size={14} />
-            Aperçu — {preview.iteration?.name}
+            Aperçu — {folderName}
+            {preview.filters?.iterationName && <span style={{ marginLeft: 6, opacity: 0.65, fontSize: '0.8em' }}>({preview.filters.iterationName})</span>}
           </div>
           <div className="d6-section-body">
 
