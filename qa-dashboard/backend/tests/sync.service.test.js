@@ -56,7 +56,7 @@ describe('syncIteration — dryRun=true', () => {
   test('retourne les stats correctes sans créer de cases', async () => {
     Object.assign(gitlabModule, {
       findIteration: jest.fn().mockResolvedValue({ id: 42, title: 'R06 - run 1' }),
-      getIssuesByStatusAndIteration: jest.fn().mockResolvedValue([
+      getIssuesByFilters: jest.fn().mockResolvedValue([
         {
           id: 100,
           iid: 1,
@@ -81,7 +81,12 @@ describe('syncIteration — dryRun=true', () => {
       findCaseByName: jest.fn().mockResolvedValue(null),
     });
 
-    const stats = await syncService.syncIteration('R06 - run 1', { dryRun: true }, () => {});
+    const stats = await syncService.syncIteration(
+      'R06 - run 1',
+      { iterationName: 'R06 - run 1' },
+      { dryRun: true },
+      () => {}
+    );
 
     expect(stats.created).toBe(2);
     expect(stats.errors).toBe(0);
@@ -92,7 +97,11 @@ describe('syncIteration — dryRun=true', () => {
       findIteration: jest.fn().mockResolvedValue(null),
     });
 
-    const stats = await syncService.syncIteration('R99 - inexistant', { dryRun: true });
+    const stats = await syncService.syncIteration(
+      'R99 - inexistant',
+      { iterationName: 'R99 - inexistant' },
+      { dryRun: true }
+    );
 
     expect(stats.error).toBeDefined();
     expect(stats.error).toContain('R99 - inexistant');

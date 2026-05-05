@@ -254,7 +254,12 @@ class SyncService {
    * Pipeline principal de synchronisation
    * LEAN : flux pull, idempotent, anti-Muda
    *
-   * @param {string}   iterationName          - Nom de l'itération (ex: "R06 - run 1")
+   * @param {string}   folderName             - Nom du dossier Testmo à créer/mettre à jour
+   * @param {Object}   filters                - Filtres GitLab cumulables
+   * @param {string}   [filters.iterationName] - Nom de l'itération GitLab (optionnel)
+   * @param {string}   [filters.statusGid]    - GID du statut Work Item (optionnel)
+   * @param {string}   [filters.versionProd]  - Valeur champ custom "Version Prod" (optionnel)
+   * @param {string}   [filters.versionTest]  - Valeur champ custom "Version de test" (optionnel)
    * @param {Object}   options
    * @param {boolean}  options.isTest         - Mode test (préfixe [TEST-API])
    * @param {boolean}  options.dryRun         - Mode simulation (pas d'écriture)
@@ -262,7 +267,8 @@ class SyncService {
    * @param {Function} onEvent                - Callback (type, data) pour les événements SSE
    * @returns {Object} Rapport de synchronisation
    */
-  async syncIteration(iterationName, options = {}, onEvent = null) {
+  async syncIteration(folderName, filters = {}, options = {}, onEvent = null) {
+    const { iterationName, statusGid, versionProd, versionTest } = filters;
     const { isTest = false, dryRun = false, projectConfig = null } = options;
     const stats = { created: 0, updated: 0, skipped: 0, enriched: 0, errors: 0, total: 0 };
 
@@ -289,35 +295,41 @@ class SyncService {
     logger.info('='.repeat(60));
     logger.info(`Sync: Démarrage synchronisation GitLab → Testmo`);
     logger.info(
-      `Sync: Itération="${iterationName}" | Filtre=Status:Test::TODO | Test=${isTest} | DryRun=${dryRun}`
+      `Sync: Itération="${iterationName || '-'}" | Folder="${folderName}" | ` +
+        `statusGid=${statusGid || '-'} | vProd=${versionProd || '-'} | vTest=${versionTest || '-'} | ` +
+        `Test=${isTest} | DryRun=${dryRun}`
     );
     logger.info('='.repeat(60));
 
-    emit('start', { iterationName, dryRun });
+    emit('start', { folderName, filters, dryRun });
 
     try {
-      // 1. Rechercher l'itération dans GitLab
+      // 1. Résoudre l'itération GitLab si fournie
       logger.info('Sync: [1/4] Recherche itération GitLab...');
-
-      // Support per-project GitLab projectId
-      let iteration;
-      if (cfg.gitlabProjectId) {
-        iteration = await gitlabService.findIterationForProject(cfg.gitlabProjectId, iterationName);
-      } else {
-        iteration = await gitlabService.findIteration(iterationName);
-      }
-
-      if (!iteration) {
-        const errMsg = `Itération "${iterationName}" non trouvée dans GitLab`;
-        emit('error', { message: errMsg });
-        return { ...stats, error: errMsg };
-      }
-      await this._delay();
-
-      // 2. Récupérer les tickets (filtre par status Work Item = Test::TODO)
-      logger.info('Sync: [2/4] Récupération tickets GitLab...');
       const gitlabPid = cfg.gitlabProjectId || gitlabService.projectId;
-      const issues = await gitlabService.getIssuesByStatusAndIteration(gitlabPid, iteration.id);
+      let iterationId;
+      if (iterationName) {
+        const iteration = cfg.gitlabProjectId
+          ? await gitlabService.findIterationForProject(cfg.gitlabProjectId, iterationName)
+          : await gitlabService.findIteration(iterationName);
+
+        if (!iteration) {
+          const errMsg = `Itération "${iterationName}" non trouvée dans GitLab`;
+          emit('error', { message: errMsg });
+          return { ...stats, error: errMsg };
+        }
+        iterationId = iteration.id;
+        await this._delay();
+      }
+
+      // 2. Récupérer les tickets avec les filtres actifs
+      logger.info('Sync: [2/4] Récupération tickets GitLab...');
+      const issues = await gitlabService.getIssuesByFilters(gitlabPid, {
+        iterationId,
+        statusGid,
+        versionProd,
+        versionTest,
+      });
       stats.total = issues.length;
 
       if (issues.length === 0) {
@@ -330,7 +342,7 @@ class SyncService {
       // 3. Créer l'arborescence Testmo
       logger.info('Sync: [3/4] Création arborescence Testmo...');
       const { parentFolder, childFolder } = await this._ensureFolderHierarchyWith(
-        iterationName,
+        folderName,
         isTest,
         cfg.projectId,
         cfg.rootGroupId
@@ -371,7 +383,7 @@ class SyncService {
             // Mettre à jour (case sans data manuelle) + enrichir depuis commentaires GitLab
             let _updatedCase = existingCase;
             if (!dryRun) {
-              const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
+              const payload = cfg.buildCasePayload(issue, childFolder.id, folderName);
               const gitlabPid = cfg.gitlabProjectId || issue.project_id;
               if (gitlabPid) {
                 const notes = await gitlabService.getIssueNotes(gitlabPid, iid);
@@ -393,7 +405,7 @@ class SyncService {
             // Créer + enrichir depuis commentaires GitLab
             let createdCase = null;
             if (!dryRun) {
-              const payload = cfg.buildCasePayload(issue, childFolder.id, iterationName);
+              const payload = cfg.buildCasePayload(issue, childFolder.id, folderName);
               const gitlabPid = cfg.gitlabProjectId || issue.project_id;
               if (gitlabPid) {
                 const notes = await gitlabService.getIssueNotes(gitlabPid, iid);
@@ -456,52 +468,52 @@ class SyncService {
   /**
    * Mode aperçu (dry-run enrichi) — retourne ce qui SERAIT fait sans rien écrire.
    *
-   * @param {string} iterationName  - Nom de l'itération
+   * @param {string} folderName     - Nom du dossier Testmo cible
+   * @param {Object} filters        - Filtres GitLab cumulables (iterationName, statusGid, versionProd, versionTest)
    * @param {Object} projectConfig  - Entrée de projects.config.js
-   * @returns {Object} { iteration, folder, issues, summary }
+   * @returns {Object} { folder, filters, issues, summary }
    */
-  async previewIteration(iterationName, projectConfig) {
+  async previewIteration(folderName, filters = {}, projectConfig) {
+    const { iterationName, statusGid, versionProd, versionTest } = filters;
     const cfg = this._withProjectConfig(projectConfig);
 
-    logger.info(`Preview: Début pour "${iterationName}" (projet: ${projectConfig.label})`);
+    logger.info(`Preview: Début pour folder="${folderName}" (projet: ${projectConfig.label})`);
 
-    // 1. Trouver l'itération
-    let iteration;
-    try {
-      if (cfg.gitlabProjectId) {
-        iteration = await gitlabService.findIterationForProject(cfg.gitlabProjectId, iterationName);
-      } else {
-        iteration = await gitlabService.findIteration(iterationName);
+    // 1. Résoudre l'itération GitLab si fournie
+    const gitlabPid = cfg.gitlabProjectId || gitlabService.projectId;
+    let iterationId;
+    if (iterationName) {
+      let iteration;
+      try {
+        iteration = await gitlabService.findIterationForProject(gitlabPid, iterationName);
+      } catch (err) {
+        throw new Error(`Erreur recherche itération: ${err.message}`);
       }
-    } catch (err) {
-      throw new Error(`Erreur recherche itération: ${err.message}`);
+      if (!iteration) throw new Error(`Itération "${iterationName}" non trouvée dans GitLab`);
+      iterationId = iteration.id;
+      await this._delay();
     }
 
-    if (!iteration) {
-      throw new Error(`Itération "${iterationName}" non trouvée dans GitLab`);
-    }
-    await this._delay();
-
-    // 2. Récupérer les tickets (filtre par status Work Item = Test::TODO)
+    // 2. Récupérer les tickets avec les filtres actifs
     let issues;
     try {
-      const gitlabPid = cfg.gitlabProjectId || gitlabService.projectId;
-      issues = await gitlabService.getIssuesByStatusAndIteration(gitlabPid, iteration.id);
+      issues = await gitlabService.getIssuesByFilters(gitlabPid, {
+        iterationId,
+        statusGid,
+        versionProd,
+        versionTest,
+      });
     } catch (err) {
       throw new Error(`Erreur récupération tickets: ${err.message}`);
     }
     await this._delay();
 
     // 3. Vérifier l'arborescence (existence seulement, pas de création)
-    const { parent, child } = this.parseIterationName(iterationName);
-    let folderExists = false;
+    const { parent, child } = this.parseIterationName(folderName);
     let existingChildFolder = null;
     try {
       existingChildFolder = await testmoService.findFolder(cfg.projectId, child, null);
-      folderExists = !!existingChildFolder;
-    } catch (_) {
-      folderExists = false;
-    }
+    } catch (_) {}
     await this._delay();
 
     // 4. Analyser chaque ticket
@@ -513,50 +525,29 @@ class SyncService {
     for (const issue of issues) {
       let status = 'create';
       try {
-        // Si le dossier existe, chercher le case à l'intérieur (même logique que syncIteration)
         const existingCase = existingChildFolder
           ? await testmoService.findCaseByName(cfg.projectId, issue.title, existingChildFolder.id)
           : null;
-
         await this._delay();
-
         if (existingCase) {
           status = testmoService.isCaseEnriched(existingCase) ? 'skip_enriched' : 'update';
         }
       } catch (_) {
-        status = 'create'; // En cas d'erreur API, on suppose création
+        status = 'create';
       }
 
       if (status === 'create') toCreate++;
       else if (status === 'update') toUpdate++;
       else toSkip++;
 
-      issueAnalysis.push({
-        iid: issue.iid,
-        title: issue.title,
-        url: issue.web_url,
-        status,
-      });
+      issueAnalysis.push({ iid: issue.iid, title: issue.title, url: issue.web_url, status });
     }
 
     return {
-      iteration: {
-        id: iteration.id,
-        name: iteration.title,
-        gitlabUrl: iteration.web_url || null,
-      },
-      folder: {
-        parent,
-        child,
-        exists: folderExists,
-      },
+      folder: { parent, child, exists: !!existingChildFolder },
+      filters: { iterationName, statusGid, versionProd, versionTest },
       issues: issueAnalysis,
-      summary: {
-        toCreate,
-        toUpdate,
-        toSkip,
-        total: issues.length,
-      },
+      summary: { toCreate, toUpdate, toSkip, total: issues.length },
     };
   }
 
