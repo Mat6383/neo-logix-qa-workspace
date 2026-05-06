@@ -38,7 +38,7 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Effort |
 |---|--------|-------------|--------|
-| N1 | ⬜ todo | **Historique métriques SQLite** — stocker les snapshots ISTQB quotidiens pour voir les tendances dans le temps | ~2 jours |
+| N1 | ✅ done | **Historique métriques SQLite** — metrics-history.service.js (dedup/jour), GET /history, auto-snapshot fire-and-forget, MetricsTrendChart.jsx dans Dashboard5 | ~2 jours |
 | N2 | ⬜ todo | **Alertes Slack/email** — notifier quand pass rate < seuil critique ou escape rate > seuil | ~1 jour |
 | N3 | ⬜ todo | **Dashboard comparaison inter-milestones** — vue côte-à-côte de 2 jalons pour mesurer la progression | ~2 jours |
 
