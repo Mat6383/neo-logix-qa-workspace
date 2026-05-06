@@ -109,4 +109,10 @@ async function getMetricsHistory(req, res) {
   }
 }
 
-module.exports = { getMetrics, getQualityRates, getAnnualTrends, getMetricsHistory, parseMilestones };
+module.exports = {
+  getMetrics,
+  getQualityRates,
+  getAnnualTrends,
+  getMetricsHistory,
+  parseMilestones,
+};
