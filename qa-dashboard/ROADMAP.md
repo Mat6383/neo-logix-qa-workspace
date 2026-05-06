@@ -39,7 +39,7 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | # | Statut | Description | Effort |
 |---|--------|-------------|--------|
 | N1 | ✅ done | **Historique métriques SQLite** — metrics-history.service.js (dedup/jour), GET /history, auto-snapshot fire-and-forget, MetricsTrendChart.jsx dans Dashboard5 | ~2 jours |
-| N2 | ⬜ todo | **Alertes Slack/email** — notifier quand pass rate < seuil critique ou escape rate > seuil | ~1 jour |
+| N2 | ✅ done | **Alertes Slack/email** — notifier quand pass rate < seuil critique ou escape rate > seuil | ~1 jour |
 | N3 | ⬜ todo | **Dashboard comparaison inter-milestones** — vue côte-à-côte de 2 jalons pour mesurer la progression | ~2 jours |
 
 ---
@@ -53,3 +53,4 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-04-29 | Q2 (77 tests supertest, 444 tests total) | `master` |
 | 2026-05-05 | sync-filtres-cumulables (4 filtres), run-manager (service + routes + frontend Dashboard9/RunActionPanel) | `master` |
 | 2026-05-06 | P1 Docker + P3 Deploy doc (DEPLOY.md) — Phase 3 complète | `master` |
+| 2026-05-06 | N2 alertes Slack (alerts.service, routes, Dashboard8, 17 tests) | `master` |
