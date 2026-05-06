@@ -449,6 +449,37 @@ const apiService = {
 
   // ---- Fin Dashboard 8 ---------------------------------------------------
 
+  // ---- Dashboard 8: Alertes Slack -----------------------------------------
+
+  async getAlertsConfig() {
+    try {
+      const response = await apiClient.get('/alerts/config');
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Get Alerts Config', error);
+    }
+  },
+
+  async updateAlertsConfig(patch) {
+    try {
+      const response = await apiClient.put('/alerts/config', patch);
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Update Alerts Config', error);
+    }
+  },
+
+  async testSlackAlert() {
+    try {
+      const response = await apiClient.post('/alerts/test');
+      return response.data.data;
+    } catch (error) {
+      throw this._handleError('Test Slack Alert', error);
+    }
+  },
+
+  // ---- Fin Alertes Slack ---------------------------------------------------
+
   // ---- Run Manager -------------------------------------------------------
 
   async getFolderCases(syncProjectId, iterationName) {

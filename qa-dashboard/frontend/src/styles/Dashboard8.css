@@ -347,3 +347,32 @@
     grid-column: 1;
   }
 }
+
+/* ── Alertes Slack ──────────────────────────────────────────── */
+.d8-card--alerts { border-left: 3px solid #f59e0b; }
+
+.d8-card-title--collapsible {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.d8-collapse-arrow { margin-left: auto; font-size: 11px; }
+
+.d8-alerts-body { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+
+.d8-input-row { display: flex; gap: 6px; align-items: center; }
+.d8-input { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border, #e5e7eb); background: var(--bg-input, #fff); font-size: 13px; flex: 1; }
+.d8-input--small { width: 80px; flex: none; }
+.d8-btn-icon { background: transparent; border: 1px solid var(--border, #e5e7eb); border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+
+.d8-checkboxes { display: flex; flex-direction: column; gap: 6px; }
+.d8-checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.d8-checkbox-label input { cursor: pointer; }
+
+.d8-alerts-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.d8-feedback { font-size: 12px; display: flex; align-items: center; gap: 5px; margin: 0; }
+.d8-feedback--ok    { color: #16a34a; }
+.d8-feedback--error { color: #dc2626; }
