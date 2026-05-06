@@ -5,6 +5,14 @@ const logger = require('./logger.service');
 
 const DEFAULT_DB_PATH = path.join(__dirname, '..', 'db', 'metrics-history.db');
 
+let _alertsService = null;
+function _getAlertsService() {
+  if (!_alertsService) {
+    try { _alertsService = require('./alerts.service').getAlertsService(); } catch (_) {}
+  }
+  return _alertsService;
+}
+
 class MetricsHistoryService {
   constructor(dbPath) {
     this._dbPath = dbPath || DEFAULT_DB_PATH;
@@ -102,9 +110,19 @@ class MetricsHistoryService {
       new Date().toISOString()
     );
 
-    return this.db
+    const inserted = this.db
       .prepare('SELECT * FROM metrics_snapshots WHERE id = ?')
       .get(result.lastInsertRowid);
+
+    // Fire-and-forget: notif Slack si seuil SLA franchi
+    if (snap.slaStatus) {
+      const alertsSvc = _getAlertsService();
+      if (alertsSvc) {
+        alertsSvc.checkAndNotify(projectId, projectName, snap.slaStatus).catch(() => {});
+      }
+    }
+
+    return inserted;
   }
 
   /**
