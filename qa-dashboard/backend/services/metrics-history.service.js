@@ -8,7 +8,11 @@ const DEFAULT_DB_PATH = path.join(__dirname, '..', 'db', 'metrics-history.db');
 let _alertsService = null;
 function _getAlertsService() {
   if (!_alertsService) {
-    try { _alertsService = require('./alerts.service').getAlertsService(); } catch (_) {}
+    try {
+      _alertsService = require('./alerts.service').getAlertsService();
+    } catch (_err) {
+      // alerts service optional
+    }
   }
   return _alertsService;
 }
