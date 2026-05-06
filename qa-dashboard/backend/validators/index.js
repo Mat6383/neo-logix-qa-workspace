@@ -123,6 +123,20 @@ const mergeBody = z.object({
   caseIds: z.array(z.number().int().positive()).min(1, 'Au moins un cas requis'),
 });
 
+const alertsConfigBody = z.object({
+  enabled: z.boolean().optional(),
+  slack_webhook_url: z.string().url().or(z.literal('')).optional(),
+  cooldown_hours: z.number().int().min(1).max(168).optional(),
+  metrics: z
+    .object({
+      passRate_critical: z.boolean().optional(),
+      passRate_warning: z.boolean().optional(),
+      completionRate_warning: z.boolean().optional(),
+      blockedRate_warning: z.boolean().optional(),
+    })
+    .optional(),
+});
+
 // ─── Middleware ────────────────────────────────────────────────────────────
 function validate(schema) {
   return (req, res, next) => {
@@ -214,4 +228,5 @@ module.exports = {
   projectRunsQuery,
   createRunBody,
   mergeBody,
+  alertsConfigBody,
 };
