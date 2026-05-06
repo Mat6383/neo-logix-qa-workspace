@@ -28,9 +28,9 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
 | # | Statut | Description | Effort |
 |---|--------|-------------|--------|
-| P1 | ⬜ todo | **Dockerfile + docker-compose** — conteneurisation backend + frontend pour déploiement reproductible | ~1 jour |
-| P2 | ⬜ todo | **Validation env au démarrage** — compléter le check des variables requises, ajouter des valeurs par défaut sûres | ~2h |
-| P3 | ⬜ todo | **Procédure de déploiement** — documenter les étapes (variables d'env, migration SQLite, reverse proxy) | ~2h |
+| P1 | ✅ done | **Dockerfile + docker-compose** — backend (node:22-alpine), frontend (nginx multi-stage), volumes SQLite/data/logs, healthcheck, docker-compose.yml | ~1 jour |
+| P2 | ✅ done | **Validation env au démarrage** — REQUIRED_ENV exit(1) + RECOMMENDED_ENV warn dans server.js | ~2h |
+| P3 | ✅ done | **Procédure de déploiement** — DEPLOY.md : env vars, docker compose, volumes SQLite, reverse proxy, migration, healthcheck | ~2h |
 
 ---
 
@@ -51,3 +51,5 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-04-29 | Audit + C1-C3 + H1-H5 + M1-M5 + P1-P3 + S1 (15 items) | `feat/modernisation-architecture` → merge master |
 | 2026-04-29 | Q1 (0 warnings ESLint), ROADMAP.md créée | `master` |
 | 2026-04-29 | Q2 (77 tests supertest, 444 tests total) | `master` |
+| 2026-05-05 | sync-filtres-cumulables (4 filtres), run-manager (service + routes + frontend Dashboard9/RunActionPanel) | `master` |
+| 2026-05-06 | P1 Docker + P3 Deploy doc (DEPLOY.md) — Phase 3 complète | `master` |
