@@ -209,6 +209,17 @@ const apiService = {
     }
   },
 
+  async getMetricsHistory(projectId, limit = 30) {
+    try {
+      const response = await apiClient.get(`/dashboard/${projectId}/history`, {
+        params: { limit },
+      });
+      return response.data;
+    } catch (error) {
+      throw this._handleError('Get Metrics History', error);
+    }
+  },
+
   /**
    * Nettoie le cache backend
    */

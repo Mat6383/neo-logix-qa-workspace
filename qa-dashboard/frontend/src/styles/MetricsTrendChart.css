@@ -1,0 +1,65 @@
+.mtc-root {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.mtc-root.dark {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.mtc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.mtc-root.dark .mtc-header {
+  color: #94a3b8;
+}
+
+.mtc-refresh {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.mtc-refresh:hover {
+  color: #3b82f6;
+}
+
+.mtc-chart {
+  height: 220px;
+  position: relative;
+}
+
+.mtc-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 80px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.mtc-spin {
+  animation: mtc-rotate 1s linear infinite;
+}
+
+@keyframes mtc-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

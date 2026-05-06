@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
+import MetricsTrendChart from './MetricsTrendChart';
 import { 
     TrendingUp, 
     ShieldAlert, 
@@ -278,6 +279,7 @@ const Dashboard5 = ({ projectId, isDark, useBusiness }) => {
                     </table>
                 </div>
             </div>
+        <MetricsTrendChart projectId={projectId} isDark={isDark} limit={30} />
         </div>
     );
 };

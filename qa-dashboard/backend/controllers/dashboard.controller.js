@@ -1,4 +1,5 @@
 const { getIstqbMetricsService } = require('../services/istqb-metrics.service');
+const { getMetricsHistoryService } = require('../services/metrics-history.service');
 const logger = require('../services/logger.service');
 
 function parseMilestones(query) {
@@ -24,6 +25,27 @@ async function getMetrics(req, res) {
     }
 
     res.json({ success: true, data: metrics, timestamp: new Date().toISOString() });
+
+    // Fire-and-forget snapshot — ne bloque pas la réponse
+    setImmediate(() => {
+      try {
+        const g = metrics.globalMetrics || metrics;
+        getMetricsHistoryService().saveSnapshot({
+          projectId,
+          projectName: metrics.projectName || String(projectId),
+          completionRate: g.completionRate ?? null,
+          passRate: g.passRate ?? null,
+          failureRate: g.failureRate ?? null,
+          testEfficiency: g.testEfficiency ?? null,
+          totalTests: g.totalTests ?? null,
+          passedTests: g.passedTests ?? null,
+          failedTests: g.failedTests ?? null,
+          completedTests: g.completedTests ?? null,
+        });
+      } catch (snapErr) {
+        logger.warn('MetricsHistory: snapshot échoué (non bloquant):', snapErr.message);
+      }
+    });
   } catch (error) {
     logger.error(`Erreur GET /api/dashboard/${req.params.projectId}:`, error);
     res
@@ -70,4 +92,21 @@ async function getAnnualTrends(req, res) {
   }
 }
 
-module.exports = { getMetrics, getQualityRates, getAnnualTrends, parseMilestones };
+async function getMetricsHistory(req, res) {
+  try {
+    const projectId = parseInt(req.params.projectId);
+    const limit = Math.min(parseInt(req.query.limit) || 30, 90);
+
+    logger.info(`Récupération historique métriques pour projet ${projectId}`);
+    const rows = getMetricsHistoryService().getHistory(projectId, limit);
+
+    res.json({ success: true, data: rows, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error(`Erreur GET /api/dashboard/${req.params.projectId}/history:`, error);
+    res
+      .status(500)
+      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+  }
+}
+
+module.exports = { getMetrics, getQualityRates, getAnnualTrends, getMetricsHistory, parseMilestones };
