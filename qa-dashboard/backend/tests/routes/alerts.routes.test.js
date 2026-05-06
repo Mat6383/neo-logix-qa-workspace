@@ -8,7 +8,12 @@ jest.mock('../../services/alerts.service', () => {
       enabled: false,
       slack_webhook_url: '',
       cooldown_hours: 4,
-      metrics: { passRate_critical: true, passRate_warning: false, completionRate_warning: true, blockedRate_warning: true },
+      metrics: {
+        passRate_critical: true,
+        passRate_warning: false,
+        completionRate_warning: true,
+        blockedRate_warning: true,
+      },
     })),
     saveConfig: jest.fn(),
     sendTest: jest.fn().mockResolvedValue({ ok: true }),
@@ -44,16 +49,12 @@ describe('PUT /api/alerts/config', () => {
   });
 
   test('rejette cooldown_hours < 1', async () => {
-    const res = await request(makeApp())
-      .put('/api/alerts/config')
-      .send({ cooldown_hours: 0 });
+    const res = await request(makeApp()).put('/api/alerts/config').send({ cooldown_hours: 0 });
     expect(res.status).toBe(400);
   });
 
   test('rejette cooldown_hours > 168', async () => {
-    const res = await request(makeApp())
-      .put('/api/alerts/config')
-      .send({ cooldown_hours: 200 });
+    const res = await request(makeApp()).put('/api/alerts/config').send({ cooldown_hours: 200 });
     expect(res.status).toBe(400);
   });
 });

@@ -12,7 +12,7 @@ const path = require('path');
 
 const SLACK_HOST = 'https://hooks.slack.com';
 const SLACK_PATH = '/services/TEST/HOOK/abc123';
-const SLACK_URL  = `${SLACK_HOST}${SLACK_PATH}`;
+const SLACK_URL = `${SLACK_HOST}${SLACK_PATH}`;
 
 function makeSvc(cfgOverride = {}) {
   const configPath = path.join(os.tmpdir(), `alerts-int-${Date.now()}.json`);
@@ -30,7 +30,15 @@ function makeSvc(cfgOverride = {}) {
 
 const CRITICAL_SLA = {
   ok: false,
-  alerts: [{ severity: 'critical', metric: 'Pass Rate', value: 80, threshold: 85, message: 'Pass rate critique: 80% < 85%' }],
+  alerts: [
+    {
+      severity: 'critical',
+      metric: 'Pass Rate',
+      value: 80,
+      threshold: 85,
+      message: 'Pass rate critique: 80% < 85%',
+    },
+  ],
 };
 
 afterEach(() => nock.cleanAll());
@@ -38,7 +46,12 @@ afterEach(() => nock.cleanAll());
 describe('checkAndNotify — POST Slack réel (nock)', () => {
   test('SLA breach → POST Slack avec le bon payload', async () => {
     let capturedBody;
-    nock(SLACK_HOST).post(SLACK_PATH, (body) => { capturedBody = body; return true; }).reply(200, 'ok');
+    nock(SLACK_HOST)
+      .post(SLACK_PATH, (body) => {
+        capturedBody = body;
+        return true;
+      })
+      .reply(200, 'ok');
 
     const svc = makeSvc();
     await svc.checkAndNotify('proj-1', 'neo-pilot', CRITICAL_SLA);
@@ -75,7 +88,9 @@ describe('checkAndNotify — POST Slack réel (nock)', () => {
 
     const svc = makeSvc({ cooldown_hours: 4 });
     const expired = new Date(Date.now() - 5 * 3600 * 1000).toISOString();
-    svc._db.prepare('INSERT OR REPLACE INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)').run('proj-4', expired);
+    svc._db
+      .prepare('INSERT OR REPLACE INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)')
+      .run('proj-4', expired);
 
     await svc.checkAndNotify('proj-4', 'neo-pilot', CRITICAL_SLA);
 

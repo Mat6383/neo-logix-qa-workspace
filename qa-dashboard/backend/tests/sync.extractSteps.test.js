@@ -29,12 +29,14 @@ describe('_extractStepsFromNotes', () => {
   });
 
   test('section [TEST] placée en dernier même si elle apparaît en premier dans la note', () => {
-    const notes = [{
-      body: '[TEST]\nVérifier le résultat\n[CONTEXTE]\nEnvironnement de test'
-    }];
+    const notes = [
+      {
+        body: '[TEST]\nVérifier le résultat\n[CONTEXTE]\nEnvironnement de test',
+      },
+    ];
     const steps = syncService._extractStepsFromNotes(notes);
-    const testIdx = steps.findIndex(s => s.text1.includes('TEST'));
-    const ctxIdx  = steps.findIndex(s => s.text1.includes('CONTEXTE'));
+    const testIdx = steps.findIndex((s) => s.text1.includes('TEST'));
+    const ctxIdx = steps.findIndex((s) => s.text1.includes('CONTEXTE'));
     expect(ctxIdx).toBeLessThan(testIdx);
   });
 
@@ -54,10 +56,10 @@ describe('_extractStepsFromNotes', () => {
     ];
     const steps = syncService._extractStepsFromNotes(notes);
     // Les 2 [TEST] doivent être présents
-    const testSteps = steps.filter(s => s.text1.includes('TEST'));
+    const testSteps = steps.filter((s) => s.text1.includes('TEST'));
     expect(testSteps).toHaveLength(2);
     // La section [PRÉREQUIS] doit venir de la note la plus longue
-    const prereqStep = steps.find(s => s.text1.includes('PRÉREQUIS'));
+    const prereqStep = steps.find((s) => s.text1.includes('PRÉREQUIS'));
     expect(prereqStep).toBeDefined();
     expect(prereqStep.text1).toContain('détaillés');
   });

@@ -47,7 +47,10 @@ export default [
     rules: {
       ...prettierConfig.rules,
       'prettier/prettier': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'no-console': 'off',
       // Désactivé pour le code existant (règles trop strictes de ESLint v10)
       'no-useless-assignment': 'off',

@@ -16,24 +16,20 @@ const RUN_ID = 42;
 const MOCK_RUN_INFO = { result: { id: RUN_ID, name: 'R14 - run 1' } };
 const MOCK_RESULTS = {
   result: [
-    { case_id: 101, case_name: 'Connexion admin', status_id: 2, is_latest: true },  // Passed → Test::OK
-    { case_id: 102, case_name: 'Export PDF',     status_id: 3, is_latest: true },  // Failed → Test::KO
-    { case_id: 103, case_name: 'Recherche',      status_id: 99, is_latest: true }, // Inconnu → skip
+    { case_id: 101, case_name: 'Connexion admin', status_id: 2, is_latest: true }, // Passed → Test::OK
+    { case_id: 102, case_name: 'Export PDF', status_id: 3, is_latest: true }, // Failed → Test::KO
+    { case_id: 103, case_name: 'Recherche', status_id: 99, is_latest: true }, // Inconnu → skip
   ],
 };
 const MOCK_ISSUES = [
   { id: 1001, iid: 1, title: 'Connexion admin', labels: ['Test::WIP'] },
-  { id: 1002, iid: 2, title: 'Export PDF',      labels: ['Test::OK'] },
+  { id: 1002, iid: 2, title: 'Export PDF', labels: ['Test::OK'] },
 ];
 const MOCK_ITERATION = { id: 'gid://gitlab/Iteration/7', title: 'R14 - run 1' };
 
 function setupNockTestmo() {
-  nock(TESTMO_BASE)
-    .get(`/api/v1/runs/${RUN_ID}`)
-    .reply(200, MOCK_RUN_INFO);
-  nock(TESTMO_BASE)
-    .get(`/api/v1/runs/${RUN_ID}/results`)
-    .reply(200, MOCK_RESULTS);
+  nock(TESTMO_BASE).get(`/api/v1/runs/${RUN_ID}`).reply(200, MOCK_RUN_INFO);
+  nock(TESTMO_BASE).get(`/api/v1/runs/${RUN_ID}/results`).reply(200, MOCK_RESULTS);
   // _getCaseNames est toujours appelé même si case_name est déjà dans les résultats
   // TESTMO_PROJECT_ID non défini dans setup.js → défaut 1
   nock(TESTMO_BASE)
@@ -68,7 +64,9 @@ describe('syncRunStatusToGitLab — flow nominal', () => {
 
     const events = [];
     const stats = await statusSyncService.syncRunStatusToGitLab(
-      RUN_ID, 'R14 - run 1', GL_PROJECT,
+      RUN_ID,
+      'R14 - run 1',
+      GL_PROJECT,
       (type, data) => events.push({ type, data })
     );
 
@@ -98,7 +96,11 @@ describe('syncRunStatusToGitLab — mode dryRun', () => {
     jest.spyOn(gitlabService, 'updateWorkItemStatus').mockResolvedValue({});
 
     const stats = await statusSyncService.syncRunStatusToGitLab(
-      RUN_ID, 'R14 - run 1', GL_PROJECT, () => {}, true
+      RUN_ID,
+      'R14 - run 1',
+      GL_PROJECT,
+      () => {},
+      true
     );
 
     expect(stats.dryRun).toBe(true);
@@ -115,9 +117,7 @@ describe('syncRunStatusToGitLab — erreurs', () => {
     jest.spyOn(gitlabService, 'findIterationForProject').mockResolvedValue(MOCK_ITERATION);
     jest.spyOn(gitlabService, 'updateWorkItemStatus').mockResolvedValue({});
 
-    const stats = await statusSyncService.syncRunStatusToGitLab(
-      RUN_ID, 'R14 - run 1', GL_PROJECT
-    );
+    const stats = await statusSyncService.syncRunStatusToGitLab(RUN_ID, 'R14 - run 1', GL_PROJECT);
 
     expect(stats.updated).toBe(0);
     expect(gitlabService.updateWorkItemStatus).not.toHaveBeenCalled();
@@ -133,19 +133,18 @@ describe('syncRunStatusToGitLab — erreurs', () => {
     ).rejects.toThrow();
   });
 
-  test("updateWorkItemStatus échoue sur une issue → error incrémenté, sync continue", async () => {
+  test('updateWorkItemStatus échoue sur une issue → error incrémenté, sync continue', async () => {
     setupNockTestmo();
     jest.spyOn(gitlabService, 'findIterationForProject').mockResolvedValue(MOCK_ITERATION);
     jest.spyOn(gitlabService, 'getIssuesForIteration').mockResolvedValue(MOCK_ISSUES);
     jest.spyOn(gitlabService, 'getIssueNotes').mockResolvedValue([]);
     jest.spyOn(gitlabService, 'addIssueComment').mockResolvedValue({});
-    jest.spyOn(gitlabService, 'updateWorkItemStatus')
+    jest
+      .spyOn(gitlabService, 'updateWorkItemStatus')
       .mockRejectedValueOnce(new Error('GitLab 500'))
       .mockResolvedValue({});
 
-    const stats = await statusSyncService.syncRunStatusToGitLab(
-      RUN_ID, 'R14 - run 1', GL_PROJECT
-    );
+    const stats = await statusSyncService.syncRunStatusToGitLab(RUN_ID, 'R14 - run 1', GL_PROJECT);
 
     expect(stats.errors).toBe(1);
     expect(stats.updated).toBe(1); // la 2ème issue passe quand même

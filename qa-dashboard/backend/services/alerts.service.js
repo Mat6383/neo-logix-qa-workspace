@@ -93,15 +93,17 @@ class AlertsService {
 
   _alertMatchesConfig(alert) {
     const { metrics } = this._config;
-    if (alert.metric === 'Pass Rate' && alert.severity === 'critical') return metrics.passRate_critical;
-    if (alert.metric === 'Pass Rate' && alert.severity === 'warning')  return metrics.passRate_warning;
-    if (alert.metric === 'Completion Rate')                             return metrics.completionRate_warning;
-    if (alert.metric === 'Blocked Rate')                               return metrics.blockedRate_warning;
+    if (alert.metric === 'Pass Rate' && alert.severity === 'critical')
+      return metrics.passRate_critical;
+    if (alert.metric === 'Pass Rate' && alert.severity === 'warning')
+      return metrics.passRate_warning;
+    if (alert.metric === 'Completion Rate') return metrics.completionRate_warning;
+    if (alert.metric === 'Blocked Rate') return metrics.blockedRate_warning;
     return true;
   }
 
   _buildPayload(projectName, alerts) {
-    const lines = alerts.map(a => `• ${a.severity.toUpperCase()} — ${a.message}`).join('\n');
+    const lines = alerts.map((a) => `• ${a.severity.toUpperCase()} — ${a.message}`).join('\n');
     return {
       text: `🚨 [${projectName}] Alerte QA — ${alerts.length} problème(s) détecté(s)\n${lines}`,
     };
@@ -122,7 +124,7 @@ class AlertsService {
     if (!cfg.enabled || !cfg.slack_webhook_url || !slaStatus || slaStatus.ok) return;
     if (this._isCoolingDown(String(projectId), cfg.cooldown_hours)) return;
 
-    const filtered = (slaStatus.alerts || []).filter(a => this._alertMatchesConfig(a));
+    const filtered = (slaStatus.alerts || []).filter((a) => this._alertMatchesConfig(a));
     if (filtered.length === 0) return;
 
     const payload = this._buildPayload(projectName, filtered);

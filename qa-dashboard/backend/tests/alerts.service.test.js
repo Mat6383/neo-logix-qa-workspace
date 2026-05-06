@@ -25,7 +25,12 @@ describe('AlertsService — config', () => {
   test('saveConfig persiste et getConfig relit depuis fichier', () => {
     const cfgPath = makeTmpConfigPath();
     const svc = new AlertsService({ configPath: cfgPath, dbPath: ':memory:' });
-    svc.saveConfig({ ...svc.getConfig(), enabled: true, slack_webhook_url: 'https://hooks.slack.com/test', cooldown_hours: 2 });
+    svc.saveConfig({
+      ...svc.getConfig(),
+      enabled: true,
+      slack_webhook_url: 'https://hooks.slack.com/test',
+      cooldown_hours: 2,
+    });
     const svc2 = new AlertsService({ configPath: cfgPath, dbPath: ':memory:' });
     const cfg = svc2.getConfig();
     expect(cfg.enabled).toBe(true);
@@ -46,7 +51,9 @@ describe('AlertsService — cooldown', () => {
     const svc = new AlertsService({ configPath: makeTmpConfigPath(), dbPath: ':memory:' });
     svc._initDb();
     const recent = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    svc._db.prepare('INSERT INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)').run('proj-1', recent);
+    svc._db
+      .prepare('INSERT INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)')
+      .run('proj-1', recent);
     expect(svc._isCoolingDown('proj-1', 4)).toBe(true);
   });
 
@@ -54,7 +61,9 @@ describe('AlertsService — cooldown', () => {
     const svc = new AlertsService({ configPath: makeTmpConfigPath(), dbPath: ':memory:' });
     svc._initDb();
     const old = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString();
-    svc._db.prepare('INSERT INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)').run('proj-1', old);
+    svc._db
+      .prepare('INSERT INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)')
+      .run('proj-1', old);
     expect(svc._isCoolingDown('proj-1', 4)).toBe(false);
   });
 
@@ -78,7 +87,15 @@ describe('AlertsService — checkAndNotify', () => {
 
   const CRITICAL_SLA = {
     ok: false,
-    alerts: [{ severity: 'critical', metric: 'Pass Rate', value: 80, threshold: 85, message: 'Pass rate critique: 80% < 85%' }],
+    alerts: [
+      {
+        severity: 'critical',
+        metric: 'Pass Rate',
+        value: 80,
+        threshold: 85,
+        message: 'Pass rate critique: 80% < 85%',
+      },
+    ],
   };
 
   const OK_SLA = { ok: true, alerts: [] };
@@ -105,16 +122,26 @@ describe('AlertsService — checkAndNotify', () => {
   });
 
   test('ne POST pas si cooldown actif', async () => {
-    const svc = makeSvc({ enabled: true, slack_webhook_url: 'https://hooks.slack.com/x', cooldown_hours: 4 });
+    const svc = makeSvc({
+      enabled: true,
+      slack_webhook_url: 'https://hooks.slack.com/x',
+      cooldown_hours: 4,
+    });
     const recent = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    svc._db.prepare('INSERT INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)').run('1', recent);
+    svc._db
+      .prepare('INSERT INTO alert_cooldowns (project_id, last_sent_at) VALUES (?, ?)')
+      .run('1', recent);
     svc._postWebhook = jest.fn();
     await svc.checkAndNotify('1', 'neo-pilot', CRITICAL_SLA);
     expect(svc._postWebhook).not.toHaveBeenCalled();
   });
 
   test('POST webhook et update cooldown si toutes conditions remplies', async () => {
-    const svc = makeSvc({ enabled: true, slack_webhook_url: 'https://hooks.slack.com/x', cooldown_hours: 4 });
+    const svc = makeSvc({
+      enabled: true,
+      slack_webhook_url: 'https://hooks.slack.com/x',
+      cooldown_hours: 4,
+    });
     svc._postWebhook = jest.fn().mockResolvedValue();
     await svc.checkAndNotify('1', 'neo-pilot', CRITICAL_SLA);
     expect(svc._postWebhook).toHaveBeenCalledTimes(1);
@@ -122,7 +149,9 @@ describe('AlertsService — checkAndNotify', () => {
     expect(url).toBe('https://hooks.slack.com/x');
     expect(payload.text).toContain('neo-pilot');
     expect(payload.text).toContain('Pass rate');
-    const cooldownRow = svc._db.prepare('SELECT * FROM alert_cooldowns WHERE project_id = ?').get('1');
+    const cooldownRow = svc._db
+      .prepare('SELECT * FROM alert_cooldowns WHERE project_id = ?')
+      .get('1');
     expect(cooldownRow).toBeTruthy();
   });
 
@@ -131,7 +160,12 @@ describe('AlertsService — checkAndNotify', () => {
       enabled: true,
       slack_webhook_url: 'https://hooks.slack.com/x',
       cooldown_hours: 4,
-      metrics: { passRate_critical: false, passRate_warning: false, completionRate_warning: false, blockedRate_warning: false },
+      metrics: {
+        passRate_critical: false,
+        passRate_warning: false,
+        completionRate_warning: false,
+        blockedRate_warning: false,
+      },
     });
     svc._postWebhook = jest.fn();
     await svc.checkAndNotify('1', 'neo-pilot', CRITICAL_SLA);

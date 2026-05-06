@@ -16,7 +16,9 @@ function updateConfig(req, res) {
     const updated = {
       ...current,
       ...(enabled !== undefined && { enabled: Boolean(enabled) }),
-      ...(slack_webhook_url !== undefined && { slack_webhook_url: String(slack_webhook_url).trim() }),
+      ...(slack_webhook_url !== undefined && {
+        slack_webhook_url: String(slack_webhook_url).trim(),
+      }),
       ...(cooldown_hours !== undefined && { cooldown_hours: Number(cooldown_hours) }),
       ...(metrics && { metrics: { ...current.metrics, ...metrics } }),
     };
