@@ -72,6 +72,7 @@ function App() {
   const dashboardView = ROUTE_TO_VIEW[pathname] || '1';
 
   const [exportHandler, setExportHandler] = useState(null);
+  const [csvExportHandler, setCsvExportHandler] = useState(null);
 
   const handleClearCache = async () => {
     try {
@@ -182,6 +183,18 @@ function App() {
               <option value="11">📊 Comparaison inter-milestones</option>
             </select>
           </div>
+
+          {pathname === '/global' && csvExportHandler && (
+            <button
+              className="btn-icon"
+              style={{ backgroundColor: '#10B981', color: 'white', marginRight: '4px', border: 'none' }}
+              onClick={() => csvExportHandler()}
+              title="Exporter en CSV"
+            >
+              <Download size={16} />
+              <span style={{ fontSize: '0.7rem', marginLeft: '2px' }}>CSV</span>
+            </button>
+          )}
 
           {pathname === '/global' && exportHandler && (
             <button
@@ -295,6 +308,7 @@ function App() {
                 isDark={darkMode}
                 useBusiness={useBusinessTerms}
                 setExportHandler={setExportHandler}
+                setCsvExportHandler={setCsvExportHandler}
                 showProductionSection={showProductionSection}
                 onToggleProductionSection={(val) => updatePref('showProductionSection', val)}
               />

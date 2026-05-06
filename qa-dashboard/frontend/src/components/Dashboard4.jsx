@@ -8,21 +8,24 @@ import {
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import ModalGroup from './ModalGroup';
+import { exportMetricsCSV } from '../utils/exportCSV';
 
-const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, showProductionSection = true, onToggleProductionSection }) => {
+const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, setCsvExportHandler, showProductionSection = true, onToggleProductionSection }) => {
     const dashboardRef = useRef(null);
     const { addToast } = useToast();
     const [showAllRuns, setShowAllRuns] = React.useState(false);
 
-    // Provide the export function to the parent component on mount
     React.useEffect(() => {
-        if (setExportHandler) {
-            setExportHandler(() => handleExportPDF);
-        }
-        return () => {
-            if (setExportHandler) setExportHandler(null);
-        };
+        if (setExportHandler) setExportHandler(() => handleExportPDF);
+        return () => { if (setExportHandler) setExportHandler(null); };
     }, [setExportHandler]);
+
+    React.useEffect(() => {
+        if (setCsvExportHandler) {
+            setCsvExportHandler(() => () => exportMetricsCSV(metrics, project));
+        }
+        return () => { if (setCsvExportHandler) setCsvExportHandler(null); };
+    }, [setCsvExportHandler, metrics, project]);
 
     if (!metrics || !project) {
         return (
