@@ -1,7 +1,7 @@
 # QA Dashboard — Roadmap post-audit
 
 Créée le 2026-04-29 après completion des 15 items d'audit.
-Branche de référence : `master` (594 tests verts — 539 backend + 55 frontend).
+Branche de référence : `master` (642 tests verts — 539 backend + 103 frontend).
 
 Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
@@ -57,3 +57,4 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-05-06 | N3 comparaison inter-milestones (Dashboard10, route /compare, 8 tests) | `master` |
 | 2026-05-06 | Backend test coverage — nock + 21 nouveaux tests (sync.extractSteps 9, status-sync.integration 6, alerts.integration 6) → 539 tests total | `master` |
 | 2026-05-06 | Prettier backend 8 fichiers (0 warnings) + Vitest Dashboard9 (9 tests) → 594 tests total (539 backend + 55 frontend) | `master` |
+| 2026-05-06 | RunActionPanel 18 tests + Dashboard3-7 22 tests + exportCSV (util + feature + 8 tests) → 642 tests total (539 backend + 103 frontend) | `master` |
