@@ -55,3 +55,4 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-05-06 | P1 Docker + P3 Deploy doc (DEPLOY.md) — Phase 3 complète | `master` |
 | 2026-05-06 | N2 alertes Slack (alerts.service, routes, Dashboard8, 17 tests) | `master` |
 | 2026-05-06 | N3 comparaison inter-milestones (Dashboard10, route /compare, 8 tests) | `master` |
+| 2026-05-06 | Backend test coverage — nock + 21 nouveaux tests (sync.extractSteps 9, status-sync.integration 6, alerts.integration 6) → 539 tests total | `master` |

@@ -25,14 +25,14 @@
 **Files:**
 - Modify: `backend/package.json` (devDependencies)
 
-- [ ] **Step 1 : Installer nock**
+- [x] **Step 1 : Installer nock**
 
 ```bash
 cd backend
 npm install --save-dev nock
 ```
 
-- [ ] **Step 2 : Vérifier l'installation**
+- [x] **Step 2 : Vérifier l'installation**
 
 ```bash
 node -e "require('nock'); console.log('nock OK')"
@@ -40,7 +40,7 @@ node -e "require('nock'); console.log('nock OK')"
 
 Expected output : `nock OK`
 
-- [ ] **Step 3 : Vérifier que les tests existants passent toujours**
+- [x] **Step 3 : Vérifier que les tests existants passent toujours**
 
 ```bash
 npm test
@@ -48,7 +48,7 @@ npm test
 
 Expected : toutes les suites passent (même nombre qu'avant).
 
-- [ ] **Step 4 : Commit**
+- [x] **Step 4 : Commit**
 
 ```bash
 git add package.json package-lock.json
@@ -70,7 +70,7 @@ Règles métier critiques à couvrir :
 **Files:**
 - Create: `backend/tests/sync.extractSteps.test.js`
 
-- [ ] **Step 1 : Écrire les tests**
+- [x] **Step 1 : Écrire les tests**
 
 ```javascript
 'use strict';
@@ -151,7 +151,7 @@ describe('_extractStepsFromNotes', () => {
 });
 ```
 
-- [ ] **Step 2 : Lancer les tests pour vérifier qu'ils passent**
+- [x] **Step 2 : Lancer les tests pour vérifier qu'ils passent**
 
 ```bash
 cd backend
@@ -160,7 +160,7 @@ npx jest tests/sync.extractSteps.test.js --verbose
 
 Expected : 9 tests PASS
 
-- [ ] **Step 3 : Commit**
+- [x] **Step 3 : Commit**
 
 ```bash
 git add tests/sync.extractSteps.test.js
@@ -180,7 +180,7 @@ On teste `statusSyncService.syncRunStatusToGitLab()` avec :
 **Files:**
 - Create: `backend/tests/status-sync.integration.test.js`
 
-- [ ] **Step 1 : Écrire les tests**
+- [x] **Step 1 : Écrire les tests**
 
 ```javascript
 'use strict';
@@ -219,7 +219,22 @@ function setupNockTestmo() {
   nock(TESTMO_BASE)
     .get(`/api/v1/runs/${RUN_ID}/results`)
     .reply(200, MOCK_RESULTS);
+  // _getCaseNames est toujours appelé même si case_name est déjà dans les résultats
+  // TESTMO_PROJECT_ID non défini dans setup.js → défaut 1
+  nock(TESTMO_BASE)
+    .get('/api/v1/projects/1/cases')
+    .query(true)
+    .reply(200, { result: [], last_page: 1 });
 }
+
+beforeAll(() => {
+  // Annule le délai entre requêtes (400ms × nb résultats) pour accélérer les tests
+  statusSyncService.apiDelay = 0;
+});
+
+afterAll(() => {
+  statusSyncService.apiDelay = 400;
+});
 
 afterEach(() => {
   nock.cleanAll();
@@ -281,6 +296,7 @@ describe('syncRunStatusToGitLab — erreurs', () => {
   test('aucun résultat Testmo → stats vides, aucun appel GitLab', async () => {
     nock(TESTMO_BASE).get(`/api/v1/runs/${RUN_ID}`).reply(200, MOCK_RUN_INFO);
     nock(TESTMO_BASE).get(`/api/v1/runs/${RUN_ID}/results`).reply(200, { result: [] });
+    // results vides → retour anticipé avant _getCaseNames et GitLab, pas besoin de spyOn
     jest.spyOn(gitlabService, 'findIterationForProject').mockResolvedValue(MOCK_ITERATION);
     jest.spyOn(gitlabService, 'updateWorkItemStatus').mockResolvedValue({});
 
@@ -322,7 +338,7 @@ describe('syncRunStatusToGitLab — erreurs', () => {
 });
 ```
 
-- [ ] **Step 2 : Lancer les tests**
+- [x] **Step 2 : Lancer les tests**
 
 ```bash
 cd backend
@@ -331,7 +347,7 @@ npx jest tests/status-sync.integration.test.js --verbose
 
 Expected : 6 tests PASS
 
-- [ ] **Step 3 : Commit**
+- [x] **Step 3 : Commit**
 
 ```bash
 git add tests/status-sync.integration.test.js
@@ -349,7 +365,7 @@ On teste `checkAndNotify` avec un vrai appel `node-fetch` intercepté par nock �
 **Files:**
 - Create: `backend/tests/alerts.integration.test.js`
 
-- [ ] **Step 1 : Écrire les tests**
+- [x] **Step 1 : Écrire les tests**
 
 ```javascript
 'use strict';
@@ -455,7 +471,7 @@ describe('checkAndNotify — POST Slack réel (nock)', () => {
 });
 ```
 
-- [ ] **Step 2 : Lancer les tests**
+- [x] **Step 2 : Lancer les tests**
 
 ```bash
 cd backend
@@ -464,7 +480,7 @@ npx jest tests/alerts.integration.test.js --verbose
 
 Expected : 6 tests PASS
 
-- [ ] **Step 3 : Vérifier que la suite complète passe**
+- [x] **Step 3 : Vérifier que la suite complète passe**
 
 ```bash
 npm test
@@ -472,7 +488,7 @@ npm test
 
 Expected : toutes les suites passent.
 
-- [ ] **Step 4 : Commit final**
+- [x] **Step 4 : Commit final**
 
 ```bash
 git add tests/alerts.integration.test.js
