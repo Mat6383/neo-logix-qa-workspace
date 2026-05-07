@@ -16,12 +16,11 @@ const logger = require('./logger.service');
 class CommentsService {
   constructor() {
     this.db = null;
+    this._initialized = false;
   }
 
-  /**
-   * Initialise la base de données SQLite et crée la table si besoin
-   */
-  init() {
+  _initDb() {
+    if (this._initialized) return;
     try {
       const dbPath = path.join(__dirname, '../db/crosstest-comments.db');
       this.db = new Database(dbPath);
@@ -42,6 +41,7 @@ class CommentsService {
           ON crosstest_comments(issue_iid, gitlab_project_id);
       `);
 
+      this._initialized = true;
       logger.info('CommentsService: SQLite initialisé (crosstest-comments.db)');
     } catch (error) {
       logger.error('CommentsService: Erreur initialisation SQLite:', error);
@@ -54,6 +54,7 @@ class CommentsService {
    * @returns {Object} { [iid]: { id, issue_iid, comment, milestone_context, created_at, updated_at } }
    */
   getAll() {
+    if (!this._initialized) this._initDb();
     try {
       const rows = this.db
         .prepare(
@@ -80,6 +81,7 @@ class CommentsService {
    * @returns {Object} La ligne insérée/mise à jour
    */
   upsert(iid, comment, milestoneContext = null) {
+    if (!this._initialized) this._initDb();
     try {
       const now = new Date().toISOString();
       const stmt = this.db.prepare(`
@@ -108,6 +110,7 @@ class CommentsService {
    * @returns {boolean} true si une ligne a été supprimée
    */
   delete(iid) {
+    if (!this._initialized) this._initDb();
     try {
       const result = this.db
         .prepare('DELETE FROM crosstest_comments WHERE issue_iid = ? AND gitlab_project_id = 63')
