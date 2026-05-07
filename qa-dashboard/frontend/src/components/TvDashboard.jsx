@@ -6,7 +6,7 @@ const TvDashboard = ({ metrics, project, isDark, useBusiness }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentDate(new Date()), 1000);
+        const timer = setInterval(() => setCurrentDate(new Date()), 60000);
         return () => clearInterval(timer);
     }, []);
 
@@ -29,7 +29,7 @@ const TvDashboard = ({ metrics, project, isDark, useBusiness }) => {
                 </span>
             </div>
             <div className="tv-header-meta">
-                Généré le {currentDate.toLocaleDateString('fr-FR')} {currentDate.toLocaleTimeString('fr-FR')} • ISTQB • LEAN • ITIL • Refresh auto 5min
+                Généré le {currentDate.toLocaleDateString('fr-FR')} {currentDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} • ISTQB • LEAN • ITIL • Refresh auto 5min
             </div>
 
             {/* Global State Badge */}

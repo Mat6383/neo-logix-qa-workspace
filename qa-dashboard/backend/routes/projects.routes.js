@@ -8,7 +8,7 @@ const { validateParams, validateQuery, projectIdParam, activeQuery } = require('
  * Liste tous les projets Testmo
  * ISTQB: Test Project Scope
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const projects = await testmoService.getProjects();
 
@@ -20,11 +20,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     logger.error('Erreur GET /api/projects:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    next(error);
   }
 });
 
@@ -36,7 +32,7 @@ router.get(
   '/:projectId/runs',
   validateParams(projectIdParam),
   validateQuery(activeQuery),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId);
       const activeOnly = req.query.active !== 'false';
@@ -51,11 +47,7 @@ router.get(
       });
     } catch (error) {
       logger.error(`Erreur GET /api/projects/${req.params.projectId}/runs:`, error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      });
+      next(error);
     }
   }
 );
@@ -63,7 +55,7 @@ router.get(
 /**
  * Liste des milestones d'un projet
  */
-router.get('/:projectId/milestones', validateParams(projectIdParam), async (req, res) => {
+router.get('/:projectId/milestones', validateParams(projectIdParam), async (req, res, next) => {
   try {
     const projectId = parseInt(req.params.projectId);
 
@@ -77,11 +69,7 @@ router.get('/:projectId/milestones', validateParams(projectIdParam), async (req,
     });
   } catch (error) {
     logger.error(`Erreur GET /api/projects/${req.params.projectId}/milestones:`, error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    next(error);
   }
 });
 
@@ -89,7 +77,7 @@ router.get('/:projectId/milestones', validateParams(projectIdParam), async (req,
  * Runs d'automation d'un projet
  * ISTQB: Automated Testing
  */
-router.get('/:projectId/automation', validateParams(projectIdParam), async (req, res) => {
+router.get('/:projectId/automation', validateParams(projectIdParam), async (req, res, next) => {
   try {
     const projectId = parseInt(req.params.projectId);
 
@@ -102,11 +90,7 @@ router.get('/:projectId/automation', validateParams(projectIdParam), async (req,
     });
   } catch (error) {
     logger.error(`Erreur GET /api/projects/${req.params.projectId}/automation:`, error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    next(error);
   }
 });
 

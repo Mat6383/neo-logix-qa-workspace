@@ -16,48 +16,42 @@ const {
 
 // ── Routes statiques (AVANT /:runId) ──────────────────────────────────────
 
-router.get('/folder-cases', validateQuery(folderCasesQuery), async (req, res) => {
+router.get('/folder-cases', validateQuery(folderCasesQuery), async (req, res, next) => {
   try {
     const { syncProjectId, iterationName } = req.query;
     const data = await runManager.getFolderCases(syncProjectId, iterationName);
     res.json({ success: true, data, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur GET /api/runs/folder-cases:', error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
-router.get('/project-runs', validateQuery(projectRunsQuery), async (req, res) => {
+router.get('/project-runs', validateQuery(projectRunsQuery), async (req, res, next) => {
   try {
     const { syncProjectId, activeOnly = 'true' } = req.query;
     const runs = await runManager.getProjectRunsList(syncProjectId, activeOnly === 'true');
     res.json({ success: true, data: runs, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur GET /api/runs/project-runs:', error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
-router.post('/', validateBody(createRunBody), async (req, res) => {
+router.post('/', validateBody(createRunBody), async (req, res, next) => {
   try {
     const { syncProjectId, name, caseIds, milestoneId } = req.body;
     const run = await runManager.createRunFromCases(syncProjectId, name, caseIds, milestoneId);
     res.json({ success: true, data: run, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur POST /api/runs:', error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
 // ── Routes paramétrées ────────────────────────────────────────────────────
 
-router.get('/:runId', validateParams(runIdParam), async (req, res) => {
+router.get('/:runId', validateParams(runIdParam), async (req, res, next) => {
   try {
     const runId = parseInt(req.params.runId);
 
@@ -70,15 +64,11 @@ router.get('/:runId', validateParams(runIdParam), async (req, res) => {
     });
   } catch (error) {
     logger.error(`Erreur GET /api/runs/${req.params.runId}:`, error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    next(error);
   }
 });
 
-router.get('/:runId/results', validateParams(runIdParam), async (req, res) => {
+router.get('/:runId/results', validateParams(runIdParam), async (req, res, next) => {
   try {
     const runId = parseInt(req.params.runId);
     const statusFilter = req.query.status; // Ex: '3,5' pour Failed+Blocked
@@ -92,11 +82,7 @@ router.get('/:runId/results', validateParams(runIdParam), async (req, res) => {
     });
   } catch (error) {
     logger.error(`Erreur GET /api/runs/${req.params.runId}/results:`, error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
+    next(error);
   }
 });
 
@@ -104,7 +90,7 @@ router.post(
   '/:runId/merge-preview',
   validateParams(runIdParam),
   validateBody(mergeBody),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const runId = parseInt(req.params.runId);
       const { caseIds } = req.body;
@@ -113,9 +99,7 @@ router.post(
       res.json({ success: true, data: preview, timestamp: new Date().toISOString() });
     } catch (error) {
       logger.error(`Erreur POST /api/runs/${req.params.runId}/merge-preview:`, error);
-      res
-        .status(500)
-        .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+      next(error);
     }
   }
 );
@@ -124,7 +108,7 @@ router.post(
   '/:runId/merge',
   validateParams(runIdParam),
   validateBody(mergeBody),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const runId = parseInt(req.params.runId);
       const { caseIds } = req.body;
@@ -132,9 +116,7 @@ router.post(
       res.json({ success: true, data: result, timestamp: new Date().toISOString() });
     } catch (error) {
       logger.error(`Erreur POST /api/runs/${req.params.runId}/merge:`, error);
-      res
-        .status(500)
-        .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+      next(error);
     }
   }
 );

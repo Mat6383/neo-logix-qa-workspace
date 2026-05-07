@@ -22,31 +22,43 @@ const apiClient = axios.create({
   }
 });
 
-// Intercepteur pour logging
-apiClient.interceptors.request.use(
-  config => {
-    console.log(`[API] ${config.method.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  error => {
-    console.error('[API] Request error:', error);
-    return Promise.reject(error);
-  }
-);
-
-apiClient.interceptors.response.use(
-  response => {
-    console.log(`[API] Response:`, response.status, response.data);
-    return response;
-  },
-  error => {
-    if (error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+// Intercepteur pour logging — dev uniquement
+if (import.meta.env.DEV) {
+  apiClient.interceptors.request.use(
+    config => {
+      console.log(`[API] ${config.method.toUpperCase()} ${config.url}`);
+      return config;
+    },
+    error => {
+      console.error('[API] Request error:', error);
       return Promise.reject(error);
     }
-    console.error('[API] Response error:', error.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
+  );
+
+  apiClient.interceptors.response.use(
+    response => {
+      console.log(`[API] Response:`, response.status, response.data);
+      return response;
+    },
+    error => {
+      if (error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+        return Promise.reject(error);
+      }
+      console.error('[API] Response error:', error.response?.data || error.message);
+      return Promise.reject(error);
+    }
+  );
+} else {
+  apiClient.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+        return Promise.reject(error);
+      }
+      return Promise.reject(error);
+    }
+  );
+}
 
 /**
  * API Service
@@ -541,8 +553,9 @@ const apiService = {
    */
   _handleError(operation, error) {
     const errorMessage = error.response?.data?.error || error.message;
-    console.error(`[API Service] ${operation} failed:`, errorMessage);
-
+    if (import.meta.env.DEV) {
+      console.error(`[API Service] ${operation} failed:`, errorMessage);
+    }
     return new Error(`${operation}: ${errorMessage}`);
   }
 };

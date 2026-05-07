@@ -114,12 +114,7 @@ class IstqbMetricsService {
           }
           const allRunsData = await Promise.all(runPromises);
 
-          runs = [];
-          allRunsData.forEach((resp) => {
-            if (resp.data.result) {
-              runs = runs.concat(resp.data.result);
-            }
-          });
+          runs = allRunsData.flatMap((resp) => resp.data.result || []);
           logger.info(
             `[getProjectMetrics] Récupération de ${runs.length} runs pour les jalons ${preprodMilestones.join(', ')}`
           );
@@ -398,18 +393,8 @@ class IstqbMetricsService {
             Promise.all(sessionPromises),
           ]);
 
-          allRunsData.forEach((resp) => {
-            if (resp.data.result) {
-              allRuns = allRuns.concat(resp.data.result);
-            }
-          });
-
-          let allSessions = [];
-          allSessionsData.forEach((resp) => {
-            if (resp.data.result) {
-              allSessions = allSessions.concat(resp.data.result);
-            }
-          });
+          allRuns = allRunsData.flatMap((resp) => resp.data.result || []);
+          const allSessions = allSessionsData.flatMap((resp) => resp.data.result || []);
 
           allRuns = Array.from(new Map(allRuns.map((item) => [item.id, item])).values());
           allSessions = Array.from(new Map(allSessions.map((item) => [item.id, item])).values());

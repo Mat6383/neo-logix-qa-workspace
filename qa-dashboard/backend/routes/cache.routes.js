@@ -7,7 +7,7 @@ const logger = require('../services/logger.service');
  * Nettoie le cache (maintenance)
  * LEAN: Gestion optimisée du cache
  */
-router.post('/clear', (req, res) => {
+router.post('/clear', (req, res, next) => {
   try {
     testmoService.clearCache();
     logger.info('Cache cleared manually');
@@ -19,10 +19,7 @@ router.post('/clear', (req, res) => {
     });
   } catch (error) {
     logger.error('Erreur POST /api/cache/clear:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    next(error);
   }
 });
 

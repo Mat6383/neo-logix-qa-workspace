@@ -18,7 +18,7 @@ const CROSSTEST_PROJECT_ID = 63;
  * GET /api/crosstest/iterations
  * Liste les itérations GitLab du projet 63 (avec filtre search optionnel)
  */
-router.get('/iterations', async (req, res) => {
+router.get('/iterations', async (req, res, next) => {
   try {
     const search = req.query.search || '';
     const iterations = await gitlabServiceInstance.searchIterations(CROSSTEST_PROJECT_ID, search);
@@ -29,9 +29,7 @@ router.get('/iterations', async (req, res) => {
     });
   } catch (error) {
     logger.error('Erreur GET /api/crosstest/iterations:', error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
@@ -39,7 +37,7 @@ router.get('/iterations', async (req, res) => {
  * GET /api/crosstest/issues/:iterationId
  * Issues avec label CrossTest::OK pour l'itération donnée
  */
-router.get('/issues/:iterationId', validateParams(iterationIdParam), async (req, res) => {
+router.get('/issues/:iterationId', validateParams(iterationIdParam), async (req, res, next) => {
   try {
     const iterationId = parseInt(req.params.iterationId);
 
@@ -63,9 +61,7 @@ router.get('/issues/:iterationId', validateParams(iterationIdParam), async (req,
     res.json({ success: true, data, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error(`Erreur GET /api/crosstest/issues/${req.params.iterationId}:`, error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
@@ -73,15 +69,13 @@ router.get('/issues/:iterationId', validateParams(iterationIdParam), async (req,
  * GET /api/crosstest/comments
  * Tous les commentaires (indexés par issue_iid)
  */
-router.get('/comments', (req, res) => {
+router.get('/comments', (req, res, next) => {
   try {
     const data = commentsService.getAll();
     res.json({ success: true, data, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur GET /api/crosstest/comments:', error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
@@ -89,16 +83,14 @@ router.get('/comments', (req, res) => {
  * POST /api/crosstest/comments
  * Crée ou met à jour un commentaire { issue_iid, comment, milestone_context }
  */
-router.post('/comments', validateBody(crosstestCommentBody), (req, res) => {
+router.post('/comments', validateBody(crosstestCommentBody), (req, res, next) => {
   try {
     const { issue_iid, comment, milestone_context } = req.body;
     const row = commentsService.upsert(issue_iid, comment, milestone_context || null);
     res.json({ success: true, data: row, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Erreur POST /api/crosstest/comments:', error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
@@ -110,7 +102,7 @@ router.put(
   '/comments/:iid',
   validateParams(iidParam),
   validateBody(crosstestCommentPutBody),
-  (req, res) => {
+  (req, res, next) => {
     try {
       const iid = parseInt(req.params.iid);
       const { comment, milestone_context } = req.body;
@@ -118,9 +110,7 @@ router.put(
       res.json({ success: true, data: row, timestamp: new Date().toISOString() });
     } catch (error) {
       logger.error(`Erreur PUT /api/crosstest/comments/${req.params.iid}:`, error);
-      res
-        .status(500)
-        .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+      next(error);
     }
   }
 );
@@ -129,16 +119,14 @@ router.put(
  * DELETE /api/crosstest/comments/:iid
  * Supprime le commentaire d'une issue
  */
-router.delete('/comments/:iid', validateParams(iidParam), (req, res) => {
+router.delete('/comments/:iid', validateParams(iidParam), (req, res, next) => {
   try {
     const iid = parseInt(req.params.iid);
     const deleted = commentsService.delete(iid);
     res.json({ success: true, deleted, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error(`Erreur DELETE /api/crosstest/comments/${req.params.iid}:`, error);
-    res
-      .status(500)
-      .json({ success: false, error: error.message, timestamp: new Date().toISOString() });
+    next(error);
   }
 });
 
