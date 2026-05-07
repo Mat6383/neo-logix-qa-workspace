@@ -1,7 +1,7 @@
 # QA Dashboard — Roadmap post-audit
 
 Créée le 2026-04-29 après completion des 15 items d'audit.
-Branche de référence : `master` (642 tests verts — 539 backend + 103 frontend).
+Branche de référence : `master` (778 tests verts — 569 backend + 209 frontend).
 
 Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
@@ -58,3 +58,5 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-05-06 | Backend test coverage — nock + 21 nouveaux tests (sync.extractSteps 9, status-sync.integration 6, alerts.integration 6) → 539 tests total | `master` |
 | 2026-05-06 | Prettier backend 8 fichiers (0 warnings) + Vitest Dashboard9 (9 tests) → 594 tests total (539 backend + 55 frontend) | `master` |
 | 2026-05-06 | RunActionPanel 18 tests + Dashboard3-7 22 tests + exportCSV (util + feature + 8 tests) → 642 tests total (539 backend + 103 frontend) | `master` |
+| 2026-05-07 | Tests: Dashboard4, auto-sync-config, syncHistory — 49 tests → 691 total (569 backend + 122 frontend) | `master` |
+| 2026-05-07 | Coverage composants non testés — 11 nouveaux fichiers Vitest (+87 tests) : ErrorBoundary, Toast, RunsList, ModalGroup, StatusChart, MetricsTrendChart, ConfigurationScreen, TvDashboard, QuickClosureModal, TestClosureModal, ReportGeneratorModal → 778 total (569 backend + 209 frontend) | `master` |
