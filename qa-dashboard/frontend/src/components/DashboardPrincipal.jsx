@@ -10,7 +10,7 @@ import { jsPDF } from 'jspdf';
 import ModalGroup from './ModalGroup';
 import { exportMetricsCSV } from '../utils/exportCSV';
 
-const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, setCsvExportHandler, showProductionSection = true, onToggleProductionSection }) => {
+const DashboardPrincipal = ({ metrics, project, projects = [], projectId, onProjectChange, isDark = false, useBusiness = true, setExportHandler, setCsvExportHandler, showProductionSection = true, onToggleProductionSection }) => {
     const dashboardRef = useRef(null);
     const { addToast } = useToast();
     const [showAllRuns, setShowAllRuns] = React.useState(false);
@@ -567,4 +567,4 @@ const Dashboard4 = ({ metrics, project, projects = [], projectId, onProjectChang
     );
 };
 
-export default Dashboard4;
+export default DashboardPrincipal;

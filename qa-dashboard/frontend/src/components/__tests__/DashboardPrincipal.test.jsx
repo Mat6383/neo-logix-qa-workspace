@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Dashboard4 from '../Dashboard4';
+import DashboardPrincipal from '../DashboardPrincipal';
 
 vi.mock('../../hooks/useToast', () => ({
   useToast: () => ({ addToast: vi.fn() }),
@@ -68,67 +68,67 @@ const makeMetrics = (overrides = {}) => ({
 
 const project = { id: 1, name: 'Neo-Pilot' };
 
-describe('Dashboard4 — Vue globale', () => {
+describe('DashboardPrincipal — Vue globale', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('affiche le spinner quand metrics est null', () => {
-    render(<Dashboard4 metrics={null} project={project} />);
+    render(<DashboardPrincipal metrics={null} project={project} />);
     expect(screen.getByText(/Chargement des données ISTQB/i)).toBeInTheDocument();
   });
 
   it('affiche le spinner quand project est null', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={null} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={null} />);
     expect(screen.getByText(/Chargement des données ISTQB/i)).toBeInTheDocument();
   });
 
   it("affiche le nom du projet dans le titre", () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getByText('Neo-Pilot')).toBeInTheDocument();
   });
 
   it('affiche le nom du latestRun (premier run non-exploratoire)', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getAllByText('Run R14').length).toBeGreaterThanOrEqual(1);
   });
 
   it('affiche le taux de complétion', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getAllByText('92%').length).toBeGreaterThanOrEqual(1);
   });
 
   it('affiche le pass rate', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getAllByText('96%').length).toBeGreaterThanOrEqual(1);
   });
 
   it('affiche le taux d\'échec', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getByText('4%')).toBeInTheDocument();
   });
 
   it('affiche les campagnes actives', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getByText(/Campagnes Actives/i)).toBeInTheDocument();
   });
 
   it('affiche le run non-exploratoire et le run exploratory', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getAllByText('Run R14').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Explo Session')).toBeInTheDocument();
   });
 
   it('affiche l\'escape rate en section production', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getByText('2%')).toBeInTheDocument();
   });
 
   it('affiche le taux de détection en section production', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} />);
     expect(screen.getAllByText('97%').length).toBeGreaterThanOrEqual(1);
   });
 
   it('masque la section production quand showProductionSection=false', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} showProductionSection={false} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} showProductionSection={false} />);
     expect(screen.queryByText('Taux d\'Échappement')).not.toBeInTheDocument();
   });
 
@@ -138,7 +138,7 @@ describe('Dashboard4 — Vue globale', () => {
       { id: 2, name: 'Other' },
     ];
     render(
-      <Dashboard4
+      <DashboardPrincipal
         metrics={makeMetrics()}
         project={project}
         projects={projects}
@@ -152,22 +152,22 @@ describe('Dashboard4 — Vue globale', () => {
   });
 
   it('n\'affiche pas le sélecteur quand projects est vide', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} projects={[]} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} projects={[]} />);
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('mode business : affiche les labels FR', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} useBusiness={true} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} useBusiness={true} />);
     expect(screen.getByText(/tests exécutés/i)).toBeInTheDocument();
   });
 
   it('mode technique : affiche les labels EN', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} useBusiness={false} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} useBusiness={false} />);
     expect(screen.getByText(/tests executed/i)).toBeInTheDocument();
   });
 
   it('bascule showAllRuns au clic du toggle', () => {
-    render(<Dashboard4 metrics={makeMetrics()} project={project} useBusiness={true} />);
+    render(<DashboardPrincipal metrics={makeMetrics()} project={project} useBusiness={true} />);
     const toggle = screen.getByText(/Tout afficher/i).closest('div');
     expect(toggle).toBeInTheDocument();
     fireEvent.click(toggle);
@@ -183,7 +183,7 @@ describe('Dashboard4 — Vue globale', () => {
         alerts: [{ metric: 'Pass Rate', severity: 'critical', message: 'Pass rate critique: 80%' }],
       },
     });
-    render(<Dashboard4 metrics={metrics} project={project} />);
+    render(<DashboardPrincipal metrics={metrics} project={project} />);
     expect(screen.getByTestId('icon-alert')).toBeInTheDocument();
   });
 
@@ -194,7 +194,7 @@ describe('Dashboard4 — Vue globale', () => {
         alerts: [{ metric: 'Pass Rate', severity: 'warning', message: 'Pass rate en warning: 91%' }],
       },
     });
-    render(<Dashboard4 metrics={metrics} project={project} useBusiness={true} />);
+    render(<DashboardPrincipal metrics={metrics} project={project} useBusiness={true} />);
     expect(screen.getByText(/Attention :/)).toBeInTheDocument();
   });
 });
