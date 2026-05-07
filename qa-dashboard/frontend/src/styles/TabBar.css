@@ -4,9 +4,14 @@
   border-top: 1px solid var(--border-color);
   background: var(--header-bg);
   padding: 0 var(--spacing-xl);
-  overflow-x: auto;
-  overflow-y: visible;
   position: relative;
+}
+
+.tab-bar-scroll {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  flex: 1;
 }
 
 .tab-item {

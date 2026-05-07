@@ -36,15 +36,17 @@ const TabBar = ({ activeTab, onTabChange }) => {
 
   return (
     <nav className="tab-bar">
-      {PRIMARY_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          className={`tab-item${activeTab === tab.id ? ' tab-active' : ''}`}
-          onClick={() => onTabChange(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
+      <div className="tab-bar-scroll">
+        {PRIMARY_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-item${activeTab === tab.id ? ' tab-active' : ''}`}
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       <div className="tab-tools" ref={toolsRef}>
         <button
