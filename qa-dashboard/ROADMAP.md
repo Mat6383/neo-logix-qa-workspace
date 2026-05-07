@@ -1,7 +1,7 @@
 # QA Dashboard — Roadmap post-audit
 
 Créée le 2026-04-29 après completion des 15 items d'audit.
-Branche de référence : `master` (778 tests verts — 569 backend + 209 frontend).
+Branche de référence : `master` (786 tests verts — 569 backend + 217 frontend).
 
 Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 
@@ -60,3 +60,4 @@ Légende : `✅ done` · `🔄 in progress` · `⬜ todo`
 | 2026-05-06 | RunActionPanel 18 tests + Dashboard3-7 22 tests + exportCSV (util + feature + 8 tests) → 642 tests total (539 backend + 103 frontend) | `master` |
 | 2026-05-07 | Tests: Dashboard4, auto-sync-config, syncHistory — 49 tests → 691 total (569 backend + 122 frontend) | `master` |
 | 2026-05-07 | Coverage composants non testés — 11 nouveaux fichiers Vitest (+87 tests) : ErrorBoundary, Toast, RunsList, ModalGroup, StatusChart, MetricsTrendChart, ConfigurationScreen, TvDashboard, QuickClosureModal, TestClosureModal, ReportGeneratorModal → 778 total (569 backend + 209 frontend) | `master` |
+| 2026-05-07 | Refonte navigation : TabBar 2 rangées (7 tabs primaires + Outils sous-menu), renommage Dashboard4 → DashboardPrincipal, suppression dropdown vues → 786 total (569 backend + 217 frontend) | `master` |
