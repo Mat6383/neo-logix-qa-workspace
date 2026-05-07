@@ -2,51 +2,45 @@
  * ================================================
  * DASHBOARD 8 — Auto-Sync Control Panel
  * ================================================
- * Panneau de contrôle pour la synchronisation
- * automatique Testmo → GitLab.
+ * State container. UI split across:
+ *   D8ConfigForm    — formulaire config run actif
+ *   D8AlertsSection — alertes Slack
  *
- * Fonctionnalités :
- *   - Voir & modifier la config cron à chaud
- *   - Activer / désactiver la sync automatique
- *   - Déclencher une sync manuelle (avec log SSE)
- *   - Déclencher un dry-run pour prévisualiser
- *
- * @author Matou - Neo-Logix QA Lead
+ * Flow: idle ↔ live sync / dry-run (SSE)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Clock, Play, Eye, EyeOff, Save, RefreshCw,
+  Clock, Play, Eye, Save, RefreshCw,
   CheckCircle2, XCircle, AlertCircle,
   ToggleLeft, ToggleRight, Terminal, Zap,
-  Bell, BellOff
 } from 'lucide-react';
 import apiService from '../services/api.service';
+import D8ConfigForm from './D8ConfigForm';
+import D8AlertsSection from './D8AlertsSection';
 import '../styles/Dashboard8.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-// ─── Sous-composant : badge statut ───────────────────────────────────────────
 function StatusBadge({ enabled }) {
   return enabled
     ? <span className="d8-badge d8-badge--on"><CheckCircle2 size={13} /> Actif</span>
     : <span className="d8-badge d8-badge--off"><XCircle size={13} /> Inactif</span>;
 }
 
-// ─── Sous-composant : ligne de log SSE ───────────────────────────────────────
 function LogLine({ entry }) {
   const cls = {
-    info:         'd8-log-info',
-    warn:         'd8-log-warn',
-    error:        'd8-log-error',
-    updated:      'd8-log-updated',
+    info:           'd8-log-info',
+    warn:           'd8-log-warn',
+    error:          'd8-log-error',
+    updated:        'd8-log-updated',
     'would-update': 'd8-log-would',
-    skip:         'd8-log-skip',
-    done:         'd8-log-done',
+    skip:           'd8-log-skip',
+    done:           'd8-log-done',
   }[entry.type] || 'd8-log-info';
 
   let text = '';
-  if (entry.message)  text = entry.message;
+  if (entry.message)           text = entry.message;
   else if (entry.type === 'updated')
     text = `✓ #${entry.issueIid} "${entry.caseName}" → status:${entry.newStatus}`;
   else if (entry.type === 'would-update')
@@ -62,34 +56,32 @@ function LogLine({ entry }) {
   return <div className={`d8-log-line ${cls}`}>{text}</div>;
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
 export default function Dashboard8({ isDark }) {
   const [config, setConfig]         = useState(null);
   const [form, setForm]             = useState({ runId: '', iterationName: '', gitlabProjectId: '', version: '' });
-  const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'ok' | 'error'
+  const [saveStatus, setSaveStatus] = useState(null);
   const [loadError, setLoadError]   = useState(null);
   const [logs, setLogs]             = useState([]);
   const [running, setRunning]       = useState(false);
-  const [runMode, setRunMode]       = useState(null); // 'live' | 'dryrun'
+  const [runMode, setRunMode]       = useState(null);
   const logEndRef = useRef(null);
   const abortRef  = useRef(null);
 
-  const [alertsCfg, setAlertsCfg]               = useState(null);
-  const [alertsForm, setAlertsForm]              = useState(null);
-  const [alertsSaveStatus, setAlertsSaveStatus]  = useState(null);
-  const [alertsTestStatus, setAlertsTestStatus]  = useState(null);
-  const [showWebhook, setShowWebhook]            = useState(false);
-  const [alertsOpen, setAlertsOpen]              = useState(false);
+  const [alertsCfg, setAlertsCfg]              = useState(null);
+  const [alertsForm, setAlertsForm]            = useState(null);
+  const [alertsSaveStatus, setAlertsSaveStatus] = useState(null);
+  const [alertsTestStatus, setAlertsTestStatus] = useState(null);
+  const [showWebhook, setShowWebhook]          = useState(false);
+  const [alertsOpen, setAlertsOpen]            = useState(false);
 
-  // ── Charger la config courante ──────────────────────────────────────────────
   const loadConfig = useCallback(async () => {
     try {
       setLoadError(null);
       const data = await apiService.getAutoSyncConfig();
       setConfig(data);
       setForm({
-        runId:           String(data.runId   ?? ''),
-        iterationName:   data.iterationName  ?? '',
+        runId:           String(data.runId ?? ''),
+        iterationName:   data.iterationName ?? '',
         gitlabProjectId: String(data.gitlabProjectId ?? ''),
         version:         data.version ?? '',
       });
@@ -102,19 +94,14 @@ export default function Dashboard8({ isDark }) {
 
   useEffect(() => {
     apiService.getAlertsConfig()
-      .then((cfg) => {
-        setAlertsCfg(cfg);
-        setAlertsForm(cfg);
-      })
+      .then(cfg => { setAlertsCfg(cfg); setAlertsForm(cfg); })
       .catch(() => {});
   }, []);
 
-  // Scroll automatique vers le bas dans le log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // ── Sauvegarder la config ───────────────────────────────────────────────────
   const handleSave = async () => {
     setSaveStatus('saving');
     try {
@@ -132,37 +119,30 @@ export default function Dashboard8({ isDark }) {
       setConfig(updated);
       setSaveStatus('ok');
       setTimeout(() => setSaveStatus(null), 2500);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(null), 3000);
     }
   };
 
-  // ── Basculer enabled ────────────────────────────────────────────────────────
   const handleToggleEnabled = async () => {
     try {
       const updated = await apiService.updateAutoSyncConfig({ enabled: !config.enabled });
       setConfig(updated);
-    } catch (err) {
-      console.error('Erreur toggle enabled:', err);
-    }
+    } catch { /* non-critical */ }
   };
 
-  // ── Lancer une sync manuelle (SSE) ─────────────────────────────────────────
   const handleRun = async (dryRun = false) => {
     if (running) return;
     setLogs([]);
     setRunning(true);
     setRunMode(dryRun ? 'dryrun' : 'live');
 
-    const pushLog = (entry) => setLogs(prev => [...prev, entry]);
-
-    // Utilise la config courante (déjà sauvegardée)
+    const pushLog = entry => setLogs(prev => [...prev, entry]);
     const { runId, iterationName, gitlabProjectId, version } = config;
 
     if (!runId || !iterationName || !gitlabProjectId) {
-      pushLog({ type: 'error', message: 'Config incomplète — sauvegardez d\'abord les paramètres.' });
+      pushLog({ type: 'error', message: "Config incomplète — sauvegardez d'abord les paramètres." });
       setRunning(false);
       return;
     }
@@ -185,7 +165,7 @@ export default function Dashboard8({ isDark }) {
         return;
       }
 
-      const reader = res.body.getReader();
+      const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
 
@@ -197,10 +177,7 @@ export default function Dashboard8({ isDark }) {
         buffer = lines.pop();
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6));
-              pushLog(event);
-            } catch { /* ignore */ }
+            try { pushLog(JSON.parse(line.slice(6))); } catch { /* ignore */ }
           }
         }
       }
@@ -220,16 +197,12 @@ export default function Dashboard8({ isDark }) {
     setRunMode(null);
   };
 
-  // ─── Calcul prochaine exécution cron (affichage indicatif) ────────────────
   const nextCronInfo = () => {
     const now = new Date();
-    const day  = now.getDay(); // 0=dim, 1=lun ... 5=ven, 6=sam
-    const h    = now.getHours();
-    const m    = now.getMinutes();
-    const isWeekday = day >= 1 && day <= 5;
-    const isInWindow = h >= 8 && h < 18;
-
-    if (isWeekday && isInWindow) {
+    const day = now.getDay();
+    const h   = now.getHours();
+    const m   = now.getMinutes();
+    if (day >= 1 && day <= 5 && h >= 8 && h < 18) {
       const nextMin = m - (m % 5) + 5;
       if (nextMin < 60) return `Aujourd'hui à ${h}h${String(nextMin).padStart(2, '0')}`;
       return `Aujourd'hui à ${h + 1}h00`;
@@ -261,7 +234,6 @@ export default function Dashboard8({ isDark }) {
     }
   };
 
-  // ─── Rendu ────────────────────────────────────────────────────────────────
   if (loadError) {
     return (
       <div className={`d8-root ${isDark ? 'dark' : ''}`}>
@@ -281,15 +253,9 @@ export default function Dashboard8({ isDark }) {
     );
   }
 
-  const formDirty =
-    String(form.runId)           !== String(config.runId ?? '')           ||
-    form.iterationName            !== (config.iterationName ?? '')         ||
-    String(form.gitlabProjectId)  !== String(config.gitlabProjectId ?? '') ||
-    form.version                  !== (config.version ?? '');
-
   return (
     <div className={`d8-root ${isDark ? 'dark' : ''}`}>
-      {/* ── Titre ── */}
+
       <div className="d8-header">
         <div className="d8-header-title">
           <Zap size={22} className="d8-header-icon" />
@@ -302,7 +268,7 @@ export default function Dashboard8({ isDark }) {
 
       <div className="d8-grid">
 
-        {/* ── Carte statut ── */}
+        {/* ── Statut cron ── */}
         <div className="d8-card d8-card--status">
           <div className="d8-card-title"><Clock size={16} /> Statut du cron</div>
 
@@ -333,103 +299,16 @@ export default function Dashboard8({ isDark }) {
           </button>
         </div>
 
-        {/* ── Carte config ── */}
-        <div className="d8-card d8-card--config">
-          <div className="d8-card-title"><Save size={16} /> Configuration du run actif</div>
+        {/* ── Config form ── */}
+        <D8ConfigForm
+          config={config}
+          form={form}
+          setForm={setForm}
+          saveStatus={saveStatus}
+          onSave={handleSave}
+        />
 
-          <div className="d8-form-group">
-            <label>ID du run Testmo</label>
-            <input
-              type="number"
-              className="d8-input"
-              value={form.runId}
-              placeholder="ex : 279"
-              onChange={e => setForm(f => ({ ...f, runId: e.target.value }))}
-            />
-          </div>
-
-          <div className="d8-form-group">
-            <label>Nom de l'itération GitLab</label>
-            <input
-              type="text"
-              className="d8-input"
-              value={form.iterationName}
-              placeholder="ex : R14 - run 1"
-              onChange={e => setForm(f => ({ ...f, iterationName: e.target.value }))}
-            />
-          </div>
-
-          <div className="d8-form-group">
-            <label>ID du projet GitLab</label>
-            <input
-              type="text"
-              className="d8-input"
-              value={form.gitlabProjectId}
-              placeholder="ex : 63"
-              onChange={e => setForm(f => ({ ...f, gitlabProjectId: e.target.value }))}
-            />
-          </div>
-
-          <div className="d8-form-group">
-            <label>Version (champ custom GitLab, optionnel)</label>
-            <input
-              type="text"
-              className="d8-input"
-              value={form.version}
-              placeholder="ex : 1.2.3"
-              onChange={e => setForm(f => ({ ...f, version: e.target.value }))}
-            />
-          </div>
-
-          <div className="d8-form-actions">
-            <button
-              className={`d8-btn-primary ${!formDirty ? 'd8-btn--disabled' : ''}`}
-              onClick={handleSave}
-              disabled={!formDirty || saveStatus === 'saving'}
-            >
-              {saveStatus === 'saving' ? <><RefreshCw size={14} className="spinning" /> Enregistrement…</>
-               : saveStatus === 'ok'   ? <><CheckCircle2 size={14} /> Enregistré !</>
-               : saveStatus === 'error'? <><XCircle size={14} /> Erreur — vérifiez les champs</>
-               : <><Save size={14} /> Enregistrer</>}
-            </button>
-
-            {formDirty && (
-              <button
-                className="d8-btn-ghost"
-                onClick={() => setForm({
-                  runId:           String(config.runId ?? ''),
-                  iterationName:   config.iterationName ?? '',
-                  gitlabProjectId: String(config.gitlabProjectId ?? ''),
-                  version:         config.version ?? '',
-                })}
-              >
-                Annuler
-              </button>
-            )}
-          </div>
-
-          {/* Résumé config active */}
-          <div className="d8-config-summary">
-            <div className="d8-summary-row">
-              <span>Run actif</span>
-              <strong>#{config.runId ?? '—'}</strong>
-            </div>
-            <div className="d8-summary-row">
-              <span>Itération</span>
-              <strong>{config.iterationName || '—'}</strong>
-            </div>
-            <div className="d8-summary-row">
-              <span>Projet GitLab</span>
-              <strong>#{config.gitlabProjectId || '—'}</strong>
-            </div>
-            <div className="d8-summary-row">
-              <span>Version</span>
-              <strong>{config.version || '—'}</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Carte déclenchement manuel ── */}
+        {/* ── Déclenchement manuel ── */}
         <div className="d8-card d8-card--run">
           <div className="d8-card-title"><Terminal size={16} /> Déclenchement manuel</div>
 
@@ -465,7 +344,6 @@ export default function Dashboard8({ isDark }) {
             Le <strong>dry-run</strong> affiche ce qui serait fait sans modifier GitLab.
           </p>
 
-          {/* Log SSE */}
           {logs.length > 0 && (
             <div className="d8-log-container">
               {logs.map((entry, i) => <LogLine key={i} entry={entry} />)}
@@ -474,155 +352,19 @@ export default function Dashboard8({ isDark }) {
           )}
         </div>
 
-      {/* ── Carte Alertes Slack ── */}
-      {alertsForm && (
-        <div className="d8-card d8-card--alerts">
-          <div
-            className="d8-card-title d8-card-title--collapsible"
-            onClick={() => setAlertsOpen((o) => !o)}
-          >
-            <Bell size={16} /> Alertes Slack
-            <span className="d8-collapse-arrow">{alertsOpen ? '▲' : '▼'}</span>
-          </div>
-
-          {alertsOpen && (
-            <div className="d8-alerts-body">
-              <div className="d8-field">
-                <label>Notifications</label>
-                <button
-                  className={`d8-toggle ${alertsForm.enabled ? 'd8-toggle--on' : ''}`}
-                  onClick={() => setAlertsForm((f) => ({ ...f, enabled: !f.enabled }))}
-                >
-                  {alertsForm.enabled ? (
-                    <>
-                      <ToggleRight size={18} /> Activé
-                    </>
-                  ) : (
-                    <>
-                      <ToggleLeft size={18} /> Désactivé
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="d8-field">
-                <label>Webhook URL</label>
-                <div className="d8-input-row">
-                  <input
-                    type={showWebhook ? 'text' : 'password'}
-                    className="d8-input"
-                    placeholder="https://hooks.slack.com/services/..."
-                    value={alertsForm.slack_webhook_url}
-                    onChange={(e) =>
-                      setAlertsForm((f) => ({ ...f, slack_webhook_url: e.target.value }))
-                    }
-                    disabled={!alertsForm.enabled}
-                  />
-                  <button className="d8-btn-icon" onClick={() => setShowWebhook((v) => !v)}>
-                    {showWebhook ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="d8-field">
-                <label>Cooldown (heures)</label>
-                <input
-                  type="number"
-                  className="d8-input d8-input--small"
-                  min={1}
-                  max={168}
-                  value={alertsForm.cooldown_hours}
-                  onChange={(e) =>
-                    setAlertsForm((f) => ({ ...f, cooldown_hours: Number(e.target.value) }))
-                  }
-                  disabled={!alertsForm.enabled}
-                />
-              </div>
-
-              <div className="d8-field">
-                <label>Métriques surveillées</label>
-                <div className="d8-checkboxes">
-                  {[
-                    { key: 'passRate_critical', label: 'Pass Rate critique (< 85%)' },
-                    { key: 'passRate_warning', label: 'Pass Rate warning (< 90%)' },
-                    { key: 'completionRate_warning', label: 'Completion Rate warning (< 80%)' },
-                    { key: 'blockedRate_warning', label: 'Blocked Rate warning (> 5%)' },
-                  ].map(({ key, label }) => (
-                    <label key={key} className="d8-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={alertsForm.metrics[key]}
-                        onChange={(e) =>
-                          setAlertsForm((f) => ({
-                            ...f,
-                            metrics: { ...f.metrics, [key]: e.target.checked },
-                          }))
-                        }
-                        disabled={!alertsForm.enabled}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="d8-alerts-actions">
-                <button
-                  className="d8-btn-primary"
-                  onClick={handleAlertsSave}
-                  disabled={alertsSaveStatus === 'saving'}
-                >
-                  {alertsSaveStatus === 'saving' ? (
-                    <>
-                      <RefreshCw size={14} className="spinning" /> Sauvegarde…
-                    </>
-                  ) : (
-                    <>
-                      <Save size={14} /> Sauvegarder
-                    </>
-                  )}
-                </button>
-                <button
-                  className="d8-btn-secondary"
-                  onClick={handleAlertsTest}
-                  disabled={alertsTestStatus === 'testing' || !alertsForm.slack_webhook_url}
-                >
-                  {alertsTestStatus === 'testing' ? (
-                    <>
-                      <RefreshCw size={14} className="spinning" /> Test…
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={14} /> Tester la connexion
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {alertsSaveStatus === 'ok' && (
-                <p className="d8-feedback d8-feedback--ok">
-                  <CheckCircle2 size={13} /> Config sauvegardée
-                </p>
-              )}
-              {alertsSaveStatus === 'error' && (
-                <p className="d8-feedback d8-feedback--error">
-                  <XCircle size={13} /> Erreur lors de la sauvegarde
-                </p>
-              )}
-              {alertsTestStatus === 'ok' && (
-                <p className="d8-feedback d8-feedback--ok">
-                  <CheckCircle2 size={13} /> Message Slack envoyé ✅
-                </p>
-              )}
-              {alertsTestStatus === 'error' && (
-                <p className="d8-feedback d8-feedback--error">
-                  <XCircle size={13} /> Échec — vérifier le webhook URL
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        {/* ── Alertes Slack ── */}
+        <D8AlertsSection
+          alertsForm={alertsForm}
+          setAlertsForm={setAlertsForm}
+          alertsSaveStatus={alertsSaveStatus}
+          alertsTestStatus={alertsTestStatus}
+          showWebhook={showWebhook}
+          setShowWebhook={setShowWebhook}
+          alertsOpen={alertsOpen}
+          setAlertsOpen={setAlertsOpen}
+          onSave={handleAlertsSave}
+          onTest={handleAlertsTest}
+        />
 
       </div>
     </div>
