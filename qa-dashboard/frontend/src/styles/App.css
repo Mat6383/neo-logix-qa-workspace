@@ -159,14 +159,19 @@ body {
    ========================================== */
 .app-header {
   background: var(--header-bg);
-  padding: var(--spacing-lg) var(--spacing-xl);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   box-shadow: var(--shadow-md);
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+.header-row-1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xl);
 }
 
 .header-left {

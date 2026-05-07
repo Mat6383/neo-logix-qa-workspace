@@ -6,10 +6,10 @@ import ReportGeneratorModal from './ReportGeneratorModal';
 
 /**
  * ModalGroup — encapsulates the 3 modal state hooks, the trigger buttons,
- * and the modal renders for Dashboard4's report/closure actions.
+ * and the modal renders for DashboardPrincipal's report/closure actions.
  *
  * Props:
- *   metrics      — full metrics object passed to Dashboard4
+ *   metrics      — full metrics object passed to DashboardPrincipal
  *   project      — current project object
  *   useBusiness  — boolean (default true) — French/business labels
  *   isDark       — boolean (default false) — dark theme flag
