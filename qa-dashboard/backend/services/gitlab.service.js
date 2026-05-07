@@ -15,9 +15,8 @@ const logger = require('./logger.service');
 class GitLabService {
   constructor() {
     this.baseURL = process.env.GITLAB_URL;
-    this.token = process.env.GITLAB_TOKEN;
-    // Token d'écriture séparé pour modifier les labels (scope api requis)
-    // Si absent, on retombe sur GITLAB_TOKEN (peut échouer en 403 si read-only)
+    // GITLAB_WRITE_TOKEN prioritaire sur GITLAB_TOKEN (superset de permissions)
+    this.token = process.env.GITLAB_WRITE_TOKEN || process.env.GITLAB_TOKEN;
     this.writeToken = process.env.GITLAB_WRITE_TOKEN || process.env.GITLAB_TOKEN;
     this.projectId = process.env.GITLAB_PROJECT_ID;
     this.verifySsl = process.env.GITLAB_VERIFY_SSL !== 'false';
