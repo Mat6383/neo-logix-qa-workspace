@@ -15,8 +15,11 @@ const DashboardPrincipal = ({ metrics, project, projects = [], projectId, onProj
     const { addToast } = useToast();
     const [showAllRuns, setShowAllRuns] = React.useState(false);
 
+    // Declared here (before early return) — assigned after handleExportPDF is defined below
+    const exportHandlerRef = React.useRef(null);
+
     React.useEffect(() => {
-        if (setExportHandler) setExportHandler(() => handleExportPDF);
+        if (setExportHandler) setExportHandler(() => () => exportHandlerRef.current());
         return () => { if (setExportHandler) setExportHandler(null); };
     }, [setExportHandler]);
 
@@ -108,6 +111,9 @@ const DashboardPrincipal = ({ metrics, project, projects = [], projectId, onProj
             addToast({ message: 'Erreur lors de la génération du PDF', type: 'error' });
         }
     };
+
+    // Keep ref current so the registered handler always uses the latest isDark value
+    exportHandlerRef.current = handleExportPDF;
 
     return (
         <div style={{ padding: '0.5rem', width: '100%', margin: '0 auto' }}>

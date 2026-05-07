@@ -10,54 +10,13 @@
  */
 
 const logger = require('./logger.service');
-
-// ─── Standalone helpers (exportés pour tests) ───────────────────────────────
-
-function _calculatePercentage(value, total) {
-  if (!total || total === 0) return 0;
-  return parseFloat(((value / total) * 100).toFixed(2));
-}
-
-function aggregateSessions(sessions) {
-  const aggregated = {
-    total: 0,
-    passed: 0,
-    failed: 0,
-    completed: 0,
-    success: 0,
-    failure: 0,
-    wip: 0,
-  };
-
-  sessions.forEach((session) => {
-    const successCount = session.success_count || 0;
-    const failureCount = session.failure_count || 0;
-    const sessionTotal = successCount + failureCount;
-
-    if (sessionTotal > 0) {
-      aggregated.total += sessionTotal;
-      aggregated.passed += successCount;
-      aggregated.failed += failureCount;
-      aggregated.completed += sessionTotal;
-      aggregated.success += successCount;
-      aggregated.failure += failureCount;
-    } else {
-      aggregated.total += 1;
-      aggregated.wip += 1;
-    }
-  });
-
-  return aggregated;
-}
-
-function globalMetrics(aggregated) {
-  return {
-    completionRate: _calculatePercentage(aggregated.completed, aggregated.total),
-    passRate: _calculatePercentage(aggregated.passed, aggregated.completed),
-    failureRate: _calculatePercentage(aggregated.failed, aggregated.completed),
-    testEfficiency: _calculatePercentage(aggregated.passed, aggregated.passed + aggregated.failed),
-  };
-}
+const {
+  calculatePercentage: _calculatePercentage,
+  aggregateSessions,
+  globalMetrics,
+} = require('../utils/metrics.utils');
+const { withTimeout } = require('../utils/async.utils');
+const { SLA_THRESHOLDS } = require('../config/thresholds.config');
 
 // ─── Service class ───────────────────────────────────────────────────────────
 
@@ -112,7 +71,7 @@ class IstqbMetricsService {
               })
             );
           }
-          const allRunsData = await Promise.all(runPromises);
+          const allRunsData = await withTimeout(Promise.all(runPromises), 15000, 'fetchRunsByMilestone');
 
           runs = allRunsData.flatMap((resp) => resp.data.result || []);
           logger.info(
@@ -149,14 +108,14 @@ class IstqbMetricsService {
       }
 
       // Fetch dynamic TV metrics (Closed Runs & Milestones)
-      const [closedRunsResponse, milestonesResponse] = await Promise.all([
+      const [closedRunsResponse, milestonesResponse] = await withTimeout(Promise.all([
         client
           .get(`/projects/${projectId}/runs`, { params: { is_closed: 1, per_page: 100 } })
           .catch(() => ({ data: { total: 0 } })),
         client
           .get(`/projects/${projectId}/milestones`, { params: { per_page: 100 } })
           .catch(() => ({ data: { result: [] } })),
-      ]);
+      ]), 15000, 'fetchClosedRunsAndMilestones');
 
       const closedRunsCount = closedRunsResponse.data.total || 0;
       const milestones = milestonesResponse.data.result || [];
@@ -388,10 +347,11 @@ class IstqbMetricsService {
               })
             );
           }
-          const [allRunsData, allSessionsData] = await Promise.all([
-            Promise.all(runPromises),
-            Promise.all(sessionPromises),
-          ]);
+          const [allRunsData, allSessionsData] = await withTimeout(
+            Promise.all([Promise.all(runPromises), Promise.all(sessionPromises)]),
+            15000,
+            'fetchRunsAndSessionsByMilestone'
+          );
 
           allRuns = allRunsData.flatMap((resp) => resp.data.result || []);
           let allSessions = allSessionsData.flatMap((resp) => resp.data.result || []);
@@ -861,12 +821,6 @@ class IstqbMetricsService {
    * @private
    */
   _checkSLA(metrics) {
-    const SLA_THRESHOLDS = {
-      passRate: { target: 95, warning: 90, critical: 85 },
-      blockedRate: { max: 5 },
-      completionRate: { target: 90, warning: 80 },
-    };
-
     const alerts = [];
 
     if (metrics.passRate < SLA_THRESHOLDS.passRate.critical) {
