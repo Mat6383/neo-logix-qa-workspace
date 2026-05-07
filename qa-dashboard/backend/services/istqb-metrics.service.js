@@ -394,7 +394,7 @@ class IstqbMetricsService {
           ]);
 
           allRuns = allRunsData.flatMap((resp) => resp.data.result || []);
-          const allSessions = allSessionsData.flatMap((resp) => resp.data.result || []);
+          let allSessions = allSessionsData.flatMap((resp) => resp.data.result || []);
 
           allRuns = Array.from(new Map(allRuns.map((item) => [item.id, item])).values());
           allSessions = Array.from(new Map(allSessions.map((item) => [item.id, item])).values());
