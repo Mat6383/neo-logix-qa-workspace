@@ -199,6 +199,7 @@ class SyncService {
    * @returns {{ parent: string, child: string }}
    */
   parseIterationName(iterationName) {
+    if (!iterationName) return { parent: '', child: '' };
     // Cas cadences auto GitLab : "Itération #N (date → date)"
     const generatedMatch =
       iterationName.match(/#(\d+)/) && /it.ration/i.test(iterationName)

@@ -37,6 +37,24 @@ describe('parseIterationName', () => {
     expect(result.parent).toBe('R14');
     expect(result.child).toBe('R14');
   });
+
+  test('null → retourne { parent: "", child: "" } sans crash', () => {
+    const result = syncService.parseIterationName(null);
+    expect(result.parent).toBe('');
+    expect(result.child).toBe('');
+  });
+
+  test('undefined → retourne { parent: "", child: "" } sans crash', () => {
+    const result = syncService.parseIterationName(undefined);
+    expect(result.parent).toBe('');
+    expect(result.child).toBe('');
+  });
+
+  test('chaîne vide → retourne { parent: "", child: "" }', () => {
+    const result = syncService.parseIterationName('');
+    expect(result.parent).toBe('');
+    expect(result.child).toBe('');
+  });
 });
 
 // ─── syncIteration — dryRun ──────────────────────────────────────────────────
@@ -73,12 +91,14 @@ describe('syncIteration — dryRun=true', () => {
         },
       ]),
     });
+    const createCase = jest.fn();
     Object.assign(testmoModule, {
       getOrCreateFolder: jest
         .fn()
         .mockResolvedValueOnce({ id: 10, name: '[TEST-API] R06' })
         .mockResolvedValueOnce({ id: 11, name: 'R06 - run 1' }),
       findCaseByName: jest.fn().mockResolvedValue(null),
+      createCase,
     });
 
     const stats = await syncService.syncIteration(
@@ -90,6 +110,7 @@ describe('syncIteration — dryRun=true', () => {
 
     expect(stats.created).toBe(2);
     expect(stats.errors).toBe(0);
+    expect(createCase).not.toHaveBeenCalled();
   });
 
   test('retourne une erreur si itération non trouvée', async () => {
